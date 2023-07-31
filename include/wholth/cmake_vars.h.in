@@ -1,0 +1,13 @@
+#ifndef WHOLTH_CMAKE_VARS_H_
+#define WHOLTH_CMAKE_VARS_H_
+
+#define PROJECT_DIR "@PROJECT_SOURCE_DIR@"
+
+#define MIGRATIONS_DIR "@CMAKE_CURRENT_SOURCE_DIR@/migrations"
+
+#define DATABASE_DIR "@CMAKE_INSTALL_PREFIX@"
+
+#define DATABASE_NAME "wholth.db"
+
+#endif // WHOLTH_CMAKE_VARS_H_
+
