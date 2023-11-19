@@ -51,7 +51,8 @@ FetchContent_Declare(
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        383d140bae7cc96b351fe370c9b8fdb4aee34aba
+  GIT_TAG        29d1d8b2be7e4e2c09c90d19a901960634accf67
+)
 )
 
 FetchContent_MakeAvailable(glfw glm sqlw)
