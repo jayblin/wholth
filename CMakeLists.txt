@@ -53,9 +53,26 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
   GIT_TAG        29d1d8b2be7e4e2c09c90d19a901960634accf67
 )
+
+FetchContent_Declare(
+  gsl
+  GIT_REPOSITORY https://github.com/microsoft/GSL.git
+  GIT_TAG        v4.0.0
 )
 
 FetchContent_MakeAvailable(glfw glm sqlw)
+
+
+FetchContent_GetProperties(
+	gsl
+	SOURCE_DIR SRC_DIR_GSL
+	BINARY_DIR BIN_DIR_GSL
+	POPULATED POPULATED_GSL
+)
+
+target_link_libraries(
+	Microsoft.GSL::GSL
+)
 
 target_link_libraries(
 	wholth
@@ -80,8 +97,9 @@ add_custom_target(wholth_tests_t)
 
 add_executable(
 	wholth_tests
-	tests/main.cpp
-	# tests/main_2.cpp
+	src/db/db.cpp
+	src/entity/food.cpp
+	tests/food.cpp
 )
 
 target_link_libraries(
@@ -92,7 +110,7 @@ target_link_libraries(
 )
 
 target_include_directories(
-	wholth
+	wholth_tests
 	PUBLIC
 		include
 )
