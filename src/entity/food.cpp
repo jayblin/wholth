@@ -1,8 +1,27 @@
 #include "wholth/entity/food.hpp"
+#include <sstream>
 
 entity::food::Input entity::food::input::initialize()
 {
-return {{"##food_title"}, {"##food_calories"}};
+	return {{"##food_title"}, {"##food_calories"}};
+}
+
+static std::string_view create_join(const FoodsQuery& q)
+{
+	/* if (q.locale_id.npos == q.locale_id.find(",")) */
+	/* { */
+	/* 	return "LEFT JOIN food_localisation fl " */
+	/* 	   "ON fl.food_id = f.id AND fl.locale_id IN (?1) "; */
+	/* } */
+
+	if (q.locale_id.size() == 0)
+	{
+		return "LEFT JOIN food_localisation fl "
+		   "ON fl.food_id = f.id ";
+	}
+
+	return "LEFT JOIN food_localisation fl "
+	   "ON fl.food_id = f.id AND fl.locale_id = ?1 ";
 }
 
 static std::string create_entity_query_sql(
@@ -11,18 +30,11 @@ static std::string create_entity_query_sql(
 {
 	std::stringstream stream;
 	std::stringstream where_stream;
-	std::string_view join;
+	auto join = create_join(q);
 
 	if (q.title.size() > 0)
 	{
 		where_stream << "WHERE fl.title LIKE ?2 ";
-		join = " LEFT JOIN food_localisation fl "
-		   "ON fl.food_id = f.id ";
-	}
-	else
-	{
-		join = " LEFT JOIN food_localisation fl "
-		   "ON fl.food_id = f.id AND fl.locale_id = ?1 ";
 	}
 
 	auto where = where_stream.str();
@@ -47,18 +59,11 @@ static std::string create_pagination_query_sql(const FoodsQuery& q)
 {
 	std::stringstream stream;
 	std::stringstream where_stream;
-	std::string_view join;
+	auto join = create_join(q);
 
 	if (q.title.size() > 0)
 	{
 		where_stream << "WHERE fl.title LIKE ?2 ";
-		join = "LEFT JOIN food_localisation fl "
-		   "ON fl.food_id = f.id ";
-	}
-	else
-	{
-		join = " LEFT JOIN food_localisation fl "
-		   "ON fl.food_id = f.id AND fl.locale_id = ?1 ";
 	}
 
 	auto where = where_stream.str();
@@ -113,7 +118,10 @@ PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
 
 	stmt.prepare({entity_sql.data() + q.title.size() + 2});
 
-	stmt.bind(1, q.locale_id, sqlw::Type::SQL_INT);
+	if (q.locale_id.size() > 0)
+	{
+		stmt.bind(1, q.locale_id, sqlw::Type::SQL_INT);
+	}
 
 	if (q.title.size() > 0)
 	{
@@ -139,7 +147,10 @@ PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
 
 	stmt.prepare(paginator_sql);
 
-	stmt.bind(1, q.locale_id, sqlw::Type::SQL_INT);
+	if (q.locale_id.size() > 0)
+	{
+		stmt.bind(1, q.locale_id, sqlw::Type::SQL_INT);
+	}
 
 	if (q.title.size() > 0)
 	{
@@ -197,7 +208,7 @@ PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
 		entity::food::View entry;
 
 		std::apply(
-			[&offset, &lengths, &buffer_ref, j, &entry](auto&&... args)
+			[&offset, &lengths, &buffer_ref, j](auto&&... args)
 			{
 				size_t k = 0;
 				(

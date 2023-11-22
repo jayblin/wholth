@@ -35,14 +35,18 @@ GTEST_TEST(FoodViewList, test_list)
 		" (3,'10-10-2010',102),"
 		" (4,'10-10-2010',103),"
 		" (5,'10-10-2010',104),"
-		" (6,'10-10-2010',105);"
+		" (6,'10-10-2010',105)"
 	);
-	stmt( "INSERT INTO locale (alias) VALUES ('EN');");
+	stmt("INSERT INTO locale (id,alias) VALUES (2,'EN')");
+	stmt("INSERT INTO locale (id,alias) VALUES (3,'DE')");
 	stmt("INSERT INTO food_localisation (food_id, locale_id, title, description) "
-		"VALUES (1, 0, 'Salt', 'UEUEU'),"
-		"(2, 1, 'Cacao', NULL),"
-		"(5, 1, 'Salia', NULL),"
-		"(1, 1, 'Salta', NULL);"
+		"VALUES "
+		"(1, 1, 'Salt', NULL),"
+		"(2, 2, 'Cacao', NULL),"
+		"(5, 2, 'Salia', NULL),"
+		"(5, 3, 'Saliagr', NULL),"
+		"(1, 2, 'Salta', NULL),"
+		"(4, 2, 'Saltabar', NULL)"
 	);
 
 	ViewList<entity::food::View> list;
@@ -51,7 +55,7 @@ GTEST_TEST(FoodViewList, test_list)
 		FoodsQuery q {
 			.limit = 2,
 			.page = 0,
-			.locale_id = "0",
+			.locale_id = "1",
 		};
 		PaginationInfo info = list.query_page(&db_con, q);
 
@@ -73,20 +77,34 @@ GTEST_TEST(FoodViewList, test_list)
 		FoodsQuery q {
 			.limit = 10,
 			.page = 0,
-			.locale_id = "0",
+			.locale_id = "2",
 			.title = "Sal",
 		};
 		auto info = list.query_page(&db_con, q);
 
-		for (size_t i = 0; i < list.size(); i++)
-		{
-			const entity::food::View& l = list[i];
+		ASSERT_EQ(10, list.size());
 
-			if (entity::get<entity::food::view::id>(l).size() == 0)
-			{
-				break;
-			}
-		}
+		ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0]));
+		ASSERT_STREQ2("Salta", entity::get<entity::food::view::title>(list[0]));
+		ASSERT_STREQ2("100", entity::get<entity::food::view::calories>(list[0]));
+
+		ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[1]));
+		ASSERT_STREQ2("Saltabar", entity::get<entity::food::view::title>(list[1]));
+		ASSERT_STREQ2("103", entity::get<entity::food::view::calories>(list[1]));
+
+		ASSERT_STREQ2("1", info.max_page);
+		ASSERT_STREQ2("3", info.element_count);
+		ASSERT_STREQ2("1/1", info.progress_string);
+	}
+
+	{
+		FoodsQuery q {
+			.limit = 10,
+			.page = 0,
+			.locale_id = "",
+			.title = "Sal",
+		};
+		auto info = list.query_page(&db_con, q);
 
 		ASSERT_EQ(10, list.size());
 
@@ -98,12 +116,16 @@ GTEST_TEST(FoodViewList, test_list)
 		ASSERT_STREQ2("Salta", entity::get<entity::food::view::title>(list[1]));
 		ASSERT_STREQ2("100", entity::get<entity::food::view::calories>(list[1]));
 
-		ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[2]));
-		ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[2]));
-		ASSERT_STREQ2("104", entity::get<entity::food::view::calories>(list[2]));
+		ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[2]));
+		ASSERT_STREQ2("Saltabar", entity::get<entity::food::view::title>(list[2]));
+		ASSERT_STREQ2("103", entity::get<entity::food::view::calories>(list[2]));
+
+		ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[3]));
+		ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[3]));
+		ASSERT_STREQ2("104", entity::get<entity::food::view::calories>(list[3]));
 
 		ASSERT_STREQ2("1", info.max_page);
-		ASSERT_STREQ2("3", info.element_count);
+		ASSERT_STREQ2("5", info.element_count);
 		ASSERT_STREQ2("1/1", info.progress_string);
 	}
 
@@ -111,20 +133,10 @@ GTEST_TEST(FoodViewList, test_list)
 		FoodsQuery q {
 			.limit = 2,
 			.page = 1,
-			.locale_id = "0",
+			.locale_id = "2",
 			.title = "Sal",
 		};
 		auto info = list.query_page(&db_con, q);
-
-		for (size_t i = 0; i < list.size(); i++)
-		{
-			const entity::food::View& l = list[i];
-
-			if (entity::get<entity::food::view::id>(l).size() == 0)
-			{
-				break;
-			}
-		}
 
 		ASSERT_EQ(2, list.size());
 
