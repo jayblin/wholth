@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS cooking_action_localisation (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	cooking_action_id INTEGER NOT NULL,
 	locale_id INTEGER NOT NULL,
 	title TEXT NOT NULL,
