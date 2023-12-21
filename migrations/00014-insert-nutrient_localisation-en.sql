@@ -146,7 +146,7 @@ INSERT INTO nutrient_localisation (nutrient_id,locale_id,title) VALUES
 	 (1145,1,'Mercury, Hg'),
 	 (1146,1,'Nickel, Ni'),
 	 (1147,1,'Rubidium, Rb'),
-	 (1148,1,'Fluoride - DO NOT USE, use 313');
+	 (1148,1,'Fluoride - DO NOT USE, use 313'),
 	 (1149,1,'Salt, NaCl'),
 	 (1150,1,'Silicon, Si'),
 	 (1151,1,'Silver, Ag'),
@@ -473,5 +473,4 @@ INSERT INTO nutrient_localisation (nutrient_id,locale_id,title) VALUES
 	 (2065,1,'Low Molecular Weight Dietary Fiber (LMWDF)'),
 	 (2068,1,'Vitamin E'),
 	 (2067,1,'Vitamin A'),
-	 (2069,1,'Glutathione');
-
+	 (2069,1,'Glutathione')
