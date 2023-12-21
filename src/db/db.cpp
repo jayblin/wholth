@@ -110,12 +110,7 @@ static void print_sql_error(const sqlw::Connection* con)
  * 	- Add return codes;
  * 	- Add tests for return codes.
  */
-int db::migration::migrate(
-    /* std::filesystem::path database_path, */
-	sqlw::Connection* con,
-    std::filesystem::path migrations_dir,
-	bool log
-)
+int db::migration::migrate(MigrateArgs args)
 {
 	/* if ( */
 	/* 	database_path.compare(":memory:") != 0 */
@@ -128,23 +123,23 @@ int db::migration::migrate(
 	/* } */
 
 	/* sqlw::Connection con {database_path.string()}; */
-	const auto executed_migrations = find_executed_migrations(con);
+	const auto executed_migrations = find_executed_migrations(args.con);
 
-	if (log)
+	if (args.log)
 	{
 		std::cout << "A total of " << executed_migrations.size()
 				  << " already executed migrations found\n";
 	}
 
-	if (!sqlw::status::is_ok(con->status()))
+	if (!sqlw::status::is_ok(args.con->status()))
 	{
-		print_sql_error(con);
+		print_sql_error(args.con);
 		return 1;
 	}
 
-	sqlw::Statement stmt {con};
+	sqlw::Statement stmt {args.con};
 
-	const auto path = std::filesystem::path {migrations_dir};
+	const auto path = std::filesystem::path {args.migrations_dir};
 
 	std::set<std::filesystem::directory_entry> sorted_by_name;
 
@@ -155,7 +150,10 @@ int db::migration::migrate(
 	
 	for (const auto& entry : sorted_by_name)
 	{
-		if (check_if_migrated_already(entry, executed_migrations))
+		if (
+			check_if_migrated_already(entry, executed_migrations)
+			|| (args.filter && !args.filter(entry))
+		)
 		{
 			continue;
 		}
@@ -163,16 +161,16 @@ int db::migration::migrate(
 		stmt("BEGIN EXCLUSIVE TRANSACTION;"
 		     "SAVEPOINT actual_migration_sp;");
 
-		if (log)
+		if (args.log)
 		{
 			std::cout << "migrating " << entry.path() << "\n";
 		}
 
-		execute_migration(con, entry);
+		execute_migration(args.con, entry);
 
-		if (!sqlw::status::is_ok(con->status()))
+		if (!sqlw::status::is_ok(args.con->status()))
 		{
-			print_sql_error(con);
+			print_sql_error(args.con);
 
 			stmt("ROLLBACK TO actual_migration_sp;"
 			     "ROLLBACK;");
@@ -184,16 +182,16 @@ int db::migration::migrate(
 
 		stmt("SAVEPOINT migration_log_sp");
 
-		if (log)
+		if (args.log)
 		{
 			std::cout << "logging migration " << entry.path().filename().string()
 		          << "\n";
 		}
-		log_migration(con, entry);
+		log_migration(args.con, entry);
 
-		if (!sqlw::status::is_ok(con->status()))
+		if (!sqlw::status::is_ok(args.con->status()))
 		{
-			print_sql_error(con);
+			print_sql_error(args.con);
 
 			stmt("ROLLBACK TO migration_log_sp;"
 			     "ROLLBACK;");
