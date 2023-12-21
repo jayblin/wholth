@@ -7,7 +7,7 @@
 #include "wholth/pager.hpp"
 #include "wholth/entity/utils.hpp"
 
-namespace entity::food
+namespace wholth::entity::food
 {
 	namespace view
 	{
@@ -39,6 +39,8 @@ namespace entity::food
 	};
 };
 
+namespace wholth {
+
 struct FoodsQuery
 {
 	uint32_t limit {20};
@@ -53,5 +55,7 @@ PaginationInfo Pager<entity::food::View>::query_page<FoodsQuery>(
 	sqlw::Connection*,
 	const FoodsQuery&
 );
+
+}
 
 #endif // WHOLTH_ENTITY_FOOD_H_

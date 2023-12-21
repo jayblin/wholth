@@ -8,6 +8,8 @@
 #include <vector>
 #include "wholth/concepts.hpp"
 
+namespace wholth {
+
 template <typename View>
 class Pager
 {
@@ -25,5 +27,7 @@ private:
 	uint32_t m_buffer_idx {0};
 	std::array<std::string, 2> m_buffers;
 };
+
+}
 
 #endif // WHOLTH_PAGER_H_

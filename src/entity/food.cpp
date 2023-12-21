@@ -2,12 +2,12 @@
 #include "fmt/core.h"
 #include <sstream>
 
-entity::food::Input entity::food::input::initialize()
+wholth::entity::food::Input wholth::entity::food::input::initialize()
 {
 	return {{"##food_title"}, {"##food_calories"}};
 }
 
-static std::string_view create_join(const FoodsQuery& q)
+static std::string_view create_join(const wholth::FoodsQuery& q)
 {
 	/* if (q.locale_id.npos == q.locale_id.find(",")) */
 	/* { */
@@ -26,7 +26,7 @@ static std::string_view create_join(const FoodsQuery& q)
 }
 
 static std::string create_entity_query_sql(
-	const FoodsQuery& q
+	const wholth::FoodsQuery& q
 )
 {
 	return fmt::format(
@@ -49,7 +49,7 @@ static std::string create_entity_query_sql(
 	);
 }
 
-static std::string create_pagination_query_sql(const FoodsQuery& q)
+static std::string create_pagination_query_sql(const wholth::FoodsQuery& q)
 {
 	return fmt::format(
 		"SELECT "
@@ -72,7 +72,7 @@ static std::string create_pagination_query_sql(const FoodsQuery& q)
 }
 
 template<> template<>
-PaginationInfo Pager<entity::food::View>::query_page<FoodsQuery>(
+PaginationInfo wholth::Pager<wholth::entity::food::View>::query_page<wholth::FoodsQuery>(
 	std::span<entity::food::View> span,
 	sqlw::Connection* con,
 	const FoodsQuery& q

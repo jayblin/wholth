@@ -6,6 +6,8 @@
 #include "gsl/gsl"
 #include "wholth/concepts.hpp"
 
+namespace wholth {
+
 template <size_t Size>
 struct TextInput
 {
@@ -50,6 +52,8 @@ namespace entity
 	{
 		return std::get<T::index>(entry);
 	}
+}
+
 }
 
 #endif // WHOLTH_ENTITY_UTILS_H_

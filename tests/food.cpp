@@ -19,6 +19,8 @@ static void error_log_callback(void *pArg, int iErrCode, const char *zMsg)
 
 GTEST_TEST(FoodViewList, test_list)
 {
+	using namespace wholth;
+
 	sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, nullptr);
 
 	sqlw::Connection db_con {":memory:"};
