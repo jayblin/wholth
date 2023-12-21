@@ -1,4 +1,5 @@
 #include "wholth/entity/food.hpp"
+#include "fmt/core.h"
 #include <sstream>
 
 entity::food::Input entity::food::input::initialize()
@@ -28,65 +29,51 @@ static std::string create_entity_query_sql(
 	const FoodsQuery& q
 )
 {
-	std::stringstream stream;
-	std::stringstream where_stream;
-	auto join = create_join(q);
-
-	if (q.title.size() > 0)
-	{
-		where_stream << "WHERE fl.title LIKE ?2 ";
-	}
-
-	auto where = where_stream.str();
-
-	stream
-		<< '%' << q.title << '%'
-		<< "SELECT "
-		   "f.id, "
-		   "CASE WHEN fl.id IS NOT NULL THEN fl.title ELSE '[N/A]' END AS title, "
-		   "f.calories "
-		<< "FROM food f "
-		<< join
-		<< where
-		<< "ORDER BY f.id, fl.title "
-		<< "LIMIT " << q.limit << ' '
-		<< "OFFSET " << (q.limit * q.page);
-
-	return stream.str();
+	return fmt::format(
+		"%{0}%"
+		"SELECT "
+			"f.id, "
+			"CASE WHEN fl.title IS NOT NULL THEN fl.title ELSE '[N/A]' END AS title, "
+			"CASE WHEN fl.description IS NOT NULL THEN fl.description ELSE '[N/A]' END AS title "
+		"FROM food f "
+		" {1} "
+		" {2} "
+		"ORDER BY f.id, fl.title "
+		"LIMIT {3} "
+		"OFFSET {4}",
+		q.title,
+		create_join(q),
+		q.title.size() > 0 ? " WHERE fl.title LIKE ?2  " : "",
+		q.limit,
+		q.limit * q.page
+	);
 }
 
 static std::string create_pagination_query_sql(const FoodsQuery& q)
 {
-	std::stringstream stream;
-	std::stringstream where_stream;
-	auto join = create_join(q);
-
-	if (q.title.size() > 0)
-	{
-		where_stream << "WHERE fl.title LIKE ?2 ";
-	}
-
-	auto where = where_stream.str();
-
-	stream
-		<< "SELECT "
+	return fmt::format(
+		"SELECT "
 			"r.cnt AS cnt, "
-			"MAX(1, CAST(ROUND(CAST(r.cnt AS float) / " << q.limit << " + 0.49) AS int)) AS max_page, "
-			<< '\'' << (q.page + 1) << "/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / " << q.limit << " + 0.49) AS int))) AS paginator_str "
-			"FROM ( "
-				"SELECT "
-				"COUNT(f.id) AS cnt "
-				"FROM food f "
-			<< join
-			<< where
-			<< ") r "
-	;
-
-	return stream.str();
+			"MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {0} + 0.49) as int)) AS max_page, "
+			"'{1}' || '/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {2} + 0.49) AS int))) AS paginator_str "
+		"FROM ( "
+			"SELECT "
+			"COUNT(f.id) AS cnt "
+			"FROM food f "
+			" {3} "
+			" {4} "
+		") AS r",
+		q.limit,
+		q.page + 1,
+		q.limit,
+		create_join(q),
+		q.title.size() > 0 ? " WHERE fl.title LIKE ?2 " : ""
+	);
 }
 
 template<> template<>
-PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
+PaginationInfo Pager<entity::food::View>::query_page<FoodsQuery>(
+	std::span<entity::food::View> span,
 	sqlw::Connection* con,
 	const FoodsQuery& q
 )
@@ -94,13 +81,6 @@ PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
 	PaginationInfo p_info {};
 
 	size_t buffer_idx = (m_buffer_idx + 1) % 2;
-
-	if (m_list.size() != q.limit)
-	{
-		m_list.clear();
-		// @todo read about resizing.
-		m_list.resize(q.limit);
-	}
 
 	sqlw::Statement stmt {con};
 	constexpr auto field_count = std::tuple_size_v<entity::food::View>;
@@ -192,16 +172,16 @@ PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
 	}
 
 	size_t total_fetched = std::min(
-		m_list.size(),
+		span.size(),
 		i / field_count
 	);
 	uint32_t offset = 0;
 
-	for (size_t j = 0; j < m_list.size(); j++)
+	for (size_t j = 0; j < span.size(); j++)
 	{
 		if (j >= total_fetched)
 		{
-			m_list[j] = {};
+			span[j] = {};
 			continue;
 		}
 
@@ -226,16 +206,7 @@ PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
 			entry
 		);
 
-		m_list[j] = entry;
-	}
-
-	for (size_t o = 0; o < this->size(); o++)
-	{
-		const auto& l = m_list[o];
-		if (entity::get<entity::food::view::id>(l).size() == 0)
-		{
-			break;
-		}
+		span[j] = entry;
 	}
 
 	p_info.element_count = {

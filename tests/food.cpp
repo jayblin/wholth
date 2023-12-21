@@ -7,7 +7,7 @@
 #include "wholth/cmake_vars.h"
 #include "wholth/entity/utils.hpp"
 #include "wholth/utils.hpp"
-#include "wholth/view_list.hpp"
+#include "wholth/pager.hpp"
 #include "wholth/entity/food.hpp"
 
 static void error_log_callback(void *pArg, int iErrCode, const char *zMsg)
@@ -17,39 +17,48 @@ static void error_log_callback(void *pArg, int iErrCode, const char *zMsg)
 
 #define ASSERT_STREQ2(a,b) ASSERT_STREQ(a, std::string{b}.data());
 
-
-
 GTEST_TEST(FoodViewList, test_list)
 {
 	sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, nullptr);
 
 	sqlw::Connection db_con {":memory:"};
 
-	db::migration::migrate(&db_con, MIGRATIONS_DIR, false);
+	db::migration::migrate({
+		.con = &db_con,
+		.migrations_dir = MIGRATIONS_DIR,
+		.filter = [] (const std::filesystem::directory_entry& entry) {
+			// Skip migrations that insert values.
+			const auto is_insert_migration = std::string_view{entry.path().filename().c_str()}.find("-insert-");
+
+			return is_insert_migration == std::string_view::npos;
+		},
+		.log = false,
+	});
 
 	sqlw::Statement stmt {&db_con};
 
-	stmt("INSERT INTO food (id, created_at, calories) "
-		"VALUES (1,'10-10-2010',100),"
-		" (2,'10-10-2010',101),"
-		" (3,'10-10-2010',102),"
-		" (4,'10-10-2010',103),"
-		" (5,'10-10-2010',104),"
-		" (6,'10-10-2010',105)"
+	stmt("INSERT INTO food (id, created_at) "
+		"VALUES (1,'10-10-2010'),"
+		" (2,'10-10-2010'),"
+		" (3,'10-10-2010'),"
+		" (4,'10-10-2010'),"
+		" (5,'10-10-2010'),"
+		" (6,'10-10-2010')"
 	);
-	stmt("INSERT INTO locale (id,alias) VALUES (2,'EN')");
+	stmt("INSERT INTO locale (id,alias) VALUES (2,'RU')");
 	stmt("INSERT INTO locale (id,alias) VALUES (3,'DE')");
 	stmt("INSERT INTO food_localisation (food_id, locale_id, title, description) "
 		"VALUES "
-		"(1, 1, 'Salt', NULL),"
+		"(1, 1, 'Salt', 'Essence of salt'),"
 		"(2, 2, 'Cacao', NULL),"
 		"(5, 2, 'Salia', NULL),"
-		"(5, 3, 'Saliagr', NULL),"
+		"(5, 3, 'Saliagr', 'I dont''t know'),"
 		"(1, 2, 'Salta', NULL),"
 		"(4, 2, 'Saltabar', NULL)"
 	);
 
-	ViewList<entity::food::View> list;
+	std::array<entity::food::View, 50> list;
+	Pager<entity::food::View> pager;
 
 	{
 		FoodsQuery q {
@@ -57,16 +66,14 @@ GTEST_TEST(FoodViewList, test_list)
 			.page = 0,
 			.locale_id = "1",
 		};
-		PaginationInfo info = list.query_page(&db_con, q);
-
-		ASSERT_EQ(2, list.size());
+		PaginationInfo info = pager.query_page(list, &db_con, q);
 
 		ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0]));
 		ASSERT_STREQ2("Salt", entity::get<entity::food::view::title>(list[0]));
-		ASSERT_STREQ2("100", entity::get<entity::food::view::calories>(list[0]));
+		ASSERT_STREQ2("Essence of salt", entity::get<entity::food::view::description>(list[0]));
 		ASSERT_STREQ2("2", entity::get<entity::food::view::id>(list[1]));
 		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::title>(list[1]));
-		ASSERT_STREQ2("101", entity::get<entity::food::view::calories>(list[1]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[1]));
 
 		ASSERT_STREQ2("3", info.max_page);
 		ASSERT_STREQ2("6", info.element_count);
@@ -80,17 +87,15 @@ GTEST_TEST(FoodViewList, test_list)
 			.locale_id = "2",
 			.title = "Sal",
 		};
-		auto info = list.query_page(&db_con, q);
-
-		ASSERT_EQ(10, list.size());
+		auto info = pager.query_page(list, &db_con, q);
 
 		ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0]));
 		ASSERT_STREQ2("Salta", entity::get<entity::food::view::title>(list[0]));
-		ASSERT_STREQ2("100", entity::get<entity::food::view::calories>(list[0]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[0]));
 
 		ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[1]));
 		ASSERT_STREQ2("Saltabar", entity::get<entity::food::view::title>(list[1]));
-		ASSERT_STREQ2("103", entity::get<entity::food::view::calories>(list[1]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[1]));
 
 		ASSERT_STREQ2("1", info.max_page);
 		ASSERT_STREQ2("3", info.element_count);
@@ -104,25 +109,23 @@ GTEST_TEST(FoodViewList, test_list)
 			.locale_id = "",
 			.title = "Sal",
 		};
-		auto info = list.query_page(&db_con, q);
-
-		ASSERT_EQ(10, list.size());
+		auto info = pager.query_page(list, &db_con, q);
 
 		ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0]));
 		ASSERT_STREQ2("Salt", entity::get<entity::food::view::title>(list[0]));
-		ASSERT_STREQ2("100", entity::get<entity::food::view::calories>(list[0]));
+		ASSERT_STREQ2("Essence of salt", entity::get<entity::food::view::description>(list[0]));
 
 		ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[1]));
 		ASSERT_STREQ2("Salta", entity::get<entity::food::view::title>(list[1]));
-		ASSERT_STREQ2("100", entity::get<entity::food::view::calories>(list[1]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[1]));
 
 		ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[2]));
 		ASSERT_STREQ2("Saltabar", entity::get<entity::food::view::title>(list[2]));
-		ASSERT_STREQ2("103", entity::get<entity::food::view::calories>(list[2]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[2]));
 
 		ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[3]));
 		ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[3]));
-		ASSERT_STREQ2("104", entity::get<entity::food::view::calories>(list[3]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[3]));
 
 		ASSERT_STREQ2("1", info.max_page);
 		ASSERT_STREQ2("5", info.element_count);
@@ -136,13 +139,12 @@ GTEST_TEST(FoodViewList, test_list)
 			.locale_id = "2",
 			.title = "Sal",
 		};
-		auto info = list.query_page(&db_con, q);
+		auto info = pager.query_page(list, &db_con, q);
 
-		ASSERT_EQ(2, list.size());
-
+		// Checks that foods are sorted by id by default.
 		ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[0]));
 		ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[0]));
-		ASSERT_STREQ2("104", entity::get<entity::food::view::calories>(list[0]));
+		ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[0]));
 
 		ASSERT_STREQ2("2", info.max_page);
 		ASSERT_STREQ2("3", info.element_count);

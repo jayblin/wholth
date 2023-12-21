@@ -61,7 +61,13 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(glfw glm sqlw)
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG        10.1.1
+)
 
+FetchContent_MakeAvailable(sqlw fmt)
 
 FetchContent_GetProperties(
 	gsl
@@ -107,6 +113,7 @@ target_link_libraries(
 	PRIVATE
 		GTest::gtest_main
 		sqlw
+		fmt
 )
 
 target_include_directories(

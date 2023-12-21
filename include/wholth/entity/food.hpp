@@ -4,7 +4,7 @@
 #include <string_view>
 #include "sqlw/statement.hpp"
 #include "sqlw/status.hpp"
-#include "wholth/view_list.hpp"
+#include "wholth/pager.hpp"
 #include "wholth/entity/utils.hpp"
 
 namespace entity::food
@@ -13,24 +13,24 @@ namespace entity::food
 	{
 		typedef TupleElement<std::string_view, 0> id;
 		typedef TupleElement<std::string_view, 1> title;
-		typedef TupleElement<std::string_view, 2> calories;
+		typedef TupleElement<std::string_view, 2> description;
 	};
 
 	typedef std::tuple<
 		view::id::value_type,
 		view::title::value_type,
-		view::calories::value_type
+		view::description::value_type
 	> View;
 
 	namespace input
 	{
 		typedef TupleElement<TextInput<255>, 0> title;
-		typedef TupleElement<FloatInput, 1> calories;
+		typedef TupleElement<FloatInput, 1> description;
 	};
 
 	typedef std::tuple<
 		input::title::value_type,
-		input::calories::value_type
+		input::description::value_type
 	> Input;
 
 	namespace input
@@ -48,7 +48,8 @@ struct FoodsQuery
 };
 
 template<> template<>
-PaginationInfo ViewList<entity::food::View>::query_page<FoodsQuery>(
+PaginationInfo Pager<entity::food::View>::query_page<FoodsQuery>(
+	std::span<entity::food::View>,
 	sqlw::Connection*,
 	const FoodsQuery&
 );
