@@ -1,6 +1,7 @@
 #ifndef WHOLTH_CONCEPTS_H_
 #define WHOLTH_CONCEPTS_H_
 
+#include <span>
 #include <string_view>
 #include <type_traits>
 #include <concepts>
@@ -39,10 +40,11 @@ template<typename T, typename Q>
 concept can_query_page = requires(
 	T t,
 	sqlw::Connection* con,
-	Q query_context
+	Q query_context,
+	std::span<T> span
 )
 {
-	{ t.query_page(con, query_context) } -> std::same_as<PaginationInfo>;
+	{ t.query_page(span, con, query_context) } -> std::same_as<PaginationInfo>;
 };
 
 template<typename T>
