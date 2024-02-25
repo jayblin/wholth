@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS recipe_step_food (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	recipe_step_id INTEGER NOT NULL,
 	food_id INTEGER,
 	canonical_mass REAL,
