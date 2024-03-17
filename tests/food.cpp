@@ -131,25 +131,15 @@ TEST_F(MigrationAwareTest, food_query_page)
 		"(1, '600') "
 	);
 
-	/* std::array<entity::food::View, 50> list; */
-	std::array<wholth::entity::viewable::Food, 50> list;
-	/* Pager<entity::food::View> pager; */
 	wholth::Pager<wholth::entity::viewable::Food> pager;
 
 	{
+		std::array<wholth::entity::viewable::Food, 2> list;
 		wholth::FoodsQuery q {
-			.limit = 2,
 			.page = 0,
 			.locale_id = "1",
 		};
 		PaginationInfo info = pager.query_page(list, &db_con, q);
-
-		/* ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0])); */
-		/* ASSERT_STREQ2("Salt", entity::get<entity::food::view::title>(list[0])); */
-		/* ASSERT_STREQ2("Essence of salt", entity::get<entity::food::view::description>(list[0])); */
-		/* ASSERT_STREQ2("2", entity::get<entity::food::view::id>(list[1])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::title>(list[1])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[1])); */
 
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salt", list[0].title);
@@ -164,31 +154,22 @@ TEST_F(MigrationAwareTest, food_query_page)
 	}
 
 	{
+		std::array<wholth::entity::viewable::Food, 10> list;
 		wholth::FoodsQuery q {
-			.limit = 10,
 			.page = 0,
 			.locale_id = "2",
 			.title = "Sal",
 		};
 		auto info = pager.query_page(list, &db_con, q);
 
-		/* ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0])); */
-		/* ASSERT_STREQ2("Salta", entity::get<entity::food::view::title>(list[0])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[0])); */
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salta", list[0].title);
 		ASSERT_STREQ2("10m", list[0].preparation_time);
 
-		/* ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[1])); */
-		/* ASSERT_STREQ2("Saltabar", entity::get<entity::food::view::title>(list[1])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[1])); */
 		ASSERT_STREQ2("4", list[1].id);
 		ASSERT_STREQ2("Saltabar", list[1].title);
 		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
 
-		/* ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[2])); */
-		/* ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[2])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[2])); */
 		ASSERT_STREQ2("5", list[2].id);
 		ASSERT_STREQ2("Salia", list[2].title);
 		ASSERT_STREQ2("[N/A]", list[2].preparation_time);
@@ -199,31 +180,22 @@ TEST_F(MigrationAwareTest, food_query_page)
 	}
 
 	{
+		std::array<wholth::entity::viewable::Food, 10> list;
 		wholth::FoodsQuery q {
-			.limit = 10,
 			.page = 0,
 			.locale_id = "",
 			.title = "Sal",
 		};
 		auto info = pager.query_page(list, &db_con, q);
 
-		/* ASSERT_STREQ2("1", entity::get<entity::food::view::id>(list[0])); */
-		/* ASSERT_STREQ2("Salt", entity::get<entity::food::view::title>(list[0])); */
-		/* ASSERT_STREQ2("Essence of salt", entity::get<entity::food::view::description>(list[0])); */
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salt", list[0].title);
 		ASSERT_STREQ2("10m", list[0].preparation_time);
 
-		/* ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[1])); */
-		/* ASSERT_STREQ2("Saltabar", entity::get<entity::food::view::title>(list[1])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[1])); */
 		ASSERT_STREQ2("4", list[1].id);
 		ASSERT_STREQ2("Saltabar", list[1].title);
 		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
 
-		/* ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[2])); */
-		/* ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[2])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[2])); */
 		ASSERT_STREQ2("5", list[2].id);
 		ASSERT_STREQ2("Salia", list[2].title);
 		ASSERT_STREQ2("[N/A]", list[2].preparation_time);
@@ -234,8 +206,8 @@ TEST_F(MigrationAwareTest, food_query_page)
 	}
 
 	{
+		std::array<wholth::entity::viewable::Food, 2> list;
 		wholth::FoodsQuery q {
-			.limit = 2,
 			.page = 1,
 			.locale_id = "2",
 			.title = "Sal",
@@ -243,9 +215,6 @@ TEST_F(MigrationAwareTest, food_query_page)
 		auto info = pager.query_page(list, &db_con, q);
 
 		// Checks that foods are sorted by id by default.
-		/* ASSERT_STREQ2("5", entity::get<entity::food::view::id>(list[0])); */
-		/* ASSERT_STREQ2("Salia", entity::get<entity::food::view::title>(list[0])); */
-		/* ASSERT_STREQ2("[N/A]", entity::get<entity::food::view::description>(list[0])); */
 		ASSERT_STREQ2("5", list[0].id);
 		ASSERT_STREQ2("Salia", list[0].title);
 		ASSERT_STREQ2("[N/A]", list[0].preparation_time);
@@ -261,17 +230,14 @@ TEST_F(MigrationAwareTest, food_query_page)
 			{wholth::nutrient_filter::Operation::NEQ, "2", "22.4"},
 			{wholth::nutrient_filter::Operation::BETWEEN, "3", "10.3,40"},
 		}};
+		std::array<wholth::entity::viewable::Food, 3> list;
 		wholth::FoodsQuery q {
-			.limit = 3,
 			.page = 0,
 			.locale_id = "",
 			.nutrient_filters = arr,
 		};
 		PaginationInfo info = pager.query_page(list, &db_con, q);
 
-		/* ASSERT_STREQ2("3", entity::get<entity::food::view::id>(list[0])); */
-		/* ASSERT_STREQ2("4", entity::get<entity::food::view::id>(list[1])); */
-		/* ASSERT_STREQ2("6", entity::get<entity::food::view::id>(list[2])); */
 		ASSERT_STREQ2("3", list[0].id);
 		ASSERT_STREQ2("4", list[1].id);
 		ASSERT_STREQ2("6", list[2].id);
@@ -280,25 +246,6 @@ TEST_F(MigrationAwareTest, food_query_page)
 		ASSERT_STREQ2("3", info.element_count);
 		ASSERT_STREQ2("1/1", info.progress_string);
 	}
-
-	// todo
-	// When limit is larger than container size.
-	/* { */
-	/* 	std::array<wholth::entity::viewable::Food, 2> small_list; */
-	/* 	wholth::FoodsQuery q { */
-	/* 		.limit = 4, */
-	/* 		.page = 0, */
-	/* 		.locale_id = "2", */
-	/* 	}; */
-	/* 	PaginationInfo info = pager.query_page(small_list, &db_con, q); */
-
-	/* 	ASSERT_STREQ2("1", list[0].id); */
-	/* 	ASSERT_STREQ2("2", list[1].id); */
-
-	/* 	ASSERT_STREQ2("1", info.max_page); */
-	/* 	ASSERT_STREQ2("3", info.element_count); */
-	/* 	ASSERT_STREQ2("1/1", info.progress_string); */
-	/* } */
 }
 
 TEST_F(MigrationAwareTest, insert_food)

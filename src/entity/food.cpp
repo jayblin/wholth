@@ -24,10 +24,8 @@ constexpr auto count_spaces(const std::string_view& str) -> size_t
 {
 	size_t count = 0;
 
-	/* for (const char ch : str) */
 	for (size_t i = 0; i < str.size(); i++)
 	{
-		/* if (ch == ' ') */
 		if (str[i] == ' ')
 		{
 			count++;
@@ -277,15 +275,14 @@ static void bind_params(
 }
 
 static std::string create_entity_query_sql(
-	const wholth::FoodsQuery& q
+	const wholth::FoodsQuery& q,
+	size_t limit
 )
 {
 	return fmt::format(
 		"SELECT "
 			"f.id, "
-			/* "CASE WHEN fl.title IS NOT NULL THEN fl.title ELSE '[N/A]' END AS title, " */
 			"COALESCE(fl.title, '[N/A]') AS title, "
-			/* "CASE WHEN fl.description IS NOT NULL THEN fl.description ELSE '[N/A]' END AS description " */
 			"COALESCE("
 				"CASE WHEN rs.seconds IS NULL THEN rs.seconds "
 				"WHEN rs.seconds < 60 THEN ((rs.seconds) || 's') "
@@ -303,12 +300,15 @@ static std::string create_entity_query_sql(
 		q.title,
 		create_joins(q),
 		create_where(q),
-		q.limit,
-		q.limit * q.page
+		limit,
+		limit * q.page
 	);
 }
 
-static std::string create_pagination_query_sql(const wholth::FoodsQuery& q)
+static std::string create_pagination_query_sql(
+	const wholth::FoodsQuery& q,
+	size_t limit
+)
 {
 	return fmt::format(
 		"SELECT "
@@ -327,111 +327,13 @@ static std::string create_pagination_query_sql(const wholth::FoodsQuery& q)
 				"ORDER BY f.id ASC, fl.locale_id ASC, fl.title ASC "
 			") AS g "
 		") AS r",
-		q.limit,
+		limit,
 		q.page + 1,
-		q.limit,
+		limit,
 		create_joins(q),
 		create_where(q)
 	);
 }
-
-/* template<typename T> template<typename Q> */
-/* PaginationInfo wholth::Pager<T>::query_page( */
-/* 	std::span<T> span, */
-/* 	sqlw::Connection* con, */
-/* 	const Q& q */
-/* ) */
-/* { */
-/* 	PaginationInfo p_info {}; */
-
-/* 	size_t buffer_idx = (m_buffer_idx + 1) % 2; */
-
-/* 	sqlw::Statement entity_stmt {con}; */
-/* 	sqlw::Statement paginator_stmt {con}; */
-
-/* 	auto entity_sql = this->create_entity_query_sql(q); */
-/* 	auto paginator_sql = this->create_pagination_query_sql(q); */
-	
-/* 	std::stringstream buffer_stream; */
-
-/* 	wholth::utils::LengthContainer lengths { */
-/* 		3 // same as count of fields in PaginationInfo struct */
-/* 		+ (q.limit * this->field_count()) */
-/* 	}; */
-
-/* 	paginator_stmt.prepare(paginator_sql); */
-
-/* 	bind_params(paginator_stmt, q); */
-
-/* 	paginator_stmt([&buffer_stream, &lengths](sqlw::Statement::ExecArgs e) */
-/* 		{ */
-/* 			buffer_stream << e.column_value; */
-
-/* 			lengths.add(e.column_value.size()); */
-/* 		} */
-/* 	); */
-
-/* 	entity_stmt.prepare(entity_sql); */
-
-/* 	bind_params(entity_stmt, q); */
-
-/* 	entity_stmt([&buffer_stream, &lengths](sqlw::Statement::ExecArgs e) */
-/* 		{ */
-/* 			buffer_stream << e.column_value; */
-
-/* 			lengths.add(e.column_value.size()); */
-/* 		} */
-/* 	); */
-
-/* 	auto s = buffer_stream.str(); */
-
-/* 	m_buffers[buffer_idx] = std::move(s); */
-
-/* 	auto& buffer_ref = m_buffers[buffer_idx]; */
-
-/* 	if (!(buffer_ref.size() > 0)) */
-/* 	{ */
-/* 		return p_info; */
-/* 	} */
-
-/* 	p_info.element_count = lengths.next(buffer_ref); */
-/* 	p_info.max_page = lengths.next(buffer_ref); */
-/* 	p_info.progress_string = lengths.next(buffer_ref); */
-
-/* 	this->populate_span(span, lengths); */
-
-/* 	m_buffer_idx = buffer_idx; */
-
-/* 	return p_info; */
-/* } */
-
-/* template<> */
-/* constexpr size_t wholth::Pager<wholth::entity::viewable::Food>::field_count() */
-/* { */
-/* 	return 3; */
-/* } */
-
-/* template<> */
-/* void wholth::Pager<wholth::entity::viewable::Food>::populate_span( */
-/* 	std::span<wholth::entity::viewable::Food> span, */
-/* 	const std::string& buffer_ref, */
-/* 	wholth::utils::LengthContainer& lengths */
-/* ) */
-/* { */
-/* 	size_t j = 0; */
-/* 	for (std::string_view id = lengths.next(buffer_ref); id != wholth::utils::NIL; id = lengths.next(buffer_ref)) */
-/* 	{ */
-/* 		wholth::entity::viewable::Food entry; */
-
-/* 		entry.id = id; */
-/* 		entry.title = lengths.next(buffer_ref); */
-/* 		entry.preparation_time = lengths.next(buffer_ref); */
-
-/* 		span[j] = entry; */
-/* 		j++; */
-/* 	} */
-/* } */
-
 
 template<> template<>
 PaginationInfo wholth::Pager<wholth::entity::viewable::Food>::query_page<wholth::FoodsQuery>(
@@ -449,13 +351,13 @@ PaginationInfo wholth::Pager<wholth::entity::viewable::Food>::query_page<wholth:
 	// @todo: rethink this jank!
 	constexpr size_t field_count = 3;
 
-	auto entity_sql = create_entity_query_sql(q);
-	auto paginator_sql = create_pagination_query_sql(q);
+	auto entity_sql = create_entity_query_sql(q, span.size());
+	auto paginator_sql = create_pagination_query_sql(q, span.size());
 	
 	std::stringstream buffer_stream;
 
 	wholth::utils::LengthContainer itr {
-		(q.limit * field_count) + 3
+		(span.size() * field_count) + 3
 	};
 
 	paginator_stmt.prepare(paginator_sql);
@@ -488,7 +390,6 @@ PaginationInfo wholth::Pager<wholth::entity::viewable::Food>::query_page<wholth:
 
 	auto& buffer_ref = m_buffers[buffer_idx];
 
-	/* if (!(buffer_ref.size() > 0) || !(count_len > 0)) */
 	if (!(buffer_ref.size() > 0))
 	{
 		return p_info;
@@ -599,14 +500,6 @@ void wholth::update_food(
 	std::stringstream ss;
 	ss << "UPDATE food_localisation SET ";
 
-	/* const std::array< */
-	/* 	std::tuple<std::string_view, std::string_view>, */
-	/* 	2 */
-	/* > fields {{ */
-	/* 	{"title", food.title}, */
-	/* 	{"description", food.description}, */
-	/* }}; */
-
 	size_t idx = 1;
 
 	if (is_title) {
@@ -620,9 +513,6 @@ void wholth::update_food(
 			ss << ",";
 		}
 	}
-	/* else { */
-	/* 	ss << "title = title"; */
-	/* } */
 
 	if (is_description) {
 		ss << fmt::format("description = :{} ", idx);
@@ -634,7 +524,6 @@ void wholth::update_food(
 		idx,
 		idx + 1
 	);
-	/* idx += 2; */
 
 	stmt.prepare(ss.str());
 

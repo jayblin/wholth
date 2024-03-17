@@ -322,7 +322,6 @@ namespace wholth {
 
 	struct FoodsQuery
 	{
-		uint32_t limit {20};
 		uint32_t page {0};
 		// @todo: programmaticlay resolve default locale_id.
 		std::string_view locale_id {""};
