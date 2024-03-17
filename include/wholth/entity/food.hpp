@@ -368,55 +368,55 @@ namespace wholth {
 
 	void add_steps(
 		wholth::entity::food::id_t,
-		const std::span<wholth::entity::editable::food::RecipeStep>&,
+		const std::span<const wholth::entity::editable::food::RecipeStep>,
 		sqlw::Connection&,
 		wholth::entity::locale::id_t
 	);
 
 	void update_steps(
-		const std::span<wholth::entity::editable::food::RecipeStep>&,
+		const std::span<const wholth::entity::editable::food::RecipeStep>,
 		sqlw::Connection&,
 		wholth::entity::locale::id_t
 	);
 
 	void remove_steps(
-		const std::span<wholth::entity::editable::food::RecipeStep>&,
+		const std::span<const wholth::entity::editable::food::RecipeStep>,
 		sqlw::Connection&
 	);
 
 	void add_nutrients(
 		wholth::entity::food::id_t,
-		const std::span<wholth::entity::editable::food::Nutrient>&,
+		const std::span<const wholth::entity::editable::food::Nutrient>,
 		sqlw::Connection&
 	);
 
 	void update_nutrients(
 		wholth::entity::food::id_t,
-		const std::span<wholth::entity::editable::food::Nutrient>&,
+		const std::span<const wholth::entity::editable::food::Nutrient>,
 		sqlw::Connection&
 	);
 
 	void remove_nutrients(
 		wholth::entity::food::id_t,
-		const std::span<wholth::entity::editable::food::Nutrient>&,
+		const std::span<const wholth::entity::editable::food::Nutrient>,
 		sqlw::Connection&
 	);
 
 	void add_ingredients(
 		wholth::entity::recipe_step::id_t,
-		const std::span<wholth::entity::editable::food::Ingredient>&,
+		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
 	);
 
 	void update_ingredients(
 		wholth::entity::recipe_step::id_t,
-		const std::span<wholth::entity::editable::food::Ingredient>&,
+		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
 	);
 
 	void remove_ingredients(
 		wholth::entity::recipe_step::id_t,
-		const std::span<wholth::entity::editable::food::Ingredient>&,
+		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
 	);
 

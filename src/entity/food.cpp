@@ -586,7 +586,7 @@ void wholth::remove_food(wholth::entity::food::id_t food_id, sqlw::Connection& c
 
 void wholth::add_nutrients(
 	wholth::entity::food::id_t food_id,
-	const std::span<wholth::entity::editable::food::Nutrient>& nutrients,
+	const std::span<const wholth::entity::editable::food::Nutrient> nutrients,
 	sqlw::Connection& con
 )
 {
@@ -659,7 +659,7 @@ void wholth::add_nutrients(
 
 void wholth::remove_nutrients(
 	wholth::entity::food::id_t food_id,
-	const std::span<wholth::entity::editable::food::Nutrient>& nutrients,
+	const std::span<const wholth::entity::editable::food::Nutrient> nutrients,
 	sqlw::Connection& con
 )
 {
@@ -694,7 +694,7 @@ void wholth::remove_nutrients(
 // @todo - подумать как показывать ошибки.
 void wholth::update_nutrients(
 	wholth::entity::food::id_t food_id,
-	const std::span<wholth::entity::editable::food::Nutrient>& nutrients,
+	const std::span<const wholth::entity::editable::food::Nutrient> nutrients,
 	sqlw::Connection& con
 )
 {
@@ -733,7 +733,7 @@ void wholth::update_nutrients(
 
 void wholth::add_steps(
 	wholth::entity::food::id_t food_id,
-	const std::span<wholth::entity::editable::food::RecipeStep>& steps,
+	const std::span<const wholth::entity::editable::food::RecipeStep> steps,
 	sqlw::Connection& con,
 	wholth::entity::locale::id_t locale_id
 )
@@ -789,7 +789,7 @@ void wholth::add_steps(
 }
 
 void wholth::remove_steps(
-	const std::span<wholth::entity::editable::food::RecipeStep>& steps,
+	const std::span<const wholth::entity::editable::food::RecipeStep> steps,
 	sqlw::Connection& con
 )
 {
@@ -822,7 +822,7 @@ void wholth::remove_steps(
 }
 
 void update_steps(
-	const std::span<wholth::entity::editable::food::RecipeStep>& steps,
+	const std::span<const wholth::entity::editable::food::RecipeStep> steps,
 	sqlw::Connection& con
 )
 {
@@ -872,7 +872,7 @@ void update_steps(
 
 void wholth::add_ingredients(
 	wholth::entity::recipe_step::id_t recipe_step_id,
-	const std::span<wholth::entity::editable::food::Ingredient>& foods,
+	const std::span<const wholth::entity::editable::food::Ingredient> foods,
 	sqlw::Connection& con
 )
 {
@@ -932,7 +932,7 @@ void wholth::add_ingredients(
 
 void wholth::update_ingredients(
 	wholth::entity::recipe_step::id_t recipe_step_id,
-	const std::span<wholth::entity::editable::food::Ingredient>& foods,
+	const std::span<const wholth::entity::editable::food::Ingredient> foods,
 	sqlw::Connection& con
 )
 {
@@ -968,7 +968,7 @@ void wholth::update_ingredients(
 
 void wholth::remove_ingredients(
 	wholth::entity::recipe_step::id_t recipe_step_id,
-	const std::span<wholth::entity::editable::food::Ingredient>& foods,
+	const std::span<const wholth::entity::editable::food::Ingredient> foods,
 	sqlw::Connection& con
 )
 {
