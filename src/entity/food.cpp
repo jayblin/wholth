@@ -15,11 +15,6 @@
 #include <stdexcept>
 #include <string>
 
-/* wholth::entity::food::Input wholth::entity::food::input::initialize() */
-/* { */
-/* 	return {{"##food_title"}, {"##food_calories"}}; */
-/* } */
-
 constexpr auto count_spaces(const std::string_view& str) -> size_t
 {
 	size_t count = 0;
