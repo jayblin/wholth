@@ -262,7 +262,7 @@ namespace wholth::entity::editable
 			wholth::entity::nutrient::value_t value {wholth::utils::NIL};
 		};
 
-		struct RecipeStepFood
+		struct Ingredient
 		{
 			wholth::entity::food::id_t food_id {wholth::utils::NIL};
 			wholth::entity::recipe_step_food::canonical_mass_t canonical_mass {wholth::utils::NIL};
@@ -271,9 +271,9 @@ namespace wholth::entity::editable
 		struct RecipeStep
 		{
 			wholth::entity::recipe_step::id_t id {wholth::utils::NIL};
-			wholth::entity::recipe_step::time_t time {wholth::utils::NIL};
+			wholth::entity::recipe_step::time_t seconds {wholth::utils::NIL};
 			wholth::entity::recipe_step::description_t description {wholth::utils::NIL};
-			std::span<RecipeStepFood> foods;
+			/* std::span<RecipeStepFood> foods; */
 		};
 	};
 
@@ -281,10 +281,10 @@ namespace wholth::entity::editable
 	{
 		wholth::entity::food::id_t id {wholth::utils::NIL};
 		wholth::entity::food::title_t title {wholth::utils::NIL};
-		std::string_view preparation_time {wholth::utils::NIL};
+		/* std::string_view preparation_time {wholth::utils::NIL}; */
 		wholth::entity::food::description_t description {wholth::utils::NIL};
-		std::span<wholth::entity::editable::food::Nutrient> nutrients;
-		std::span<wholth::entity::editable::food::RecipeStep> steps;
+		/* std::span<wholth::entity::editable::food::Nutrient> nutrients; */
+		/* std::span<wholth::entity::editable::food::RecipeStep> steps; */
 	};
 }
 
@@ -344,13 +344,115 @@ namespace wholth {
 		const FoodsQuery&
 	);
 
-	void insert(
+	/* void query_entity( */
+	/* 	wholth::entity::editable::Food&, */
+	/* 	sqlw::Connection*, */
+	/* 	const wholth::entity::locale::view::id::value_type& */
+	/* ); */
+
+	std::optional<wholth::entity::food::id_t> insert_food(
+		const wholth::entity::editable::Food&,
 		sqlw::Connection&,
-		/* const wholth::entity::food::Input&, */
-		const wholth::entity::editable::Food& food,
-		const wholth::entity::locale::view::id::value_type& locale_id
+		wholth::entity::locale::id_t
 	);
 
+	void update_food(
+		const wholth::entity::editable::Food&,
+		sqlw::Connection&,
+		wholth::entity::locale::id_t
+	);
+
+	void remove_food(
+		wholth::entity::food::id_t,
+		sqlw::Connection&
+	);
+
+	void add_steps(
+		wholth::entity::food::id_t,
+		const std::span<wholth::entity::editable::food::RecipeStep>&,
+		sqlw::Connection&,
+		wholth::entity::locale::id_t
+	);
+
+	void update_steps(
+		const std::span<wholth::entity::editable::food::RecipeStep>&,
+		sqlw::Connection&,
+		wholth::entity::locale::id_t
+	);
+
+	void remove_steps(
+		const std::span<wholth::entity::editable::food::RecipeStep>&,
+		sqlw::Connection&
+	);
+
+	void add_nutrients(
+		wholth::entity::food::id_t,
+		const std::span<wholth::entity::editable::food::Nutrient>&,
+		sqlw::Connection&
+	);
+
+	void update_nutrients(
+		wholth::entity::food::id_t,
+		const std::span<wholth::entity::editable::food::Nutrient>&,
+		sqlw::Connection&
+	);
+
+	void remove_nutrients(
+		wholth::entity::food::id_t,
+		const std::span<wholth::entity::editable::food::Nutrient>&,
+		sqlw::Connection&
+	);
+
+	void add_ingredients(
+		wholth::entity::recipe_step::id_t,
+		const std::span<wholth::entity::editable::food::Ingredient>&,
+		sqlw::Connection&
+	);
+
+	void update_ingredients(
+		wholth::entity::recipe_step::id_t,
+		const std::span<wholth::entity::editable::food::Ingredient>&,
+		sqlw::Connection&
+	);
+
+	void remove_ingredients(
+		wholth::entity::recipe_step::id_t,
+		const std::span<wholth::entity::editable::food::Ingredient>&,
+		sqlw::Connection&
+	);
+
+	/* void insert( */
+	/* 	const wholth::entity::editable::Food&, */
+	/* 	sqlw::Connection&, */
+	/* 	const wholth::entity::locale::view::id::value_type& */
+	/* ); */
+	
+	/* void update( */
+	/* 	const wholth::entity::editable::Food&, */
+	/* 	sqlw::Connection&, */
+	/* 	const wholth::entity::locale::view::id::value_type& */
+	/* ); */
+
+	/* void add_nutrients( */
+	/* 	sqlw::Connection&, */
+	/* 	const std::span<wholth::entity::editable::food::Nutrient>, */
+	/* 	const wholth::entity::locale::view::id::value_type& */
+	/* ); */
+	/* void remove_nutrients( */
+	/* 	sqlw::Connection&, */
+	/* 	const std::span<wholth::entity::editable::food::Nutrient>, */
+	/* 	const wholth::entity::locale::view::id::value_type& */
+	/* ); */
+	/* void update_nutrients( */
+	/* 	sqlw::Connection&, */
+	/* 	const std::span<wholth::entity::editable::food::Nutrient>, */
+	/* 	const wholth::entity::locale::view::id::value_type& */
+	/* ); */
+
+	/* void copy( */
+	/* 	sqlw::Connection&, */
+	/* 	const wholth::entity::editable::Food& food */
+	/* ); */
 }
 
 /* namespace wholth::entity::recipe_step */

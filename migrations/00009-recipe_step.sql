@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS recipe_step (
 	recipe_id INTEGER NOT NULL,
 	cooking_action_id INTEGER DEFAULT NULL,
 	priority INTEGER DEFAULT 0,
-	time INTEGER DEFAULT NULL,
+	seconds INTEGER DEFAULT NULL,
 	FOREIGN KEY (recipe_id) REFERENCES food(id) ON DELETE CASCADE,
 	FOREIGN KEY (cooking_action_id) REFERENCES cooking_action(id) ON DELETE SET NULL
 ) STRICT;

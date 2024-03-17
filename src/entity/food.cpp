@@ -9,6 +9,8 @@
 #include "wholth/pager.hpp"
 #include "wholth/utils.hpp"
 #include <charconv>
+#include <exception>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -17,6 +19,23 @@
 /* { */
 /* 	return {{"##food_title"}, {"##food_calories"}}; */
 /* } */
+
+constexpr auto count_spaces(const std::string_view& str) -> size_t
+{
+	size_t count = 0;
+
+	/* for (const char ch : str) */
+	for (size_t i = 0; i < str.size(); i++)
+	{
+		/* if (ch == ' ') */
+		if (str[i] == ' ')
+		{
+			count++;
+		}
+	}
+	
+	return count;
+}
 
 static std::string_view create_joins(const wholth::FoodsQuery& q)
 {
@@ -268,10 +287,10 @@ static std::string create_entity_query_sql(
 			"COALESCE(fl.title, '[N/A]') AS title, "
 			/* "CASE WHEN fl.description IS NOT NULL THEN fl.description ELSE '[N/A]' END AS description " */
 			"COALESCE("
-				"CASE WHEN rs.time IS NULL THEN rs.time "
-				"WHEN rs.time < 60 THEN ((rs.time) || 's') "
-				"WHEN rs.time < 3600 THEN ((rs.time / 60) || 'm') "
-				"ELSE ((rs.time / 3600) || 'h') "
+				"CASE WHEN rs.seconds IS NULL THEN rs.seconds "
+				"WHEN rs.seconds < 60 THEN ((rs.seconds) || 's') "
+				"WHEN rs.seconds < 3600 THEN ((rs.seconds / 60) || 'm') "
+				"ELSE ((rs.seconds / 3600) || 'h') "
 				"END "
 				", '[N/A]') as time "
 		"FROM food f "
@@ -497,11 +516,18 @@ PaginationInfo wholth::Pager<wholth::entity::viewable::Food>::query_page<wholth:
 	return p_info;
 }
 
-static std::string insert_food(
-	sqlw::Statement& stmt,
-	const std::string_view now
+std::optional<wholth::entity::food::id_t> wholth::insert_food(
+	const wholth::entity::editable::Food& food,
+	sqlw::Connection& con,
+	wholth::entity::locale::id_t locale_id
 )
 {
+	using sqlw::status::is_ok;
+
+	sqlw::Statement stmt {&con};
+	stmt("SAVEPOINT insert_food_pnt");
+
+	const std::string now = wholth::utils::current_time_and_date();
 	std::string food_id;
 
 	stmt.prepare(
@@ -513,7 +539,7 @@ static std::string insert_food(
 	if (!sqlw::status::is_ok(stmt.status()))
 	{
 		stmt("ROLLBACK TO insert_food_pnt");
-		return food_id;
+		return std::nullopt;
 	}
 
 	stmt(
@@ -523,75 +549,197 @@ static std::string insert_food(
 		}
 	);
 
-	return food_id;
-}
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO insert_food_pnt");
+		return std::nullopt;
+	}
 
-static void insert_food_localisation(
-	sqlw::Statement& stmt,
-	const std::string_view food_id,
-	const std::string_view locale_id,
-	const wholth::entity::editable::Food& food
-)
-{
 	stmt.prepare(
 			"INSERT INTO food_localisation (food_id,locale_id,title,description) "
-			"VALUES (:1,:2,:3,:4)"
+			"VALUES (:1,:2,lower(trim(:3)),:4)"
 		)
 		.bind(1, food_id)
 		.bind(2, locale_id)
 		.bind(3, food.title)
 		.bind(4, food.description)
 		.exec();
+
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO insert_food_pnt");
+		return std::nullopt;
+	}
+
+	stmt("RELEASE insert_food_pnt");
+
+	return food_id;
 }
 
-static void insert_food_nutrients(
-	sqlw::Statement& stmt,
-	const std::string_view food_id,
-	const std::string_view now,
-	const wholth::entity::editable::Food& food
+void wholth::update_food(
+	const wholth::entity::editable::Food& food,
+	sqlw::Connection& con,
+	 wholth::entity::locale::id_t locale_id
 )
 {
-	if (!(
-		food.nutrients.size() > 0
-		&& food.nutrients[0].value.length() > 0
-	))
+	using sqlw::status::is_ok;
+
+	bool is_title = food.title.size() > 0
+		&& food.title.size() != count_spaces(food.title)
+		&& food.title != wholth::utils::NIL;
+	bool is_description = food.description != wholth::utils::NIL;
+
+	if (!is_title && !is_description) {
+		return;
+	}
+
+	sqlw::Statement stmt {&con};
+	stmt("SAVEPOINT update_food_pnt");
+
+	std::stringstream ss;
+	ss << "UPDATE food_localisation SET ";
+
+	/* const std::array< */
+	/* 	std::tuple<std::string_view, std::string_view>, */
+	/* 	2 */
+	/* > fields {{ */
+	/* 	{"title", food.title}, */
+	/* 	{"description", food.description}, */
+	/* }}; */
+
+	size_t idx = 1;
+
+	if (is_title) {
+		ss << fmt::format(
+			"title = lower(trim(:{}))",
+			idx
+		);
+		idx++;
+
+		if (is_description) {
+			ss << ",";
+		}
+	}
+	/* else { */
+	/* 	ss << "title = title"; */
+	/* } */
+
+	if (is_description) {
+		ss << fmt::format("description = :{} ", idx);
+		idx++;
+	}
+
+	ss << fmt::format(
+		"WHERE food_id = :{} AND locale_id = :{}",
+		idx,
+		idx + 1
+	);
+	/* idx += 2; */
+
+	stmt.prepare(ss.str());
+
+	idx = 1;
+
+	if (is_title) {
+		stmt.bind(idx, food.title, sqlw::Type::SQL_TEXT);
+		idx++;
+	}
+
+	if (is_description) {
+		stmt.bind(idx, food.description, sqlw::Type::SQL_TEXT);
+		idx++;
+	}
+
+	try {
+		stmt.bind(idx, food.id, sqlw::Type::SQL_INT);
+		stmt.bind(idx + 1, locale_id, sqlw::Type::SQL_INT);
+	}
+	catch (const std::exception& e) {
+		stmt("ROLLBACK TO update_food_pnt");
+		return;
+	}
+
+	stmt.exec();
+
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO update_food_pnt");
+	}
+
+	stmt("RELEASE update_food_pnt");
+}
+
+void wholth::remove_food(wholth::entity::food::id_t food_id, sqlw::Connection& con)
+{
+	using sqlw::status::is_ok;
+
+	sqlw::Statement stmt {&con};
+
+	stmt("SAVEPOINT remove_food_pnt");
+
+	try {
+		stmt.prepare("DELETE FROM food WHERE id = :1")
+			.bind(1, food_id, sqlw::Type::SQL_INT)
+			.exec();
+		}
+	catch (const std::exception& e) {
+		stmt("ROLLBACK TO remove_food_pnt");
+		return;
+	}
+
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO remove_food_pnt");
+	}
+
+	stmt("RELEASE remove_food_pnt");
+}
+
+void wholth::add_nutrients(
+	wholth::entity::food::id_t food_id,
+	const std::span<wholth::entity::editable::food::Nutrient>& nutrients,
+	sqlw::Connection& con
+)
+{
+	using sqlw::status::is_ok;
+
+	sqlw::Statement stmt {&con};
+	stmt("SAVEPOINT add_food_nutrient_pnt");
+
+	if (!(nutrients.size() > 0))
 	{
 		return;
 	}
 
-	wholth::utils::IndexSequence<4, 1> idxs{};
+	wholth::utils::IndexSequence<3, 1> idxs{};
 	std::stringstream ss;
 
 	ss <<
-		" INSERT INTO food_nutrient (food_id,nutrient_id,value,created_at) "
+		"INSERT INTO food_nutrient (food_id,nutrient_id,value) "
 		"VALUES ";
 
-	/* for (const wholth::entity::food::food_specific::Nutrient& nutrient : food.nutrients) { */
-	for (const auto& nutrient : food.nutrients) {
+	for (const auto& nutrient : nutrients) {
 		if (nutrient.value.length() == 0) {
 			break;
 		}
 
 		ss << fmt::format(
-			"(:{},:{},:{},:{}),",
+			"(:{},:{},:{}),",
 			idxs[0],
 			idxs[1],
-			idxs[2],
-			idxs[3]
+			idxs[2]
 		);
 
 		idxs.advance();
 	}
 
 	std::string sql = ss.str();
-	/* fmt::print(fmt::fg(fmt::color::green), "{}\n", sql); */
 	
 	stmt.prepare(sql.substr(0, sql.size() - 1));
 
 	idxs.reset();
 
-	/* for (const wholth::entity::food::food_specific::Nutrient& nutrient : food.nutrients) { */
-	for (const auto& nutrient : food.nutrients) {
+	for (const auto& nutrient : nutrients) {
 
 		if (nutrient.value.length() == 0) {
 			break;
@@ -606,31 +754,122 @@ static void insert_food_nutrients(
 			break;
 		};
 
-		stmt.bind(idxs[3], now, sqlw::Type::SQL_TEXT);
-
 		idxs.advance();
 	}
 
 	stmt.exec();
+
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO add_food_nutrient_pnt");
+		return;
+	}
+
+	stmt("RELEASE add_food_nutrient_pnt");
 }
 
-static void insert_food_steps(
-	sqlw::Statement& stmt,
-	const std::string_view food_id,
-	const std::string_view locale_id,
-	const wholth::entity::editable::Food& food
+void wholth::remove_nutrients(
+	wholth::entity::food::id_t food_id,
+	const std::span<wholth::entity::editable::food::Nutrient>& nutrients,
+	sqlw::Connection& con
 )
 {
-	if (!(food.steps.size() > 0))
+	using sqlw::status::is_ok;
+
+	const std::string now = wholth::utils::current_time_and_date();
+	sqlw::Statement stmt {&con};
+
+	if (!(nutrients.size() > 0))
 	{
 		return;
 	}
 
+	for (const auto& nutrient : nutrients) {
+		stmt("SAVEPOINT remove_food_nutrient_pnt");
+
+		stmt.prepare("DELETE FROM food_nutrient WHERE food_id = :1 AND nutrient_id = :2")
+			.bind(1, food_id, sqlw::Type::SQL_INT)
+			.bind(2, nutrient.id, sqlw::Type::SQL_INT)
+			.exec();
+
+		if (!is_ok(stmt.status()))
+		{
+			stmt("ROLLBACK TO remove_food_nutrient_pnt");
+			return;
+		}
+
+		stmt("RELEASE remove_food_nutrient_pnt");
+	}
+}
+
+// @todo - подумать как показывать ошибки.
+void wholth::update_nutrients(
+	wholth::entity::food::id_t food_id,
+	const std::span<wholth::entity::editable::food::Nutrient>& nutrients,
+	sqlw::Connection& con
+)
+{
+	using sqlw::status::is_ok;
+
+	if (!(nutrients.size() > 0))
+	{
+		return;
+	}
+
+	const std::string now = wholth::utils::current_time_and_date();
+	sqlw::Statement stmt {&con};
+
+	for (const auto& nutrient : nutrients)
+	{
+		stmt("SAVEPOINT update_food_nutrient_pnt");
+
+		stmt.prepare(
+			"UPDATE food_nutrient SET value = :1 "
+			"WHERE nutrient_id = :2 AND food_id = :3"
+		)
+			.bind(1, nutrient.value)
+			.bind(2, nutrient.id)
+			.bind(3, food_id)
+			.exec();
+
+		if (!is_ok(stmt.status()))
+		{
+			stmt("ROLLBACK TO update_food_nutrient_pnt");
+			continue;
+		}
+
+		stmt("RELEASE update_food_nutrient_pnt");
+	}
+}
+
+void wholth::add_steps(
+	wholth::entity::food::id_t food_id,
+	const std::span<wholth::entity::editable::food::RecipeStep>& steps,
+	sqlw::Connection& con,
+	wholth::entity::locale::id_t locale_id
+)
+{
+	using sqlw::status::is_ok;
+
+	if (!(steps.size() > 0))
+	{
+		return;
+	}
+
+	sqlw::Statement stmt {&con};
+	stmt("SAVEPOINT add_steps_pnt");
+
 	stmt
-		.prepare("INSERT INTO recipe_step (recipe_id,time) VALUES (:1,:2)")
+		.prepare("INSERT INTO recipe_step (recipe_id,seconds) VALUES (:1,:2)")
 		.bind(1, food_id)
-		.bind(2, food.steps[0].time)
+		.bind(2, steps[0].seconds)
 		.exec();
+
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO add_steps_pnt");
+		return;
+	}
 
 	std::string recipe_step_id;
 
@@ -648,10 +887,112 @@ static void insert_food_steps(
 		)
 		.bind(1, recipe_step_id)
 		.bind(2, locale_id)
-		.bind(3, food.steps[0].description)
+		.bind(3, steps[0].description)
 		.exec();
 
-	if (!(food.steps[0].foods.size() > 0))
+	if (!is_ok(stmt.status()))
+	{
+		stmt("ROLLBACK TO add_steps_pnt");
+		return;
+	}
+
+	stmt("RELEASE add_steps_pnt");
+}
+
+void wholth::remove_steps(
+	const std::span<wholth::entity::editable::food::RecipeStep>& steps,
+	sqlw::Connection& con
+)
+{
+	using sqlw::status::is_ok;
+
+	if (!(steps.size() > 0))
+	{
+		return;
+	}
+
+	sqlw::Statement stmt {&con};
+
+	// @todo: maybe redo?
+	for (const auto& step : steps)
+	{
+		stmt("SAVEPOINT remove_steps_pnt");
+
+		stmt.prepare("DELETE FROM recipe_step WHERE id = :1")
+			.bind(1, step.id, sqlw::Type::SQL_INT)
+			.exec();
+
+		if (!is_ok(stmt.status()))
+		{
+			stmt("ROLLBACK TO remove_steps_pnt");
+			return;
+		}
+
+		stmt("RELEASE remove_steps_pnt");
+	}
+}
+
+void update_steps(
+	const std::span<wholth::entity::editable::food::RecipeStep>& steps,
+	sqlw::Connection& con
+)
+{
+	using sqlw::status::is_ok;
+	using wholth::utils::NIL;
+
+	if (!(steps.size() > 0))
+	{
+		return;
+	}
+
+	sqlw::Statement stmt {&con};
+	std::stringstream ss;
+
+	for (const auto& step : steps)
+	{
+		ss.clear();
+
+		stmt("SAVEPOINT update_steps_pnt");
+		bool _description = step.description != NIL;
+		bool _time = step.seconds != NIL;
+
+		stmt.prepare(fmt::format(
+			"UPDATE recipe_step_localisation SET description = {}, seconds = {}",
+			_description ? ":1" : "description",
+			_time ? ":2" : "seconds"
+		));
+
+		if (_description) {
+			stmt.bind(1, step.description, sqlw::Type::SQL_TEXT);
+		}
+		if (_time) {
+			stmt.bind(2, step.seconds, sqlw::Type::SQL_INT);
+		}
+
+		stmt.exec();
+
+		if (!is_ok(stmt.status()))
+		{
+			stmt("ROLLBACK TO update_steps_pnt");
+			continue;
+		}
+
+		stmt("RELEASE update_steps_pnt");
+	}
+}
+
+void wholth::add_ingredients(
+	wholth::entity::recipe_step::id_t recipe_step_id,
+	const std::span<wholth::entity::editable::food::Ingredient>& foods,
+	sqlw::Connection& con
+)
+{
+	using sqlw::status::is_ok;
+
+	sqlw::Statement stmt {&con};
+	stmt("SAVEPOINT add_foods_to_step_pnt");
+
+	if (!(foods.size() > 0))
 	{
 		return;
 	}
@@ -662,7 +1003,7 @@ static void insert_food_steps(
 	ss << "INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass) "
 		"VALUES ";
 
-	for (const auto& step_food : food.steps[0].foods)
+	for (const auto& step_food : foods)
 	{
 		if (step_food.food_id.length() == 0) {
 			break;
@@ -679,13 +1020,12 @@ static void insert_food_steps(
 	}
 
 	std::string sql = ss.str();
-	/* fmt::print(fmt::fg(fmt::color::green), "{}\n", sql); */
 	
 	stmt.prepare(sql.substr(0, sql.size() - 1));
 
 	idxs.reset();
 
-	for (const auto& step_food : food.steps[0].foods)
+	for (const auto& step_food : foods)
 	{
 		if (step_food.food_id.length() == 0) {
 			break;
@@ -701,50 +1041,74 @@ static void insert_food_steps(
 	stmt.exec();
 }
 
-void wholth::insert(
-	sqlw::Connection& con,
-	/* const wholth::entity::food::Input& food, */
-	const wholth::entity::editable::Food& food,
-	const wholth::entity::locale::view::id::value_type& locale_id
+void wholth::update_ingredients(
+	wholth::entity::recipe_step::id_t recipe_step_id,
+	const std::span<wholth::entity::editable::food::Ingredient>& foods,
+	sqlw::Connection& con
 )
 {
 	using sqlw::status::is_ok;
 
 	sqlw::Statement stmt {&con};
-	stmt("SAVEPOINT insert_food_pnt");
 
-	const std::string now = wholth::utils::current_time_and_date();
-	std::string food_id = insert_food(stmt, now);
-
-	if (!is_ok(stmt.status()))
+	if (!(foods.size() > 0))
 	{
-		stmt("ROLLBACK TO insert_food_pnt");
 		return;
 	}
 
-	insert_food_localisation(stmt, food_id, locale_id, food);
-
-	if (!is_ok(stmt.status()))
+	for (const auto& ing : foods)
 	{
-		stmt("ROLLBACK TO insert_food_pnt");
+		stmt("SAVEPOINT update_ingreddients_pnt");
+		stmt.prepare(
+			"UPDATE recipe_step_food SET canonical_mass = :1 "
+			"WHERE recipe_step_id = :2 AND food_id = :3"
+		)
+			.bind(1, ing.canonical_mass, sqlw::Type::SQL_DOUBLE)
+			.bind(2, recipe_step_id, sqlw::Type::SQL_INT)
+			.bind(3, ing.food_id, sqlw::Type::SQL_INT)
+			.exec();
+		
+		if (!is_ok(stmt.status())) {
+			stmt("ROLLBACK TO update_ingreddients_pnt");
+		}
+		else {
+			stmt("RELEASE update_ingreddients_pnt");
+		}
+	}
+}
+
+void wholth::remove_ingredients(
+	wholth::entity::recipe_step::id_t recipe_step_id,
+	const std::span<wholth::entity::editable::food::Ingredient>& foods,
+	sqlw::Connection& con
+)
+{
+	using sqlw::status::is_ok;
+
+	if (!(foods.size() > 0))
+	{
 		return;
 	}
 
-	insert_food_nutrients(stmt, food_id, now, food);
+	sqlw::Statement stmt {&con};
 
-	if (!is_ok(stmt.status()))
+	// todo: maybe redo?
+	for (size_t i = 0; i < foods.size(); i++)
 	{
-		stmt("ROLLBACK TO insert_food_pnt");
-		return;
+		stmt("SAVEPOINT remove_ingreddients_pnt");
+
+		stmt.prepare(
+			"DELETE FROM recipe_step_food "
+			"WHERE recipe_step_id = :1 AND food_id = :2")
+			.bind(1, recipe_step_id, sqlw::Type::SQL_INT)
+			.bind(2, foods[i].food_id, sqlw::Type::SQL_INT)
+			.exec();
+
+		if (!is_ok(stmt.status())) {
+			stmt("ROLLBACK TO remove_ingreddients_pnt");
+		}
+		else {
+			stmt("RELEASE remove_ingreddients_pnt");
+		}
 	}
-
-	insert_food_steps(stmt, food_id, locale_id, food);
-
-	if (!is_ok(stmt.status()))
-	{
-		stmt("ROLLBACK TO insert_food_pnt");
-		return;
-	}
-
-	stmt("RELEASE insert_food_pnt");
 }

@@ -5,6 +5,9 @@
 #include <string_view>
 namespace wholth::entity::locale
 {
+	typedef std::string_view id_t;
+	typedef std::string_view alias;
+
 	namespace view
 	{
 		typedef TupleElement<std::string_view, 0> id;
