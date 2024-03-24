@@ -2,6 +2,7 @@
 #define WHOLTH_UTILS_H_
 
 #include "fmt/color.h"
+#include <array>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -98,6 +99,34 @@ namespace wholth::utils
 		size_t m_i1 {0};
 		size_t m_i2 {0};
 		size_t m_offset {0};
+	};
+
+	class BufferSwapper
+	{
+	public:
+		auto swap() -> void
+		{
+			m_buffer_idx = (m_buffer_idx + 1) % BUFF_COUNT;
+		}
+
+		auto set_next(std::string&& str) -> std::string&
+		{
+			m_buffers[(m_buffer_idx + 1) % BUFF_COUNT] = std::move(str);
+
+			return m_buffers[(m_buffer_idx + 1) % BUFF_COUNT];
+		}
+
+		/* auto operator[](size_t idx) -> std::string& */
+		/* { */
+		/* 	assert(idx < BUFF_COUNT); */
+
+		/* 	return m_buffers[idx]; */
+		/* } */
+
+	private:
+		static constexpr size_t BUFF_COUNT {2};
+		uint32_t m_buffer_idx {0};
+		std::array<std::string, BUFF_COUNT> m_buffers {};
 	};
 }
 

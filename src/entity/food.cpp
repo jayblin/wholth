@@ -330,16 +330,14 @@ static std::string create_pagination_query_sql(
 	);
 }
 
-template<> template<>
-PaginationInfo wholth::Pager<wholth::entity::viewable::Food>::query_page<wholth::FoodsQuery>(
+auto wholth::list_foods(
 	std::span<wholth::entity::viewable::Food> span,
-	sqlw::Connection* con,
-	const FoodsQuery& q
-)
+	std::string& buffer,
+	const FoodsQuery& q,
+	sqlw::Connection* con
+) -> PaginationInfo
 {
 	PaginationInfo p_info {};
-
-	size_t buffer_idx = (m_buffer_idx + 1) % 2;
 
 	sqlw::Statement entity_stmt {con};
 	sqlw::Statement paginator_stmt {con};
@@ -379,35 +377,33 @@ PaginationInfo wholth::Pager<wholth::entity::viewable::Food>::query_page<wholth:
 		}
 	);
 
-	auto s = buffer_stream.str();
+	buffer = buffer_stream.str();
 
-	m_buffers[buffer_idx] = std::move(s);
-
-	auto& buffer_ref = m_buffers[buffer_idx];
-
-	if (!(buffer_ref.size() > 0))
+	if (!(buffer.size() > 0))
 	{
 		return p_info;
 	}
 
-	p_info.element_count = itr.next(buffer_ref);
-	p_info.max_page = itr.next(buffer_ref);
-	p_info.progress_string = itr.next(buffer_ref);
+	p_info.element_count = itr.next(buffer);
+	p_info.max_page = itr.next(buffer);
+	p_info.progress_string = itr.next(buffer);
 
 	size_t j = 0;
-	for (std::string_view id = itr.next(buffer_ref); id != wholth::utils::NIL; id = itr.next(buffer_ref))
+	for (
+		std::string_view id = itr.next(buffer);
+		id != wholth::utils::NIL;
+		id = itr.next(buffer)
+	)
 	{
 		wholth::entity::viewable::Food entry;
 
 		entry.id = id;
-		entry.title = itr.next(buffer_ref);
-		entry.preparation_time = itr.next(buffer_ref);
+		entry.title = itr.next(buffer);
+		entry.preparation_time = itr.next(buffer);
 
 		span[j] = entry;
 		j++;
 	}
-
-	m_buffer_idx = buffer_idx;
 
 	return p_info;
 }

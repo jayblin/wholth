@@ -74,7 +74,7 @@ protected:
 
 sqlw::Connection MigrationAwareTest::db_con;
 
-TEST_F(MigrationAwareTest, food_query_page)
+TEST_F(MigrationAwareTest, list_foods)
 {
 	sqlw::Statement stmt {&db_con};
 
@@ -131,7 +131,7 @@ TEST_F(MigrationAwareTest, food_query_page)
 		"(1, '600') "
 	);
 
-	wholth::Pager<wholth::entity::viewable::Food> pager;
+	std::string buffer {};
 
 	{
 		std::array<wholth::entity::viewable::Food, 2> list;
@@ -139,7 +139,12 @@ TEST_F(MigrationAwareTest, food_query_page)
 			.page = 0,
 			.locale_id = "1",
 		};
-		PaginationInfo info = pager.query_page(list, &db_con, q);
+		PaginationInfo info = wholth::list_foods(
+			list,
+			buffer,
+			q,
+			&db_con
+		);
 
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salt", list[0].title);
@@ -160,7 +165,12 @@ TEST_F(MigrationAwareTest, food_query_page)
 			.locale_id = "2",
 			.title = "Sal",
 		};
-		auto info = pager.query_page(list, &db_con, q);
+		PaginationInfo info = wholth::list_foods(
+			list,
+			buffer,
+			q,
+			&db_con
+		);
 
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salta", list[0].title);
@@ -186,7 +196,12 @@ TEST_F(MigrationAwareTest, food_query_page)
 			.locale_id = "",
 			.title = "Sal",
 		};
-		auto info = pager.query_page(list, &db_con, q);
+		PaginationInfo info = wholth::list_foods(
+			list,
+			buffer,
+			q,
+			&db_con
+		);
 
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salt", list[0].title);
@@ -212,7 +227,12 @@ TEST_F(MigrationAwareTest, food_query_page)
 			.locale_id = "2",
 			.title = "Sal",
 		};
-		auto info = pager.query_page(list, &db_con, q);
+		PaginationInfo info = wholth::list_foods(
+			list,
+			buffer,
+			q,
+			&db_con
+		);
 
 		// Checks that foods are sorted by id by default.
 		ASSERT_STREQ2("5", list[0].id);
@@ -236,7 +256,12 @@ TEST_F(MigrationAwareTest, food_query_page)
 			.locale_id = "",
 			.nutrient_filters = arr,
 		};
-		PaginationInfo info = pager.query_page(list, &db_con, q);
+		PaginationInfo info = wholth::list_foods(
+			list,
+			buffer,
+			q,
+			&db_con
+		);
 
 		ASSERT_STREQ2("3", list[0].id);
 		ASSERT_STREQ2("4", list[1].id);
@@ -245,6 +270,54 @@ TEST_F(MigrationAwareTest, food_query_page)
 		ASSERT_STREQ2("1", info.max_page);
 		ASSERT_STREQ2("3", info.element_count);
 		ASSERT_STREQ2("1/1", info.progress_string);
+	}
+
+	// switch buffer check
+	{
+		std::array<wholth::entity::viewable::Food, 4> list;
+		std::string buffer1 {};
+		std::string buffer2 {};
+		wholth::FoodsQuery q {
+			.page = 0,
+			.locale_id = "1",
+		};
+
+		PaginationInfo info = wholth::list_foods(
+			std::span{list.begin(), 2},
+			buffer1,
+			q,
+			&db_con
+		);
+
+		q.page = 1;
+		PaginationInfo info2 = wholth::list_foods(
+			std::span{list.begin() + 2, 2},
+			buffer2,
+			q,
+			&db_con
+		);
+
+		ASSERT_STREQ2("1", list[0].id);
+		ASSERT_STREQ2("Salt", list[0].title);
+		ASSERT_STREQ2("10m", list[0].preparation_time);
+		ASSERT_STREQ2("2", list[1].id);
+		ASSERT_STREQ2("[N/A]", list[1].title);
+		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
+
+		ASSERT_STREQ2("3", info.max_page);
+		ASSERT_STREQ2("6", info.element_count);
+		ASSERT_STREQ2("1/3", info.progress_string);
+
+		ASSERT_STREQ2("3", list[2].id);
+		ASSERT_STREQ2("[N/A]", list[2].title);
+		ASSERT_STREQ2("[N/A]", list[2].preparation_time);
+		ASSERT_STREQ2("4", list[3].id);
+		ASSERT_STREQ2("[N/A]", list[3].title);
+		ASSERT_STREQ2("[N/A]", list[3].preparation_time);
+
+		ASSERT_STREQ2("3", info2.max_page);
+		ASSERT_STREQ2("6", info2.element_count);
+		ASSERT_STREQ2("2/3", info2.progress_string);
 	}
 }
 

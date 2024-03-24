@@ -15,8 +15,9 @@
 #include "sqlw/status.hpp"
 #include "wholth/entity/locale.hpp"
 #include "wholth/entity/nutrient.hpp"
-#include "wholth/pager.hpp"
+/* #include "wholth/pager.hpp" */
 #include "wholth/entity/utils.hpp"
+#include "wholth/pager.hpp"
 #include "wholth/utils.hpp"
 
 namespace wholth::entity::food
@@ -57,20 +58,35 @@ namespace wholth::entity::viewable
 		wholth::entity::food::title_t title;
 		std::string_view preparation_time;
 		/* std::string_view health_index; */
-		/* wholth::entity::food::description_t description; */
 	};
 
-	namespace expanded
+	namespace food
 	{
-		struct Food
+		struct Nutrient
 		{
-			wholth::entity::food::id_t id;
-			wholth::entity::food::title_t title;
-			std::string_view preparation_time;
-			/* std::string_view health_index; */
-			wholth::entity::food::description_t description;
+			wholth::entity::nutrient::title_t title;
+			wholth::entity::nutrient::value_t value;
 		};
-	};
+
+		struct Ingredient
+		{
+			wholth::entity::food::title_t title;
+			wholth::entity::ingredient::canonical_mass_t canonical_mass;
+			size_t ingredient_count {0};
+		};
+
+		struct RecipeStep
+		{
+			wholth::entity::recipe_step::description_t description;
+		};
+
+		struct Info
+		{
+			std::span<RecipeStep> steps;
+			std::span<Ingredient> ingredients;
+			std::span<Nutrient> nutrients;
+		};
+	}
 }
 
 namespace wholth::entity::editable
@@ -125,22 +141,6 @@ namespace wholth {
 			Value::value_type
 		> Entry;
 	};
-
-	struct FoodsQuery
-	{
-		uint32_t page {0};
-		// @todo: programmaticlay resolve default locale_id.
-		std::string_view locale_id {""};
-		std::string_view title {""};
-		std::span<nutrient_filter::Entry> nutrient_filters {};
-	};
-
-	template<> template<>
-	PaginationInfo Pager<entity::viewable::Food>::query_page<FoodsQuery>(
-		std::span<entity::viewable::Food>,
-		sqlw::Connection*,
-		const FoodsQuery&
-	);
 
 	std::optional<wholth::entity::food::id_t> insert_food(
 		const wholth::entity::editable::Food&,
@@ -212,6 +212,23 @@ namespace wholth {
 		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
 	);
+
+	struct FoodsQuery
+	{
+		uint32_t page {0};
+		// @todo: programmaticlay resolve default locale_id.
+		std::string_view locale_id {""};
+		std::string_view title {""};
+		std::span<nutrient_filter::Entry> nutrient_filters {};
+		std::string_view food_names {""};
+	};
+
+	auto list_foods(
+		std::span<wholth::entity::viewable::Food> list,
+		std::string& buffer,
+		const FoodsQuery&,
+		sqlw::Connection*
+	) -> PaginationInfo;
 }
 
 #endif // WHOLTH_ENTITY_FOOD_H_
