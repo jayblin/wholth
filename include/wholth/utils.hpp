@@ -2,6 +2,7 @@
 #define WHOLTH_UTILS_H_
 
 #include "fmt/color.h"
+#include "sqlite3.h"
 #include <array>
 #include <iomanip>
 #include <iostream>
@@ -128,6 +129,15 @@ namespace wholth::utils
 		uint32_t m_buffer_idx {0};
 		std::array<std::string, BUFF_COUNT> m_buffers {};
 	};
+
+	namespace sqlite
+	{
+		void seconds_to_readable_time(
+			sqlite3_context* ctx,
+			int argc,
+			sqlite3_value** argv
+		);
+	}
 }
 
 #endif // WHOLTH_UTILS_H_

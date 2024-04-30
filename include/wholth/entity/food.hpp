@@ -1,8 +1,12 @@
 #ifndef WHOLTH_ENTITY_FOOD_H_
 #define WHOLTH_ENTITY_FOOD_H_
 
+#include <array>
+#include <limits>
 #include <optional>
+#include <ostream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <initializer_list>
 #include <span>
@@ -50,14 +54,14 @@ namespace wholth::entity::recipe_step
 	typedef std::string_view description_t;
 };
 
-namespace wholth::entity::viewable
+namespace wholth::entity::shortened
 {
 	struct Food
 	{
 		wholth::entity::food::id_t id;
 		wholth::entity::food::title_t title;
 		std::string_view preparation_time;
-		/* std::string_view health_index; */
+		/* wholth::entity::nutrient::value_t calories; */
 	};
 
 	namespace food
@@ -91,6 +95,13 @@ namespace wholth::entity::viewable
 
 namespace wholth::entity::editable
 {
+	struct Food
+	{
+		wholth::entity::food::id_t id {wholth::utils::NIL};
+		wholth::entity::food::title_t title {wholth::utils::NIL};
+		wholth::entity::food::description_t description {wholth::utils::NIL};
+	};
+
 	namespace food
 	{
 		struct Nutrient
@@ -112,13 +123,44 @@ namespace wholth::entity::editable
 			wholth::entity::recipe_step::description_t description {wholth::utils::NIL};
 		};
 	};
+}
 
+namespace wholth::entity::expanded
+{
 	struct Food
 	{
-		wholth::entity::food::id_t id {wholth::utils::NIL};
-		wholth::entity::food::title_t title {wholth::utils::NIL};
-		wholth::entity::food::description_t description {wholth::utils::NIL};
+		wholth::entity::food::id_t id;
+		wholth::entity::food::title_t title;
+		wholth::entity::food::description_t description;
+		std::string_view preparation_time;
 	};
+
+	namespace food
+	{
+		struct Nutrient
+		{
+			wholth::entity::nutrient::id_t id;
+			wholth::entity::nutrient::title_t title;
+			wholth::entity::nutrient::value_t value;
+			std::string_view unit;
+			wholth::entity::nutrient::value_t user_value;
+		};
+
+		struct Ingredient
+		{
+			wholth::entity::food::id_t food_id;
+			wholth::entity::food::title_t title;
+			wholth::entity::ingredient::canonical_mass_t canonical_mass;
+			std::string_view ingredient_count;
+		};
+
+		struct RecipeStep
+		{
+			wholth::entity::recipe_step::id_t id;
+			wholth::entity::recipe_step::time_t time;
+			wholth::entity::recipe_step::description_t description;
+		};
+	}
 }
 
 namespace wholth {
@@ -142,76 +184,99 @@ namespace wholth {
 		> Entry;
 	};
 
-	std::optional<wholth::entity::food::id_t> insert_food(
+	enum class StatusCode : int
+	{
+		SQL_STATEMENT_ERROR = std::numeric_limits<int>::min(),
+		NO_ERROR = 0,
+		ENTITY_NOT_FOUND,
+		INVALID_LOCALE_ID,
+		INVALID_FOOD_ID,
+		EMPTY_FOOD_TITLE,
+		UNCHANGED_FOOD_TITLE,
+		UNCHANGED_FOOD_DESCRIPTION,
+	};
+
+	std::string_view view(wholth::StatusCode rc);
+
+	// @todo add tests for when couldn't create description and title.
+	auto insert_food(
+		const wholth::entity::editable::Food&,
+		std::string& result_id,
+		sqlw::Connection&,
+		wholth::entity::locale::id_t
+	) noexcept -> StatusCode;
+
+	struct UpdateFoodStatus
+	{
+		StatusCode title {StatusCode::NO_ERROR};
+		StatusCode description {StatusCode::NO_ERROR};
+		StatusCode rc {StatusCode::NO_ERROR};
+	};
+
+	auto update_food(
 		const wholth::entity::editable::Food&,
 		sqlw::Connection&,
 		wholth::entity::locale::id_t
-	);
+	) noexcept -> UpdateFoodStatus;
 
-	void update_food(
-		const wholth::entity::editable::Food&,
-		sqlw::Connection&,
-		wholth::entity::locale::id_t
-	);
-
-	void remove_food(
+	auto remove_food(
 		wholth::entity::food::id_t,
 		sqlw::Connection&
-	);
+	) noexcept -> StatusCode;
 
 	void add_steps(
 		wholth::entity::food::id_t,
 		const std::span<const wholth::entity::editable::food::RecipeStep>,
 		sqlw::Connection&,
 		wholth::entity::locale::id_t
-	);
+	) noexcept;
 
 	void update_steps(
 		const std::span<const wholth::entity::editable::food::RecipeStep>,
 		sqlw::Connection&,
 		wholth::entity::locale::id_t
-	);
+	) noexcept;
 
 	void remove_steps(
 		const std::span<const wholth::entity::editable::food::RecipeStep>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	void add_nutrients(
 		wholth::entity::food::id_t,
 		const std::span<const wholth::entity::editable::food::Nutrient>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	void update_nutrients(
 		wholth::entity::food::id_t,
 		const std::span<const wholth::entity::editable::food::Nutrient>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	void remove_nutrients(
 		wholth::entity::food::id_t,
 		const std::span<const wholth::entity::editable::food::Nutrient>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	void add_ingredients(
 		wholth::entity::recipe_step::id_t,
 		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	void update_ingredients(
 		wholth::entity::recipe_step::id_t,
 		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	void remove_ingredients(
 		wholth::entity::recipe_step::id_t,
 		const std::span<const wholth::entity::editable::food::Ingredient>,
 		sqlw::Connection&
-	);
+	) noexcept;
 
 	struct FoodsQuery
 	{
@@ -219,16 +284,67 @@ namespace wholth {
 		// @todo: programmaticlay resolve default locale_id.
 		std::string_view locale_id {""};
 		std::string_view title {""};
-		std::span<nutrient_filter::Entry> nutrient_filters {};
+		// @todo implement this
 		std::string_view food_names {""};
+		// @todo implement this
+		/* std::string_view ingredients {""}; */
+		std::span<nutrient_filter::Entry> nutrient_filters {};
 	};
 
 	auto list_foods(
-		std::span<wholth::entity::viewable::Food> list,
+		std::span<wholth::entity::shortened::Food> list,
 		std::string& buffer,
+		PaginationInfo&,
 		const FoodsQuery&,
 		sqlw::Connection*
-	) -> PaginationInfo;
+	) noexcept -> StatusCode;
+
+	auto expand_food(
+		wholth::entity::expanded::Food&,
+		std::string& buffer,
+		wholth::entity::food::id_t,
+		wholth::entity::locale::id_t,
+		sqlw::Connection*
+	) noexcept -> StatusCode;
+
+	auto list_steps(
+		std::span<wholth::entity::expanded::food::RecipeStep>,
+		std::string& buffer,
+		wholth::entity::food::id_t,
+		wholth::entity::locale::id_t,
+		sqlw::Connection*
+	) noexcept -> StatusCode;
+
+	auto list_ingredients(
+		std::span<wholth::entity::expanded::food::Ingredient>,
+		std::string& buffer,
+		wholth::entity::food::id_t,
+		wholth::entity::locale::id_t,
+		sqlw::Connection*
+	) noexcept -> StatusCode;
+
+	auto list_nutrients(
+		std::span<wholth::entity::expanded::food::Nutrient>,
+		std::string& buffer,
+		wholth::entity::food::id_t,
+		wholth::entity::locale::id_t,
+		sqlw::Connection*
+	) noexcept -> StatusCode;
+
+	auto describe_error(
+		StatusCode ec,
+		std::string& buffer,
+		wholth::entity::locale::id_t locale_id,
+		sqlw::Connection* con
+	) noexcept -> StatusCode;
 }
+
+// Return true if rc is an error.
+constexpr bool operator!(wholth::StatusCode rc)
+{
+	return wholth::StatusCode::NO_ERROR != rc;
+}
+
+std::ostream& operator<<(std::ostream&, const wholth::entity::expanded::Food&);
 
 #endif // WHOLTH_ENTITY_FOOD_H_
