@@ -6,7 +6,8 @@ recipe_tree_node(
 	recipe_ingredient_count,
 	ingredient_id,
 	ingredient_mass,
-	ingredient_weight
+	ingredient_weight,
+	step_seconds
 ) AS
 SELECT
 	1,
@@ -15,9 +16,10 @@ SELECT
 	ri.recipe_ingredient_count,
 	rsf.food_id,
 	rsf.canonical_mass,
-	rsf.canonical_mass / ri.recipe_mass
+	rsf.canonical_mass / ri.recipe_mass,
+	rs.seconds
 FROM recipe_step rs
-INNER JOIN recipe_info ri
+LEFT JOIN recipe_info ri
 	ON ri.recipe_id = rs.recipe_id
-INNER JOIN recipe_step_food rsf
+LEFT JOIN recipe_step_food rsf
 	ON rsf.recipe_step_id = rs.id

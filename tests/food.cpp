@@ -16,6 +16,7 @@
 #include "sqlw/status.hpp"
 #include "wholth/cmake_vars.h"
 #include "wholth/entity/utils.hpp"
+#include "wholth/list/food.hpp"
 #include "wholth/utils.hpp"
 #include "wholth/pager.hpp"
 #include "wholth/entity/food.hpp"
@@ -115,9 +116,9 @@ TEST_F(MigrationAwareTest, list_foods)
 	);
 	stmt("INSERT INTO nutrient (id,unit,position) "
 		"VALUES "
-		"(1, 'a', 0),"
+		"(1, 'a', 1),"
 		"(2, 'b', 0),"
-		"(3, 'c', 0)"
+		"(3, 'c', 2)"
 	);
 	stmt("INSERT INTO food_nutrient (food_id, nutrient_id, value) "
 		"VALUES "
@@ -144,24 +145,23 @@ TEST_F(MigrationAwareTest, list_foods)
 		"(1, '600') "
 	);
 
-	std::string buffer {};
+	std::string buffer1 {};
+	std::string buffer2 {};
+	std::string buffer3 {};
 
 	{
 		std::array<wholth::entity::shortened::Food, 2> list;
-		wholth::FoodsQuery q {
+		wholth::list::food::Query q {
 			.page = 0,
 			.locale_id = "1",
 		};
-		PaginationInfo info;
-		wholth::StatusCode rc = wholth::list_foods(
-			list,
-			buffer,
-			info,
-			q,
-			&db_con
-		);
+		wholth::list::food::Lister lister {q, &db_con};
 
-		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+		wholth::StatusCode rc1 = lister.list(
+			list,
+			buffer1
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc1) << wholth::view(rc1);
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salt", list[0].title);
 		ASSERT_STREQ2("10m", list[0].preparation_time);
@@ -169,170 +169,208 @@ TEST_F(MigrationAwareTest, list_foods)
 		ASSERT_STREQ2("[N/A]", list[1].title);
 		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
 
+		PaginationInfo info;
+		wholth::StatusCode rc2 = lister.pagination(
+			info,
+			buffer2,
+			list.size()
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2) << wholth::view(rc2);
 		ASSERT_STREQ2("3", info.max_page);
 		ASSERT_STREQ2("6", info.element_count);
 		ASSERT_STREQ2("1/3", info.progress_string);
+
+		wholth::StatusCode rc3 = lister.count(buffer3);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc3) << wholth::view(rc3);
+		ASSERT_STREQ2("6", buffer3);
 	}
 
 	{
 		std::array<wholth::entity::shortened::Food, 10> list;
-		wholth::FoodsQuery q {
+		wholth::list::food::Query q {
 			.page = 0,
 			.locale_id = "2",
 			.title = "Sal",
 		};
-		PaginationInfo info;
-		wholth::StatusCode rc = wholth::list_foods(
-			list,
-			buffer,
-			info,
-			q,
-			&db_con
-		);
+		wholth::list::food::Lister lister {q, &db_con};
 
-		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+		wholth::StatusCode rc1 = lister.list(
+			list,
+			buffer1
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc1) << wholth::view(rc1);
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salta", list[0].title);
 		ASSERT_STREQ2("10m", list[0].preparation_time);
-
 		ASSERT_STREQ2("4", list[1].id);
 		ASSERT_STREQ2("Saltabar", list[1].title);
 		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
-
 		ASSERT_STREQ2("5", list[2].id);
 		ASSERT_STREQ2("Salia", list[2].title);
 		ASSERT_STREQ2("[N/A]", list[2].preparation_time);
 
+		PaginationInfo info;
+		wholth::StatusCode rc2 = lister.pagination(
+			info,
+			buffer2,
+			list.size()
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2) << wholth::view(rc2);
 		ASSERT_STREQ2("1", info.max_page);
 		ASSERT_STREQ2("3", info.element_count);
 		ASSERT_STREQ2("1/1", info.progress_string);
+
+		wholth::StatusCode rc3 = lister.count(buffer3);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc3) << wholth::view(rc3);
+		ASSERT_STREQ2("3", buffer3);
 	}
 
 	{
 		std::array<wholth::entity::shortened::Food, 10> list;
-		wholth::FoodsQuery q {
+		wholth::list::food::Query q {
 			.page = 0,
 			.locale_id = "",
 			.title = "Sal",
 		};
-		PaginationInfo info;
-		wholth::StatusCode rc = wholth::list_foods(
+		wholth::list::food::Lister lister {q, &db_con};
+
+		wholth::StatusCode rc1 = lister.list(
 			list,
-			buffer,
-			info,
-			q,
-			&db_con
+			buffer1
 		);
+		ASSERT_EQ(wholth::StatusCode::INVALID_LOCALE_ID, rc1) << wholth::view(rc1);
 
-		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
-		ASSERT_STREQ2("1", list[0].id);
-		ASSERT_STREQ2("Salt", list[0].title);
-		ASSERT_STREQ2("10m", list[0].preparation_time);
+		PaginationInfo info;
+		wholth::StatusCode rc2 = lister.pagination(
+			info,
+			buffer2,
+			list.size()
+		);
+		ASSERT_EQ(wholth::StatusCode::INVALID_LOCALE_ID, rc2) << wholth::view(rc2);
 
-		ASSERT_STREQ2("4", list[1].id);
-		ASSERT_STREQ2("Saltabar", list[1].title);
-		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
+		wholth::StatusCode rc3 = lister.count(buffer3);
+		ASSERT_EQ(wholth::StatusCode::INVALID_LOCALE_ID, rc3) << wholth::view(rc3);
+	}
 
-		ASSERT_STREQ2("5", list[2].id);
-		ASSERT_STREQ2("Salia", list[2].title);
-		ASSERT_STREQ2("[N/A]", list[2].preparation_time);
+	{
+		std::array<wholth::entity::shortened::Food, 10> list;
+		wholth::list::food::Query q {
+			.page = 0,
+			.locale_id = "1a",
+			.title = "Sal",
+		};
+		wholth::list::food::Lister lister {q, &db_con};
 
-		ASSERT_STREQ2("1", info.max_page);
-		ASSERT_STREQ2("3", info.element_count);
-		ASSERT_STREQ2("1/1", info.progress_string);
+		wholth::StatusCode rc1 = lister.list(
+			list,
+			buffer1
+		);
+		ASSERT_EQ(wholth::StatusCode::INVALID_LOCALE_ID, rc1) << wholth::view(rc1);
+
+		PaginationInfo info;
+
+		wholth::StatusCode rc2 = lister.pagination(
+			info,
+			buffer2,
+			list.size()
+		);
+		ASSERT_EQ(wholth::StatusCode::INVALID_LOCALE_ID, rc2) << wholth::view(rc2);
+
+		wholth::StatusCode rc3 = lister.count(buffer3);
+		ASSERT_EQ(wholth::StatusCode::INVALID_LOCALE_ID, rc3) << wholth::view(rc3);
 	}
 
 	{
 		std::array<wholth::entity::shortened::Food, 2> list;
-		wholth::FoodsQuery q {
+		wholth::list::food::Query q {
 			.page = 1,
 			.locale_id = "2",
 			.title = "Sal",
 		};
-		PaginationInfo info;
-		wholth::StatusCode rc = wholth::list_foods(
-			list,
-			buffer,
-			info,
-			q,
-			&db_con
-		);
+		wholth::list::food::Lister lister {q, &db_con};
 
-		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+		wholth::StatusCode rc1 = lister.list(
+			list,
+			buffer1
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc1) << wholth::view(rc1);
 		// Checks that foods are sorted by id by default.
 		ASSERT_STREQ2("5", list[0].id);
 		ASSERT_STREQ2("Salia", list[0].title);
 		ASSERT_STREQ2("[N/A]", list[0].preparation_time);
 
+		PaginationInfo info;
+		wholth::StatusCode rc2 = lister.pagination(
+			info,
+			buffer2,
+			list.size()
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2) << wholth::view(rc2);
 		ASSERT_STREQ2("2", info.max_page);
 		ASSERT_STREQ2("3", info.element_count);
 		ASSERT_STREQ2("2/2", info.progress_string);
+
+		wholth::StatusCode rc3 = lister.count(buffer3);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc3) << wholth::view(rc3);
+		ASSERT_STREQ2("3", buffer3);
 	}
 
 	{
-		std::array<wholth::nutrient_filter::Entry, 500> arr {{
-			{wholth::nutrient_filter::Operation::EQ, "1", "100"},
-			{wholth::nutrient_filter::Operation::NEQ, "2", "22.4"},
-			{wholth::nutrient_filter::Operation::BETWEEN, "3", "10.3,40"},
+		std::array<wholth::list::food::nutrient_filter::Entry, 500> arr {{
+			{wholth::list::food::nutrient_filter::Operation::EQ, "1", "100"},
+			{wholth::list::food::nutrient_filter::Operation::NEQ, "2", "22.4"},
+			{wholth::list::food::nutrient_filter::Operation::BETWEEN, "3", "10.3,40"},
 		}};
 		std::array<wholth::entity::shortened::Food, 3> list;
-		wholth::FoodsQuery q {
+		wholth::list::food::Query q {
 			.page = 0,
-			.locale_id = "",
+			.locale_id = "1",
 			.nutrient_filters = arr,
 		};
-		PaginationInfo info;
-		wholth::StatusCode rc = wholth::list_foods(
-			list,
-			buffer,
-			info,
-			q,
-			&db_con
-		);
+		wholth::list::food::Lister lister {q, &db_con};
 
-		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+		wholth::StatusCode rc1 = lister.list(
+			list,
+			buffer1
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc1) << wholth::view(rc1);
 		ASSERT_STREQ2("3", list[0].id);
 		ASSERT_STREQ2("4", list[1].id);
 		ASSERT_STREQ2("6", list[2].id);
 
+		PaginationInfo info;
+		wholth::StatusCode rc2 = lister.pagination(
+			info,
+			buffer2,
+			list.size()
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2) << wholth::view(rc2);
 		ASSERT_STREQ2("1", info.max_page);
 		ASSERT_STREQ2("3", info.element_count);
 		ASSERT_STREQ2("1/1", info.progress_string);
+
+		wholth::StatusCode rc3 = lister.count(buffer3);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc3) << wholth::view(rc3);
+		ASSERT_STREQ2("3", buffer3);
 	}
 
 	// switch buffer check
 	{
 		std::array<wholth::entity::shortened::Food, 4> list;
-		std::string buffer1 {};
-		std::string buffer2 {};
-		wholth::FoodsQuery q {
+		std::string buffer1_1 {};
+		std::string buffer1_2 {};
+		wholth::list::food::Query q {
 			.page = 0,
 			.locale_id = "1",
 		};
 
-		PaginationInfo info1;
-		wholth::StatusCode rc1 = wholth::list_foods(
+		wholth::list::food::Lister lister {q, &db_con};
+
+		wholth::StatusCode rc1 = lister.list(
 			std::span{list.begin(), 2},
-			buffer1,
-			info1,
-			q,
-			&db_con
+			buffer1_1
 		);
-
 		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc1);
-
-		q.page = 1;
-		PaginationInfo info2;
-		wholth::StatusCode rc2 = wholth::list_foods(
-			std::span{list.begin() + 2, 2},
-			buffer2,
-			info2,
-			q,
-			&db_con
-		);
-
-		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2);
-
 		ASSERT_STREQ2("1", list[0].id);
 		ASSERT_STREQ2("Salt", list[0].title);
 		ASSERT_STREQ2("10m", list[0].preparation_time);
@@ -340,20 +378,106 @@ TEST_F(MigrationAwareTest, list_foods)
 		ASSERT_STREQ2("[N/A]", list[1].title);
 		ASSERT_STREQ2("[N/A]", list[1].preparation_time);
 
-		ASSERT_STREQ2("3", info1.max_page);
-		ASSERT_STREQ2("6", info1.element_count);
-		ASSERT_STREQ2("1/3", info1.progress_string);
-
+		q.page = 1;
+		wholth::StatusCode rc2 = lister.list(
+			std::span{list.begin() + 2, 2},
+			buffer1_1
+		);
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2);
 		ASSERT_STREQ2("3", list[2].id);
 		ASSERT_STREQ2("[N/A]", list[2].title);
 		ASSERT_STREQ2("[N/A]", list[2].preparation_time);
 		ASSERT_STREQ2("4", list[3].id);
 		ASSERT_STREQ2("[N/A]", list[3].title);
 		ASSERT_STREQ2("[N/A]", list[3].preparation_time);
+	}
+}
 
-		ASSERT_STREQ2("3", info2.max_page);
-		ASSERT_STREQ2("6", info2.element_count);
-		ASSERT_STREQ2("2/3", info2.progress_string);
+TEST_F(MigrationAwareTest, list_foods_by_ingredients)
+{
+	sqlw::Statement stmt {&db_con};
+
+	stmt("INSERT INTO food (id, created_at) "
+		"VALUES "
+		" (1,'10-10-2010'),"
+		" (2,'10-10-2010'),"
+		" (3,'10-10-2010'),"
+		" (4,'10-10-2010'),"
+		" (5,'10-10-2010'),"
+		" (6,'10-10-2010'),"
+		" (7,'10-10-2010')"
+	);
+	stmt(
+		"INSERT INTO locale (id,alias) VALUES "
+		"(1,'EN'),(2,'RU'),(3,'DE')"
+	);
+	stmt("INSERT INTO food_localisation (food_id, locale_id, title) "
+		"VALUES "
+		"(1, 3, 'scrambled eggs'), "
+		"(2, 3, 'eggs'), "
+		"(3, 3, 'salt'), "
+		"(4, 3, 'butter'), "
+		"(5, 3, 'sugar'), "
+		"(6, 3, 'water'), "
+		"(7, 3, 'soda') "
+	);
+	// todo case when recipe contains it's ingredient name.
+	stmt("INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
+		"(100, 1, '3720'), "
+		"(200, 1, '60'), "
+		"(300, 7, '340') "
+	);
+	stmt("INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass) VALUES "
+		"(100, 2, 21), "
+		"(200, 3, 31), "
+		"(200, 4, 41), "
+		"(300, 5, 52), "
+		"(300, 6, 62) "
+	);
+
+	{
+		std::string buffer1;
+		std::array<wholth::entity::shortened::Food, 10> list;
+		wholth::list::food::Query q {
+			.page = 0,
+			.locale_id = "3",
+			.ingredients = "water,salt",
+		};
+		/* PaginationInfo info; */
+		wholth::list::food::Lister lister {q, &db_con};
+
+		wholth::StatusCode rc1 = lister.list(
+			list,
+			buffer1
+		);
+
+		/* PaginationInfo info; */
+		/* wholth::StatusCode rc2 = lister.pagination( */
+		/* 	info, */
+		/* 	buffer2, */
+		/* 	list.size() */
+		/* ); */
+		/* wholth::StatusCode rc3 = lister.count(buffer3); */
+
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc1) << wholth::view(rc1);
+		/* ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc2) << wholth::view(rc2); */
+		/* ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc3) << wholth::view(rc3); */
+
+		/* ASSERT_STREQ2("1", list[0].id); */
+		/* ASSERT_STREQ2("Salta", list[0].title); */
+		/* ASSERT_STREQ2("10m", list[0].preparation_time); */
+
+		/* ASSERT_STREQ2("4", list[1].id); */
+		/* ASSERT_STREQ2("Saltabar", list[1].title); */
+		/* ASSERT_STREQ2("[N/A]", list[1].preparation_time); */
+
+		/* ASSERT_STREQ2("5", list[2].id); */
+		/* ASSERT_STREQ2("Salia", list[2].title); */
+		/* ASSERT_STREQ2("[N/A]", list[2].preparation_time); */
+
+		/* ASSERT_STREQ2("1", info.max_page); */
+		/* ASSERT_STREQ2("3", info.element_count); */
+		/* ASSERT_STREQ2("1/1", info.progress_string); */
 	}
 }
 

@@ -51,7 +51,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        29d1d8b2be7e4e2c09c90d19a901960634accf67
+  GIT_TAG        ff1ade2a162f14118d7b0ba5f86f57bf16b8f85f
 )
 
 FetchContent_Declare(
@@ -105,6 +105,8 @@ add_executable(
 	wholth_tests
 	src/db/db.cpp
 	src/entity/food.cpp
+	src/list/food.cpp
+	src/utils.cpp
 	tests/food.cpp
 )
 

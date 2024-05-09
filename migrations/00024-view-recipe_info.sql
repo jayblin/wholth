@@ -9,6 +9,6 @@ SELECT
 	SUM(rsf.canonical_mass),
 	COUNT(rsf.food_id)
 FROM recipe_step rs
-INNER JOIN recipe_step_food rsf
+LEFT JOIN recipe_step_food rsf
 	ON rsf.recipe_step_id = rs.id
 GROUP BY rs.recipe_id

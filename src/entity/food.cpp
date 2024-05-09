@@ -10,6 +10,7 @@
 #include "wholth/entity/nutrient.hpp"
 #include "wholth/pager.hpp"
 #include "wholth/utils.hpp"
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <exception>
@@ -42,381 +43,6 @@ constexpr auto count_spaces(const std::string_view& str) -> size_t
 	}
 	
 	return count;
-}
-
-static std::string_view create_joins(wholth::entity::locale::id_t locale_id)
-{
-	/* if (q.locale_id.npos == q.locale_id.find(",")) */
-	/* { */
-	/* 	return "LEFT JOIN food_localisation fl " */
-	/* 	   "ON fl.food_id = f.id AND fl.locale_id IN (?1) "; */
-	/* } */
-
-	if (locale_id.size() == 0)
-	{
-		return "LEFT JOIN food_localisation AS fl "
-		   "ON fl.food_id = f.id "
-		"LEFT JOIN food_nutrient AS fn "
-		"ON fn.food_id = f.id "
-		"LEFT JOIN recipe_step rs "
-		"ON rs.recipe_id = f.id ";
-	}
-
-	return "LEFT JOIN food_localisation AS fl "
-	   "ON fl.food_id = f.id AND fl.locale_id = :1 "
-		"LEFT JOIN food_nutrient AS fn "
-		"ON fn.food_id = f.id "
-		"LEFT JOIN recipe_step rs "
-		"ON rs.recipe_id = f.id ";
-}
-
-static bool is_empty(const wholth::nutrient_filter::Entry& entry)
-{
-	return !(std::get<wholth::nutrient_filter::Value::index>(entry).length() > 0);
-}
-
-static std::string create_where(const wholth::FoodsQuery& q)
-{
-	using OP = wholth::nutrient_filter::Operation;
-
-	std::stringstream tpl_stream;
-	size_t sql_param_idx = q.locale_id.size() == 0 ? 1 : 2;
-
-	for (size_t i = 0; i < q.nutrient_filters.size(); i++)
-	{
-		const auto& entry = q.nutrient_filters[i];
-
-		if (is_empty(entry))
-		{
-			break;
-		}
-
-		switch (std::get<OP>(entry))
-		{
-			case OP::EQ: {
-				auto idx1 = sql_param_idx;
-				sql_param_idx++;
-				auto idx2 = sql_param_idx;
-				sql_param_idx++;
-				tpl_stream << fmt::format(
-					"INNER JOIN food_nutrient AS fn{} "
-					" ON fn{}.food_id = f.id "
-					" AND fn{}.nutrient_id = :{} "
-					" AND (fn{}.value <= (:{} + 0.001) AND fn{}.value >= (:{} - 0.001)) ",
-					i,
-					i,
-					i,
-					idx1,
-					i,
-					idx2,
-					i,
-					idx2
-				);
-				break;
-			}
-			case OP::NEQ: {
-				auto idx1 = sql_param_idx;
-				sql_param_idx++;
-				auto idx2 = sql_param_idx;
-				sql_param_idx++;
-				tpl_stream << fmt::format(
-					"INNER JOIN food_nutrient AS fn{} "
-					" ON fn{}.food_id = f.id "
-					" AND fn{}.nutrient_id = :{} "
-					" AND (fn{}.value < (:{} - 0.001) or fn{}.value > (:{} + 0.001)) ",
-					i,
-					i,
-					i,
-					idx1,
-					i,
-					idx2,
-					i,
-					idx2
-				);
-				break;
-			}
-			case OP::BETWEEN: {
-				auto idx1 = sql_param_idx;
-				sql_param_idx++;
-				auto idx2 = sql_param_idx;
-				sql_param_idx++;
-				auto idx3 = sql_param_idx;
-				sql_param_idx++;
-
-				tpl_stream << fmt::format(
-					" INNER JOIN food_nutrient AS fn{} "
-					" ON fn{}.food_id = f.id "
-					" AND fn{}.nutrient_id = :{} "
-					" AND (fn{}.value >= :{} AND fn{}.value <= :{}) ",
-					i,
-					i,
-					i,
-					idx1,
-					i,
-					idx2,
-					i,
-					idx3
-				);
-				break;
-			}
-		}
-	}
-
-	if (q.title.size() > 0)
-	{
-		tpl_stream << " WHERE ";
-
-		tpl_stream << fmt::format(
-			" fl.title LIKE :{} ",
-			sql_param_idx
-		);
-		sql_param_idx++;
-	}
-
-	return tpl_stream.str();
-}
-
-static void bind_params(
-	sqlw::Statement& stmt,
-	const wholth::FoodsQuery& q
-)
-{
-	using OP = wholth::nutrient_filter::Operation;
-
-	size_t idx = 1;
-
-	if (q.locale_id.size() > 0)
-	{
-		stmt.bind(idx, q.locale_id, sqlw::Type::SQL_INT);
-		idx++;
-	}
-
-	for (const wholth::nutrient_filter::Entry& entry : q.nutrient_filters)
-	{
-		if (is_empty(entry))
-		{
-			break;
-		}
-
-		const auto& value = std::get<wholth::nutrient_filter::Value::index>(entry);
-
-		switch (std::get<OP>(entry))
-		{
-			case OP::EQ: {
-				stmt.bind(
-					idx,
-					std::get<wholth::nutrient_filter::NutrientId::index>(entry),
-					sqlw::Type::SQL_INT
-				);
-				idx++;
-				stmt.bind(
-					idx,
-					value,
-					sqlw::Type::SQL_DOUBLE
-				);
-				idx++;
-				break;
-			}
-			case OP::NEQ: {
-				stmt.bind(
-					idx,
-					std::get<wholth::nutrient_filter::NutrientId::index>(entry),
-					sqlw::Type::SQL_INT
-				);
-				idx++;
-				stmt.bind(
-					idx,
-					value,
-					sqlw::Type::SQL_DOUBLE
-				);
-				idx++;
-				break;
-			}
-			case OP::BETWEEN: {
-				std::array<std::string_view, 2> values {
-					"0",
-					"0"
-				};
-
-				for (size_t i = 0; i < value.length(); i++) {
-					if (',' == value[i] && (value.length() - 1) != i)
-					{
-						values[0] = value.substr(0, i);
-						values[1] = value.substr(i + 1);
-						break;
-					}
-				}
-
-				stmt.bind(
-					idx,
-					std::get<wholth::nutrient_filter::NutrientId::index>(entry),
-					sqlw::Type::SQL_INT
-				);
-				idx++;
-				stmt.bind(
-					idx,
-					values[0],
-					sqlw::Type::SQL_DOUBLE
-				);
-				idx++;
-				stmt.bind(
-					idx,
-					values[1],
-					sqlw::Type::SQL_DOUBLE
-				);
-				idx++;
-				break;
-			}
-		}
-	}
-
-	if (q.title.size() > 0)
-	{
-		std::string _title = fmt::format("%{}%", q.title);
-
-		stmt.bind(
-			idx,
-			_title,
-			sqlw::Type::SQL_TEXT
-		);
-		idx++;
-	}
-}
-
-static std::string create_entity_query_sql(
-	const wholth::FoodsQuery& q,
-	size_t limit
-)
-{
-	return fmt::format(
-		"SELECT "
-			"f.id, "
-			"COALESCE(fl.title, '[N/A]') AS title, "
-			"COALESCE("
-				"seconds_to_readable_time(rs.seconds),"
-				"'[N/A]'"
-			") AS time "
-		"FROM food f "
-		" {1} "
-		" {2} "
-		"GROUP BY f.id "
-		"ORDER BY f.id ASC, fl.locale_id ASC, fl.title ASC "
-		"LIMIT {3} "
-		"OFFSET {4}",
-		q.title,
-		create_joins(q.locale_id),
-		create_where(q),
-		limit,
-		limit * q.page
-	);
-}
-
-static std::string create_pagination_query_sql(
-	const wholth::FoodsQuery& q,
-	size_t limit
-)
-{
-	return fmt::format(
-		"SELECT "
-			"r.cnt AS cnt, "
-			"MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {0} + 0.49) as int)) AS max_page, "
-			"'{1}' || '/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {2} + 0.49) AS int))) AS paginator_str "
-		"FROM ( "
-			"SELECT "
-				"COUNT(g.id) AS cnt "
-			"FROM ( "
-				"SELECT f.id AS id "
-				"FROM food f "
-				" {3} "
-				" {4} "
-				"GROUP BY f.id "
-				"ORDER BY f.id ASC, fl.locale_id ASC, fl.title ASC "
-			") AS g "
-		") AS r",
-		limit,
-		q.page + 1,
-		limit,
-		create_joins(q.locale_id),
-		create_where(q)
-	);
-}
-
-auto wholth::list_foods(
-	std::span<wholth::entity::shortened::Food> span,
-	std::string& buffer,
-	PaginationInfo& p_info,
-	const FoodsQuery& q,
-	sqlw::Connection* con
-) noexcept -> SC
-{
-	sqlw::Statement entity_stmt {con};
-	sqlw::Statement paginator_stmt {con};
-	// @todo: rethink this jank!
-	constexpr size_t field_count = 3;
-
-	auto entity_sql = create_entity_query_sql(q, span.size());
-	auto paginator_sql = create_pagination_query_sql(q, span.size());
-	
-	std::stringstream buffer_stream;
-
-	wholth::utils::LengthContainer itr {
-		(span.size() * field_count) + 3
-	};
-
-	paginator_stmt.prepare(paginator_sql);
-
-	bind_params(paginator_stmt, q);
-
-	paginator_stmt([&buffer_stream, &itr](sqlw::Statement::ExecArgs e)
-		{
-			buffer_stream << e.column_value;
-
-			itr.add(e.column_value.size());
-		}
-	);
-
-	entity_stmt.prepare(entity_sql);
-
-	bind_params(entity_stmt, q);
-
-	entity_stmt([&buffer_stream, &itr](sqlw::Statement::ExecArgs e)
-		{
-			buffer_stream << e.column_value;
-
-			itr.add(e.column_value.size());
-		}
-	);
-
-	if (!(buffer_stream.rdbuf()->in_avail() > 0))
-	{
-		// todo test
-		return SC::ENTITY_NOT_FOUND;
-	}
-
-	buffer = buffer_stream.str();
-
-	p_info.element_count = itr.next(buffer);
-	p_info.max_page = itr.next(buffer);
-	p_info.progress_string = itr.next(buffer);
-
-	size_t j = 0;
-	for (
-		std::string_view id = itr.next(buffer);
-		id != wholth::utils::NIL;
-		id = itr.next(buffer)
-	)
-	{
-		wholth::entity::shortened::Food entry;
-
-		entry.id = id;
-		entry.title = itr.next(buffer);
-		entry.preparation_time = itr.next(buffer);
-
-		span[j] = entry;
-		j++;
-	}
-
-	return SC::NO_ERROR;
 }
 
 wholth::StatusCode wholth::insert_food(
@@ -478,6 +104,8 @@ wholth::StatusCode wholth::insert_food(
 		stmt("ROLLBACK TO insert_food_pnt");
 		return SC::SQL_STATEMENT_ERROR;
 	}
+
+	// todo add calories calculation here.
 
 	stmt("RELEASE insert_food_pnt");
 
@@ -946,6 +574,8 @@ void wholth::add_ingredients(
 		idxs.advance();
 	}
 
+	// todo add calorie recalc here
+
 	stmt.exec();
 }
 
@@ -983,6 +613,8 @@ void wholth::update_ingredients(
 			stmt("RELEASE update_ingreddients_pnt");
 		}
 	}
+
+	// todo add calorie recalc here
 }
 
 void wholth::remove_ingredients(
@@ -1019,6 +651,8 @@ void wholth::remove_ingredients(
 			stmt("RELEASE remove_ingreddients_pnt");
 		}
 	}
+
+	// todo add calorie recalc here
 }
 
 SC wholth::expand_food(
@@ -1245,65 +879,73 @@ auto wholth::list_nutrients(
 		* nutrients.size()
 	};
 	stmt
-		.prepare(
-			"WITH RECURSIVE "
-			"recipe_tree( "
-				"lvl, "
-				"recipe_id, "
-				"recipe_mass, "
-				"recipe_ingredient_count, "
-				"ingredient_id, "
-				"ingredient_mass, "
-				"ingredient_weight "
-			") AS ( "
-				"SELECT * FROM recipe_tree_node root "
-				"WHERE root.recipe_id = :1 "
-				"UNION "
-				"SELECT "
-					"rt.lvl + 1, "
-					"node.recipe_id, "
-					"node.recipe_mass, "
-					"node.recipe_ingredient_count, "
-					"node.ingredient_id, "
-					"node.ingredient_mass, "
-					"node.ingredient_mass / node.recipe_mass * rt.ingredient_weight "
-				"FROM recipe_tree rt "
-				"INNER JOIN recipe_tree_node node "
-					"ON node.recipe_id = rt.ingredient_id "
-				"ORDER BY 1 DESC "
-			") "
-			"SELECT "
-				"id, title, value, unit, user_value "
-			"FROM ( "
-				"SELECT "
-					"fn.nutrient_id AS id, "
-					"SUM(rt.ingredient_weight) AS sum_weight, "
-					"COALESCE(nl.title, '[N/A]') AS title, "
-					"n.unit AS unit, "
-					"SUM(fn.value * rt.ingredient_weight) * 100 / root_recipe_info.recipe_mass AS value, "
-					"root_food_nutrient.value AS user_value "
-				"FROM recipe_tree rt "
-				"LEFT JOIN recipe_info ingredient_info "
-					"ON ingredient_info.recipe_id = rt.ingredient_id "
-				"INNER JOIN food_nutrient fn "
-					"ON fn.food_id = rt.ingredient_id "
-				"LEFT JOIN nutrient n "
-					"ON n.id = fn.nutrient_id "
-				"LEFT JOIN nutrient_localisation nl "
-					"ON nl.nutrient_id = n.id AND nl.locale_id = :2 "
-				"LEFT JOIN recipe_info root_recipe_info "
-					"ON root_recipe_info.recipe_id = :1 "
-				"LEFT JOIN food_nutrient root_food_nutrient "
-					"ON root_food_nutrient.food_id = :1 AND root_food_nutrient.nutrient_id = n.id "
-				// So that ingredients that are also recipes will not have their
-				// user specified nutrient values summated.
-				"WHERE ingredient_info.recipe_id IS NULL "
-				"GROUP BY fn.nutrient_id "
-				"HAVING sum_weight = 1 "
-				"ORDER BY n.position ASC "
-				"LIMIT :3 "
-			") "
-		)
+		.prepare(R"sql(
+			WITH RECURSIVE
+			recipe_tree(
+				lvl,
+				recipe_id,
+				recipe_mass,
+				recipe_ingredient_count,
+				ingredient_id,
+				ingredient_mass,
+				ingredient_weight
+			) AS (
+				SELECT
+					root.lvl,
+					root.recipe_id,
+					root.recipe_mass,
+					root.recipe_ingredient_count,
+					root.ingredient_id,
+					root.ingredient_mass,
+					root.ingredient_weight
+				FROM recipe_tree_node root
+				WHERE root.recipe_id = ?1
+				UNION
+				SELECT
+					rt.lvl + 1,
+					node.recipe_id,
+					node.recipe_mass,
+					node.recipe_ingredient_count,
+					node.ingredient_id,
+					node.ingredient_mass,
+					node.ingredient_mass / node.recipe_mass * rt.ingredient_weight
+				FROM recipe_tree rt
+				INNER JOIN recipe_tree_node node
+					ON node.recipe_id = rt.ingredient_id
+				ORDER BY 1 DESC
+			)
+			SELECT
+				id, title, value, unit, user_value
+			FROM (
+				SELECT
+					fn.nutrient_id AS id,
+					SUM(rt.ingredient_weight) AS sum_weight,
+					COALESCE(nl.title, '[N/A]') AS title,
+					n.unit AS unit,
+					SUM(fn.value * rt.ingredient_weight) * 100 / root_recipe_info.recipe_mass AS value,
+					root_food_nutrient.value AS user_value
+				FROM recipe_tree rt
+				LEFT JOIN recipe_info ingredient_info
+					ON ingredient_info.recipe_id = rt.ingredient_id
+				INNER JOIN food_nutrient fn
+					ON fn.food_id = rt.ingredient_id
+				LEFT JOIN nutrient n
+					ON n.id = fn.nutrient_id
+				LEFT JOIN nutrient_localisation nl
+					ON nl.nutrient_id = n.id AND nl.locale_id = ?2
+				LEFT JOIN recipe_info root_recipe_info
+					ON root_recipe_info.recipe_id = ?1
+				LEFT JOIN food_nutrient root_food_nutrient
+					ON root_food_nutrient.food_id = ?1 AND root_food_nutrient.nutrient_id = n.id
+				-- So that ingredients that are also recipes will not have their
+				-- user specified nutrient values summated.
+				WHERE ingredient_info.recipe_id IS NULL
+				GROUP BY fn.nutrient_id
+				HAVING sum_weight = 1
+				ORDER BY n.position ASC
+				LIMIT ?3
+			)
+		)sql")
 		.bind(1, food_id, sqlw::Type::SQL_INT)
 		.bind(2, locale_id, sqlw::Type::SQL_INT)
 		// todo check size

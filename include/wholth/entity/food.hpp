@@ -17,6 +17,7 @@
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/status.hpp"
+#include "wholth/concepts.hpp"
 #include "wholth/entity/locale.hpp"
 #include "wholth/entity/nutrient.hpp"
 /* #include "wholth/pager.hpp" */
@@ -61,7 +62,7 @@ namespace wholth::entity::shortened
 		wholth::entity::food::id_t id;
 		wholth::entity::food::title_t title;
 		std::string_view preparation_time;
-		/* wholth::entity::nutrient::value_t calories; */
+		wholth::entity::nutrient::value_t top_nutrient;
 	};
 
 	namespace food
@@ -165,25 +166,6 @@ namespace wholth::entity::expanded
 
 namespace wholth {
 
-	namespace nutrient_filter
-	{
-		enum class Operation
-		{
-			EQ,
-			NEQ,
-			BETWEEN,
-		};
-
-		typedef TupleElement<wholth::entity::nutrient::view::id::value_type, 1> NutrientId;
-		typedef TupleElement<std::string_view, 2> Value;
-
-		typedef std::tuple<
-			nutrient_filter::Operation,
-			NutrientId::value_type,
-			Value::value_type
-		> Entry;
-	};
-
 	enum class StatusCode : int
 	{
 		SQL_STATEMENT_ERROR = std::numeric_limits<int>::min(),
@@ -278,26 +260,27 @@ namespace wholth {
 		sqlw::Connection&
 	) noexcept;
 
-	struct FoodsQuery
-	{
-		uint32_t page {0};
-		// @todo: programmaticlay resolve default locale_id.
-		std::string_view locale_id {""};
-		std::string_view title {""};
-		// @todo implement this
-		std::string_view food_names {""};
-		// @todo implement this
-		/* std::string_view ingredients {""}; */
-		std::span<nutrient_filter::Entry> nutrient_filters {};
-	};
+	/*struct FoodsQuery */
+	/*{ */
+	/*	uint32_t page {0}; */
+	/*	std::string_view locale_id {""}; */
+	/*	/1** */
+	/*	 * Food's title. */
+	/*	 *1/ */
+	/*	std::string_view title {""}; */
+	/*	/1** */
+	/*	 * Coma separated list of ingredient names. */
+	/*	 *1/ */
+	/*	std::string_view ingredients {""}; */
+	/*	std::span<nutrient_filter::Entry> nutrient_filters {}; */
+	/*}; */
 
-	auto list_foods(
-		std::span<wholth::entity::shortened::Food> list,
-		std::string& buffer,
-		PaginationInfo&,
-		const FoodsQuery&,
-		sqlw::Connection*
-	) noexcept -> StatusCode;
+	/* auto list_foods( */
+	/* 	std::span<wholth::entity::shortened::Food> list, */
+	/* 	std::string& buffer, */
+	/* 	const FoodsQuery&, */
+	/* 	sqlw::Connection* */
+	/* ) noexcept -> StatusCode; */
 
 	auto expand_food(
 		wholth::entity::expanded::Food&,
