@@ -1,6 +1,7 @@
 #include "wholth/entity/food.hpp"
 #include "fmt/color.h"
 #include "fmt/core.h"
+#include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/status.hpp"
@@ -598,8 +599,8 @@ void wholth::update_ingredients(
 	{
 		stmt("SAVEPOINT update_ingreddients_pnt");
 		stmt.prepare(
-			"UPDATE recipe_step_food SET canonical_mass = :1 "
-			"WHERE recipe_step_id = :2 AND food_id = :3"
+			"UPDATE recipe_step_food SET canonical_mass = ?1 "
+			"WHERE recipe_step_id = ?2 AND food_id = ?3"
 		)
 			.bind(1, ing.canonical_mass, sqlw::Type::SQL_DOUBLE)
 			.bind(2, recipe_step_id, sqlw::Type::SQL_INT)
@@ -608,13 +609,137 @@ void wholth::update_ingredients(
 		
 		if (!is_ok(stmt.status())) {
 			stmt("ROLLBACK TO update_ingreddients_pnt");
+			continue;
 		}
-		else {
-			stmt("RELEASE update_ingreddients_pnt");
-		}
+
+		stmt("RELEASE update_ingreddients_pnt");
 	}
 
 	// todo add calorie recalc here
+}
+
+SC wholth::recalc_nutrients(wholth::entity::food::id_t food_id, sqlw::Connection& con) noexcept
+{
+	using sqlw::status::is_ok;
+
+	sqlw::Statement stmt {&con};
+
+	stmt("SAVEPOINT food_recalc_nutrients_pnt");
+
+	/* stmt.prepare(R"sql( */
+	/* 	WITH cte( */
+	/* 		nutrient_id, */
+	/* 		summed_values */
+	/* 	) AS ( */
+	/* 		SELECT */
+	/* 			n.id, */
+	/* 			SUM(fn.value) */
+	/* 		FROM recipe_step rs */
+	/* 		LEFT JOIN recipe_step_food rsf */
+	/* 			ON rsf.recipe_step_id = rs.id */
+	/* 		INNER JOIN food_nutrient fn */
+	/* 			ON fn.food_id = rsf.food_id */
+	/* 		LEFT JOIN nutrient n */
+	/* 			ON n.id = fn.nutrient_id */
+	/* 		WHERE rs.recipe_id = ?1 */
+	/* 		GROUP BY n.id */
+	/* 		ORDER BY n.position ASC */
+	/* 		LIMIT 4 */
+	/* 	) */
+	/* 	INSERT OR REPLACE INTO food_nutrient */
+	/* 		(nutrient_id, food_id, value) */
+	/* 	SELECT */
+	/* 		cte.nutrient_id, */
+	/* 		?1, */
+	/* 		cte.summed_values */
+	/* 	FROM cte */
+	/* )sql") */
+	stmt
+		.prepare(R"sql(
+			WITH RECURSIVE
+			recipe_tree(
+				lvl,
+				recipe_id,
+				recipe_mass,
+				recipe_ingredient_count,
+				ingredient_id,
+				ingredient_mass,
+				ingredient_weight
+			) AS (
+				SELECT
+					root.lvl,
+					root.recipe_id,
+					root.recipe_mass,
+					root.recipe_ingredient_count,
+					root.ingredient_id,
+					root.ingredient_mass,
+					root.ingredient_weight
+				FROM recipe_tree_node root
+				WHERE root.recipe_id = ?1
+				UNION
+				SELECT
+					rt.lvl + 1,
+					node.recipe_id,
+					node.recipe_mass,
+					node.recipe_ingredient_count,
+					node.ingredient_id,
+					node.ingredient_mass,
+					node.ingredient_mass / node.recipe_mass * rt.ingredient_weight
+				FROM recipe_tree rt
+				INNER JOIN recipe_tree_node node
+					ON node.recipe_id = rt.ingredient_id
+				ORDER BY 1 DESC
+			),
+			calced_nutrients(
+				nutrient_id,
+				nutrient_position,
+				sum_weight,
+				sum_values
+			) AS (
+				SELECT
+					n.id,
+					n.position,
+					SUM(rt.ingredient_weight) sum_weight,
+					SUM(fn.value * rt.ingredient_weight) * 100 / root_recipe_info.recipe_mass
+				FROM recipe_tree rt
+				LEFT JOIN recipe_info ingredient_info
+					ON ingredient_info.recipe_id = rt.ingredient_id
+				INNER JOIN food_nutrient fn
+					ON fn.food_id = rt.ingredient_id
+				LEFT JOIN nutrient n
+					ON n.id = fn.nutrient_id
+				LEFT JOIN recipe_info root_recipe_info
+					ON root_recipe_info.recipe_id = ?1
+				LEFT JOIN food_nutrient root_food_nutrient
+					ON root_food_nutrient.food_id = ?1 AND root_food_nutrient.nutrient_id = n.id
+				-- So that ingredients that are also recipes will not have their
+				-- user specified nutrient values summated.
+				WHERE ingredient_info.recipe_id IS NULL
+				GROUP BY n.id
+				HAVING sum_weight = 1
+				ORDER BY n.position ASC
+			)
+		INSERT OR REPLACE INTO food_nutrient
+			(nutrient_id, food_id, value)
+		SELECT
+			cn.nutrient_id,
+			?1,
+			cn.sum_values
+		FROM calced_nutrients cn
+		WHERE cn.nutrient_position < 4
+		)sql")
+		.bind(1, food_id, sqlw::Type::SQL_INT)
+		.exec()
+		;
+
+	if (!is_ok(stmt.status())) {
+		stmt("ROLLBACK TO food_recalc_nutrients_pnt");
+		return SC::SQL_STATEMENT_ERROR;
+	}
+
+	stmt("RELEASE food_recalc_nutrients_pnt");
+
+	return check_stmt(stmt);
 }
 
 void wholth::remove_ingredients(

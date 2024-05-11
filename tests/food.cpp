@@ -1788,21 +1788,21 @@ TEST_F(MigrationAwareTest, update_ingredients)
 	stmt(
 		"INSERT INTO recipe_step (id,recipe_id,seconds) "
 		"VALUES "
-		"(1,1,40),"
-		"(2,3,10)"
+		"(100,1,40),"
+		"(200,3,10)"
 	);
-	stmt(
-		"INSERT INTO recipe_step_localisation (recipe_step_id,locale_id,description) "
-		"VALUES "
-		"(1,1,'Step 1 for food 2'),"
-		"(2,1,'Step 1 for food 3')"
-	);
+	// 1
+	// - 100
+	// - 2
+	// - 3
+	// -- 200
+	// -- 4
 	stmt(
 		"INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass) "
 		"VALUES "
-		"(1,2,70),"
-		"(1,3,100),"
-		"(2,3,90)"
+		"(100,2,70),"
+		"(100,3,100),"
+		"(200,4,90)"
 	);
 
 	std::vector<wholth::entity::editable::food::Ingredient> ingrs {
@@ -1812,15 +1812,15 @@ TEST_F(MigrationAwareTest, update_ingredients)
 
 	// Ingredient masses are updated from specified step.
 	{
-		wholth::update_ingredients("1", ingrs, db_con);
+		wholth::update_ingredients("100", ingrs, db_con);
 	
 		std::vector<std::string> _ings;
 		stmt(
 			"SELECT food_id, canonical_mass "
 			"FROM recipe_step_food "
-			"WHERE recipe_step_id = 1 "
+			"WHERE recipe_step_id = 100 "
 			"ORDER BY food_id ASC",
-			[&] (auto e) {
+			[&] (sqlw::Statement::ExecArgs e) {
 				_ings.emplace_back(e.column_value);
 			}
 		);
@@ -1829,6 +1829,226 @@ TEST_F(MigrationAwareTest, update_ingredients)
 		ASSERT_STREQ2("75", _ings[1]);
 		ASSERT_STREQ2("3", _ings[2]);
 		ASSERT_STREQ2("96", _ings[3]);
+	}
+}
+
+TEST_F(MigrationAwareTest, recalc_nutrients)
+{
+	sqlw::Statement stmt {&db_con};
+
+	stmt(
+		"INSERT INTO locale (id,alias) VALUES "
+		"(1,'EN'),(2,'RU'),(3,'DE')"
+	);
+	stmt("INSERT INTO food (id, created_at) "
+		"VALUES "
+		"(1,'10-10-2010'), "
+		"(2,'10-10-2010'), "
+		"(3,'10-10-2010'),"
+		"(4,'10-10-2010'), "
+		"(5,'10-10-2010'), "
+		"(6,'10-10-2010'), "
+		"(7,'10-10-2010'), "
+		"(8,'10-10-2010'), "
+		"(9,'10-10-2010'), "
+		"(10,'10-10-2010'), "
+		"(11,'10-10-2010')"
+	);
+	// 1
+	// - 100
+	// - 2
+	// - 200
+	// - 3
+	// -- 300
+	// -- 9
+	// -- 10
+	// - 4
+	// -- 400
+	// -- 5
+	// --- 500
+	// --- 6
+	// ---- 600
+	// ---- 7
+	// ---- 8
+	// --- 700
+	// --- 9
+	// 11
+	// - 800
+	// - 6
+	stmt("INSERT INTO recipe_step (id,recipe_id) VALUES "
+		"(100, 1), "
+		"(200, 1), "
+		"(300, 3), "
+		"(400, 4), "
+		"(500, 5), "
+		"(600, 6), "
+		"(700, 5), "
+		"(800, 11)"
+	);
+	stmt("INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass) VALUES "
+		"(100, 2, 21), "
+		"(200, 3, 31), "
+		"(300, 10, 103), "
+		"(300, 9, 93), "
+		"(200, 4, 41), "
+		"(400, 5, 54), "
+		"(500, 6, 65), "
+		"(600, 7, 76), "
+		"(600, 8, 86), "
+		"(700, 9, 95), "
+		"(800, 6, 60)"
+	);
+	stmt("INSERT INTO nutrient (id, unit, position) "
+		"VALUES "
+		"(1,'mg1',3), "
+		"(2,'mg2',1), "
+		"(3,'mg3',2), "
+		"(4,'mg4',0), "
+		"(5,'mg5',4) "
+	);
+	stmt("INSERT INTO nutrient_localisation (nutrient_id, locale_id, title) "
+		"VALUES "
+		"(1, 1, 'calories'), "
+		"(2, 1, 'proteins'), "
+		"(3, 1, 'fats'), "
+		"(4, 1, 'sugars'), "
+		"(5, 1, 'whatevers') "
+	);
+	stmt("INSERT INTO food_nutrient (food_id, nutrient_id, value) "
+		"VALUES "
+		"(1, 1, 110),"
+		"(1, 2, 120),"
+		"(1, 3, 130),"
+		"(1, 4, 140),"
+		"(1, 5, 150),"
+		"(2, 1, 210.5), "
+		/* "(2, 2, 220), " */
+		"(2, 3, 230), "
+		"(2, 4, 240), "
+		"(2, 5, 250), "
+		"(3, 1, 310), "
+		"(3, 2, 320), "
+		"(3, 3, 330), "
+		"(3, 4, 340), "
+		"(3, 5, 350), "
+		"(5, 1, 510), "
+		"(5, 2, 520), "
+		"(5, 3, 530), "
+		"(5, 4, 540), "
+		"(5, 5, 550), "
+		"(7, 1, 710), "
+		"(7, 2, 720), "
+		"(7, 3, 730), "
+		"(7, 4, 740), "
+		"(7, 5, 750), "
+		"(8, 1, 810), "
+		"(8, 2, 820), "
+		"(8, 3, 830), "
+		"(8, 4, 840), "
+		"(8, 5, 850), "
+		"(9, 1, 910), "
+		"(9, 2, 920), "
+		"(9, 3, 930), "
+		"(9, 4, 940), "
+		"(9, 5, 950), "
+		"(10, 1, 1010), "
+		"(10, 2, 1020), "
+		"(10, 3, 1030), "
+		"(10, 4, 1040), "
+		"(10, 5, 1050), "
+		"(11, 1, 1110), "
+		"(11, 2, 1120), "
+		"(11, 3, 1130), "
+		"(11, 4, 1140), "
+		"(11, 5, 1150)"
+	);
+
+	constexpr size_t str_len = 4;
+
+	// todo test case when updateing ingredients that is not part of recipe.
+	{
+		wholth::recalc_nutrients("1", db_con);
+
+		std::vector<std::string> expected_values {
+			// 4
+			std::to_string(100.0/(21+31+41) * (
+				21.0/(21+31+41) * 240 + // 2
+				31.0/(21+31+41) * ( // 3
+					103.0/(103+93) * 1040 + // 10
+					93.0/(103+93) * 940	   // 9
+				) +
+				41.0/(21+31+41) * ( // 4
+					54.0/54 * ( // 5
+						65.0/(65+95) * // 6
+						(
+							76.0/(76+86) * 740 + // 7
+							86.0/(76+86) * 840   // 8
+						) +
+						95.0/(65+95) * 940 // 9
+					)
+				)
+			)).substr(0, str_len),
+			// 2
+			"120",
+			// 3
+			std::to_string(100.0/(21+31+41) * (
+				21.0/(21+31+41) * 230 + // 2
+				31.0/(21+31+41) * ( // 3
+					103.0/(103+93) * 1030 + // 10
+					93.0/(103+93) * 930	   // 9
+				) +
+				41.0/(21+31+41) * ( // 4
+					54.0/54 * ( // 5
+						65.0/(65+95) * // 6
+						(
+							76.0/(76+86) * 730 + // 7
+							86.0/(76+86) * 830   // 8
+						) +
+						95.0/(65+95) * 930 // 9
+					)
+				)
+			)).substr(0, str_len),
+			// 1
+			std::to_string(100.0/(21+31+41) * (
+				21.0/(21+31+41) * 210 + // 2
+				31.0/(21+31+41) * ( // 3
+					103.0/(103+93) * 1010 + // 10
+					93.0/(103+93) * 910	   // 9
+				) +
+				41.0/(21+31+41) * ( // 4
+					54.0/54 * ( // 5
+						65.0/(65+95) * // 6
+						(
+							76.0/(76+86) * 710 + // 7
+							86.0/(76+86) * 810   // 8
+						) +
+						95.0/(65+95) * 910 // 9
+					)
+				)
+			)).substr(0, str_len),
+			// 5
+			"150",
+		};
+		std::vector<std::string> values {};
+		stmt(
+			"SELECT fn.value "
+			"FROM food_nutrient fn "
+			"INNER JOIN nutrient n "
+				"ON n.id = fn.nutrient_id "
+			"WHERE fn.food_id = 1 "
+			"ORDER BY n.position ASC ",
+			[&] (sqlw::Statement::ExecArgs e) {
+				/* fmt::print("{}: {}\n", e.column_name, e.column_value); */
+				values.emplace_back(e.column_value);
+			}
+		);
+
+		ASSERT_EQ(expected_values.size(), values.size());
+		ASSERT_STREQ3(expected_values[0], values[0].substr(0, str_len));
+		ASSERT_STREQ3(expected_values[1], values[1].substr(0, str_len));
+		ASSERT_STREQ3(expected_values[2], values[2].substr(0, str_len));
+		ASSERT_STREQ3(expected_values[3], values[3].substr(0, str_len));
+		ASSERT_STREQ3(expected_values[4], values[4].substr(0, str_len));
 	}
 }
 

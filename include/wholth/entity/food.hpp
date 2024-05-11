@@ -320,6 +320,11 @@ namespace wholth {
 		wholth::entity::locale::id_t locale_id,
 		sqlw::Connection* con
 	) noexcept -> StatusCode;
+
+	 auto recalc_nutrients(
+		wholth::entity::food::id_t,
+		sqlw::Connection&
+	) noexcept -> StatusCode;
 }
 
 // Return true if rc is an error.
