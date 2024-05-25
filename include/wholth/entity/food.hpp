@@ -55,6 +55,13 @@ namespace wholth::entity::recipe_step
 	typedef std::string_view description_t;
 };
 
+namespace wholth::entity::consumption_log
+{
+	typedef std::string_view mass_t;
+	typedef double mass_numeric_t;
+	typedef std::string_view consumed_at_t;
+};
+
 namespace wholth::entity::shortened
 {
 	struct Food
@@ -176,6 +183,8 @@ namespace wholth {
 		EMPTY_FOOD_TITLE,
 		UNCHANGED_FOOD_TITLE,
 		UNCHANGED_FOOD_DESCRIPTION,
+		INVALID_DATE,
+		INVALID_MASS,
 	};
 
 	std::string_view view(wholth::StatusCode rc);
@@ -321,8 +330,26 @@ namespace wholth {
 		sqlw::Connection* con
 	) noexcept -> StatusCode;
 
-	 auto recalc_nutrients(
+	// todo test return codes.
+	auto recalc_nutrients(
 		wholth::entity::food::id_t,
+		sqlw::Connection&
+	) noexcept -> StatusCode;
+
+	// todo
+	// - check date check
+	// - check date subst
+	auto log_consumption(
+		wholth::entity::food::id_t,
+		wholth::entity::consumption_log::mass_t,
+		wholth::entity::consumption_log::consumed_at_t,
+		sqlw::Connection&
+	) noexcept -> StatusCode;
+
+	auto log_consumption(
+		wholth::entity::food::id_t,
+		wholth::entity::consumption_log::mass_numeric_t,
+		wholth::entity::consumption_log::consumed_at_t,
 		sqlw::Connection&
 	) noexcept -> StatusCode;
 }

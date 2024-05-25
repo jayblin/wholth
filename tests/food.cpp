@@ -1,4 +1,6 @@
 #include <array>
+#include <chrono>
+#include <ctime>
 #include <exception>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -43,7 +45,9 @@ protected:
 
 		// VERY IMPORTANT!
 		sqlw::Statement{&db_con}("PRAGMA foreign_keys = ON");
-		/* sqlw::Statement{&db_con}("PRAGMA automatic_index = OFF"); */
+
+		sqlw::Statement{&db_con}("PRAGMA automatic_index = OFF");
+
 		sqlite3_create_function_v2(
 			db_con.handle(),
 			"seconds_to_readable_time",
@@ -2818,5 +2822,512 @@ TEST_F(MigrationAwareTest, list_nutrients)
 		ASSERT_STREQ2("", nuts[0].value.substr(0, 6));
 		ASSERT_STREQ2("", nuts[0].unit);
 		ASSERT_STREQ2("", nuts[0].user_value);
+	}
+}
+
+TEST_F(MigrationAwareTest, log_onsumption)
+{
+	sqlw::Statement stmt {&db_con};
+
+	stmt(
+		"INSERT INTO locale (id,alias) VALUES "
+		"(1,'EN'),(2,'RU'),(3,'DE')"
+	);
+	stmt("INSERT INTO food (id, created_at) "
+		"VALUES "
+		"(1,'10-10-2010'), "
+		"(2,'10-10-2010'), "
+		"(3,'10-10-2010'),"
+		"(4,'10-10-2010'), "
+		"(5,'10-10-2010'), "
+		"(6,'10-10-2010'), "
+		"(7,'10-10-2010'), "
+		"(8,'10-10-2010'), "
+		"(9,'10-10-2010'), "
+		"(10,'10-10-2010'), "
+		"(11,'10-10-2010')"
+	);
+
+	// todo
+	// - check food #12;
+
+	{
+		auto now = wholth::utils::current_time_and_date();
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"1",
+			"133.3",
+			"",
+			db_con
+		);
+
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+
+		std::vector<std::unordered_map<std::string,std::string>> results;
+		size_t i = 0;
+		int idx = -1;
+		stmt(
+			"SELECT * FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				if (i % e.column_count == 0) {
+					results.push_back({});
+					idx++;
+				}
+				i++;
+				results[idx][std::string{e.column_name}] = e.column_value;
+			}
+		);
+
+		ASSERT_EQ(1, results.size());
+		ASSERT_STREQ2("1", results[0]["food_id"]);
+		ASSERT_STREQ2("133.3", results[0]["mass"]);
+		ASSERT_EQ(19, results[0]["consumed_at"].size());
+		// YYYY-MM-DDTHH:MM:SS
+		// compare up to hours.
+		ASSERT_STREQ3(
+			now.substr(0, 14),
+			results[0]["consumed_at"].substr(0, 14)
+		);
+	}
+
+	{
+		const std::string_view now = "3000-12-12T10:11:59";
+
+		const wholth::StatusCode rc = wholth::log_consumption(
+			"10",
+			"190",
+			now,
+			db_con
+		);
+
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+
+		std::vector<std::unordered_map<std::string,std::string>> results;
+		size_t i = 0;
+		int idx = -1;
+		stmt(
+			"SELECT * FROM consumption_log ORDER BY consumed_at DESC LIMIT 1",
+			[&](sqlw::Statement::ExecArgs e) {
+				if (i % e.column_count == 0) {
+					results.push_back({});
+					idx++;
+				}
+				i++;
+				results[idx][std::string{e.column_name}] = e.column_value;
+			}
+		);
+
+		ASSERT_EQ(1, results.size());
+		ASSERT_STREQ2("10", results[0]["food_id"]);
+		ASSERT_STREQ2("190", results[0]["mass"]);
+		// YYYY-MM-DDTHH:MM:SS
+		ASSERT_STREQ3(now, results[0]["consumed_at"]);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"",
+			"",
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_FOOD_ID, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"-5",
+			"10",
+			"",
+			db_con
+		);
+
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_FOOD_ID, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"5abc",
+			"10",
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_FOOD_ID, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"4",
+			"-20",
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_MASS, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"4",
+			"20rtt",
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_MASS, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"4",
+			"",
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_MASS, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"100", // no food with such id
+			"20.33",
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::SQL_STATEMENT_ERROR, rc) << wholth::view(rc);
+	}
+}
+
+TEST_F(MigrationAwareTest, log_onsumption_numetic)
+{
+	sqlw::Statement stmt {&db_con};
+
+	stmt(
+		"INSERT INTO locale (id,alias) VALUES "
+		"(1,'EN'),(2,'RU'),(3,'DE')"
+	);
+	stmt("INSERT INTO food (id, created_at) "
+		"VALUES "
+		"(1,'10-10-2010'), "
+		"(2,'10-10-2010'), "
+		"(3,'10-10-2010'),"
+		"(4,'10-10-2010'), "
+		"(5,'10-10-2010'), "
+		"(6,'10-10-2010'), "
+		"(7,'10-10-2010'), "
+		"(8,'10-10-2010'), "
+		"(9,'10-10-2010'), "
+		"(10,'10-10-2010'), "
+		"(11,'10-10-2010')"
+	);
+
+	{
+		auto now = wholth::utils::current_time_and_date();
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"1",
+			133.3,
+			"",
+			db_con
+		);
+
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+
+		std::vector<std::unordered_map<std::string,std::string>> results;
+		size_t i = 0;
+		int idx = -1;
+		stmt(
+			"SELECT * FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				if (i % e.column_count == 0) {
+					results.push_back({});
+					idx++;
+				}
+				i++;
+				results[idx][std::string{e.column_name}] = e.column_value;
+			}
+		);
+
+		ASSERT_EQ(1, results.size());
+		ASSERT_STREQ2("1", results[0]["food_id"]);
+		ASSERT_STREQ2("133.3", results[0]["mass"]);
+		ASSERT_EQ(19, results[0]["consumed_at"].size());
+		// YYYY-MM-DDTHH:MM:SS
+		// compare up to hours.
+		ASSERT_STREQ3(
+			now.substr(0, 14),
+			results[0]["consumed_at"].substr(0, 14)
+		);
+	}
+
+	{
+		const std::string_view now = "3000-12-12T10:11:59";
+
+		const wholth::StatusCode rc = wholth::log_consumption(
+			"10",
+			190,
+			now,
+			db_con
+		);
+
+		ASSERT_EQ(wholth::StatusCode::NO_ERROR, rc) << wholth::view(rc);
+
+		std::vector<std::unordered_map<std::string,std::string>> results;
+		size_t i = 0;
+		int idx = -1;
+		stmt(
+			"SELECT * FROM consumption_log ORDER BY consumed_at DESC LIMIT 1",
+			[&](sqlw::Statement::ExecArgs e) {
+				if (i % e.column_count == 0) {
+					results.push_back({});
+					idx++;
+				}
+				i++;
+				results[idx][std::string{e.column_name}] = e.column_value;
+			}
+		);
+
+		ASSERT_EQ(1, results.size());
+		ASSERT_STREQ2("10", results[0]["food_id"]);
+		ASSERT_STREQ2("190", results[0]["mass"]);
+		// YYYY-MM-DDTHH:MM:SS
+		ASSERT_STREQ3(now, results[0]["consumed_at"]);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"-5",
+			10,
+			"",
+			db_con
+		);
+
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_FOOD_ID, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"5abc",
+			10,
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_FOOD_ID, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"4",
+			-20,
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::INVALID_MASS, rc) << wholth::view(rc);
+	}
+
+	{
+		std::string prev_count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				prev_count = e.column_value;
+			}
+		);
+
+		wholth::StatusCode rc = wholth::log_consumption(
+			"100", // no food with such id
+			20.33,
+			"",
+			db_con
+		);
+
+		std::string count = "0";
+		stmt(
+			"SELECT COUNT(*) FROM consumption_log",
+			[&](sqlw::Statement::ExecArgs e) {
+				count = e.column_value;
+			}
+		);
+
+		ASSERT_STREQ3(prev_count, count);
+		ASSERT_EQ(wholth::StatusCode::SQL_STATEMENT_ERROR, rc) << wholth::view(rc);
 	}
 }

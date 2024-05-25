@@ -13,12 +13,14 @@
 #include "wholth/utils.hpp"
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <charconv>
 #include <exception>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 
 using SC = wholth::StatusCode;
 
@@ -44,6 +46,45 @@ constexpr auto count_spaces(const std::string_view& str) -> size_t
 	}
 	
 	return count;
+}
+
+static bool check_date(std::string_view value)
+{
+	constexpr auto s = std::string_view{"YYYY-MM-DDTHH:MM:SS"}.size();
+	constexpr std::array<size_t, s - 5> digits = {0,1,2,3,5,6,8,9,11,12,14,15,17,18};
+	constexpr std::array<
+		std::tuple<size_t, const char>,
+		s - digits.size()
+	> non_digits {{
+		{4, '-'},
+		{7, '-'},
+		{10, 'T'},
+		{13, ':'},
+		{16, ':'},
+	}};
+
+	if (value.size() != s)
+	{
+		return false;
+	}
+
+	for (const auto idx : digits)
+	{
+		if (!std::isdigit(value[idx]))
+		{
+			return false;
+		}
+	}
+
+	for (const auto& e : non_digits)
+	{
+		if (value[std::get<size_t>(e)] != std::get<const char>(e))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 wholth::StatusCode wholth::insert_food(
@@ -1160,5 +1201,92 @@ std::string_view wholth::view(wholth::StatusCode rc)
 		case wholth::StatusCode::EMPTY_FOOD_TITLE: return "EMPTY_FOOD_TITLE";
 		case wholth::StatusCode::UNCHANGED_FOOD_TITLE: return "UNCHANGED_FOOD_TITLE";
 		case wholth::StatusCode::UNCHANGED_FOOD_DESCRIPTION: return "UNCHANGED_FOOD_DESCRIPTION";
+		case wholth::StatusCode::INVALID_DATE: return "INVALID_DATE";
+		case wholth::StatusCode::INVALID_MASS: return "INVALID_MASS";
+		/* default: return "[VIEW_NOT_IMPLEMENTED]"; */
 	}
+}
+
+auto wholth::log_consumption(
+	wholth::entity::food::id_t food_id,
+	wholth::entity::consumption_log::mass_t mass,
+	wholth::entity::consumption_log::consumed_at_t consumed_at,
+	sqlw::Connection& con
+) noexcept -> SC
+{
+	sqlw::Statement stmt {&con};
+
+	if (!(food_id.size() >= 1) || !sqlw::utils::is_numeric(food_id)) {
+		return SC::INVALID_FOOD_ID;
+	}
+
+	if (!(mass.size() >= 1) || !sqlw::utils::is_numeric(mass)) {
+		return SC::INVALID_MASS;
+	}
+
+	if (
+		consumed_at.size() == 0 ||
+		consumed_at.size() == count_spaces(consumed_at)
+	) {
+		consumed_at = wholth::utils::current_time_and_date();
+	}
+	else if (!check_date(consumed_at)) {
+		return SC::INVALID_DATE;
+	}
+
+	// todo check that is actualy time in needed format
+	stmt
+		.prepare(R"sql(
+			INSERT INTO consumption_log (food_id, mass, consumed_at)
+			VALUES
+			(?1, ?2 , ?3)
+		)sql")
+		.bind(1, food_id, sqlw::Type::SQL_TEXT)
+		.bind(2, mass, sqlw::Type::SQL_DOUBLE)
+		.bind(3, consumed_at, sqlw::Type::SQL_TEXT)
+		.exec();
+
+	return check_stmt(stmt);
+}
+
+auto wholth::log_consumption(
+	wholth::entity::food::id_t food_id,
+	wholth::entity::consumption_log::mass_numeric_t mass,
+	wholth::entity::consumption_log::consumed_at_t consumed_at,
+	sqlw::Connection& con
+) noexcept -> SC
+{
+	sqlw::Statement stmt {&con};
+
+	if (!(food_id.size() >= 1) || !sqlw::utils::is_numeric(food_id)) {
+		return SC::INVALID_FOOD_ID;
+	}
+
+	if (mass < 0) {
+		return SC::INVALID_MASS;
+	}
+
+	if (
+		consumed_at.size() == 0 ||
+		consumed_at.size() == count_spaces(consumed_at)
+	) {
+		consumed_at = wholth::utils::current_time_and_date();
+	}
+	else if (!check_date(consumed_at)) {
+		return SC::INVALID_DATE;
+	}
+
+	// todo check that is actualy time in needed format
+	stmt
+		.prepare(R"sql(
+			INSERT INTO consumption_log (food_id, mass, consumed_at)
+			VALUES
+			(?1, ?2 , ?3)
+		)sql")
+		.bind(1, food_id, sqlw::Type::SQL_TEXT)
+		.bind(2, mass)
+		.bind(3, consumed_at, sqlw::Type::SQL_TEXT)
+		.exec();
+
+	return check_stmt(stmt);
 }

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS consumption_log (
+	food_id INTEGER NOT NULL,
+	mass REAL NOT NULL,
+	consumed_at TEXT NOT NULL,
+	FOREIGN KEY (food_id) REFERENCES food(id) ON DELETE CASCADE
+) STRICT
