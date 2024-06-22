@@ -10,17 +10,29 @@ set(
 )
 set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
 
+add_compile_definitions(SQLITE_ENABLE_FTS5)
+
 add_executable(
 	wholth
-	# src/main.cpp
-	src/main_2.cpp
-)
-
-target_include_directories(
-	wholth
-	PUBLIC
-		include
-		C:/VulkanSDK/1.3.250.0/Include
+	src/main_4.cpp
+	src/utils.cpp
+    # vk
+	src/vk/vk.cpp
+    src/vk/instance.cpp
+    src/vk/physical_device.cpp
+    src/vk/device.cpp
+    src/vk/swapchain.cpp
+    src/vk/descriptor_pool.cpp
+    src/vk/render_pass.cpp
+    # ui
+    src/ui/glfw_window.cpp
+    src/ui/imgui.cpp
+    # db
+	src/db/db.cpp
+    # wholth
+	src/entity/food.cpp
+	src/list/food.cpp
+	src/utils.cpp
 )
 
 target_compile_options(
@@ -60,14 +72,35 @@ FetchContent_Declare(
   GIT_TAG        v4.0.0
 )
 
-FetchContent_MakeAvailable(glfw glm sqlw)
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
   GIT_TAG        10.1.1
 )
 
-FetchContent_MakeAvailable(sqlw fmt)
+FetchContent_Declare(
+  imgui_src
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_TAG v1.89
+)
+
+# @todo: uncomment later
+FetchContent_MakeAvailable(glfw glm sqlw imgui_src fmt)
+# FetchContent_MakeAvailable(sqlw fmt)
+
+FetchContent_GetProperties(
+	imgui_src
+	SOURCE_DIR SRC_DIR_IMGUI
+	BINARY_DIR BIN_DIR_IMGUI
+	POPULATED POPULATED_IMGUI
+)
+
+FetchContent_GetProperties(
+	glfw
+	SOURCE_DIR SRC_DIR_GLFW
+	BINARY_DIR BIN_DIR_GLFW
+	POPULATED POPULATED_GLFW
+)
 
 FetchContent_GetProperties(
 	gsl
@@ -76,16 +109,61 @@ FetchContent_GetProperties(
 	POPULATED POPULATED_GSL
 )
 
+add_library(
+	imgui
+	SHARED
+	${SRC_DIR_IMGUI}/imgui.cpp
+	${SRC_DIR_IMGUI}/imgui_tables.cpp
+	${SRC_DIR_IMGUI}/imgui_widgets.cpp
+	${SRC_DIR_IMGUI}/imgui_draw.cpp
+	${SRC_DIR_IMGUI}/imgui_demo.cpp # remove when in prod
+	${SRC_DIR_IMGUI}/backends/imgui_impl_vulkan.cpp
+	${SRC_DIR_IMGUI}/backends/imgui_impl_glfw.cpp
+)
+
+target_include_directories(
+	imgui
+	PUBLIC
+		vulkan_sdk_include
+		${SRC_DIR_IMGUI}
+		${SRC_DIR_GLFW}/include
+		${SRC_DIR_GSL}/include
+)
+
+# todo: uncomment later
 target_link_libraries(
+	imgui
+	glfw
 	Microsoft.GSL::GSL
+	# todo: fix this
+	/Users/jiorn/VulkanSDK/1.3.250.1/macOS/Frameworks/vulkan.framework/vulkan
+)
+
+# target_link_libraries(
+# 	Microsoft.GSL::GSL
+# )
+
+target_include_directories(
+	wholth
+	PUBLIC
+		include
+		# C:/VulkanSDK/1.3.250.0/Include
+		vulkan_sdk_include # link to Vulkan SDK
+		${SRC_DIR_IMGUI}
+		${SRC_DIR_GLFW}/include
 )
 
 target_link_libraries(
 	wholth
-	glfw
+	# glfw
 	glm
+	# vulkan_sdk_lib
+	/Users/jiorn/VulkanSDK/1.3.250.1/macOS/Frameworks/vulkan.framework/vulkan
 	sqlw
-	C:/VulkanSDK/1.3.250.0/Lib/vulkan-1.lib
+	# C:/VulkanSDK/1.3.250.0/Lib/vulkan-1.lib
+	Microsoft.GSL::GSL
+	imgui
+    fmt
 )
 
 # TESTS
@@ -156,16 +234,16 @@ include(GoogleTest)
 # 		include
 # )
 
-install(
-	TARGETS
-		sqlw
-		# wholth_install
-		wholth_tests
-		wholth
-	RUNTIME
-	DESTINATION bin
-	OPTIONAL
-)
+# install(
+# 	TARGETS
+# 		sqlw
+# 		# wholth_install
+# 		wholth_tests
+# 		wholth
+# 	RUNTIME
+# 	DESTINATION bin
+# 	OPTIONAL
+# )
 
 # ~INSTALL
 

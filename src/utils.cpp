@@ -8,6 +8,11 @@ std::string wholth::utils::current_time_and_date()
 	std::stringstream ss;
 	ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%dT%H:%M:%S");
 
+	/* auto now = std::chrono::system_clock::now(); */
+	/* std::time_t timestamp = std::chrono::system_clock::to_time_t(now); */
+	/* std::tm* t = std::localtime(&timestamp); */
+	/* fmt::print("{}-{}-{} {}\n", 1900 + t->tm_year, 1 + t->tm_mon, t->tm_mday, t->tm_hour); */
+
 	return ss.str();
 }
 
