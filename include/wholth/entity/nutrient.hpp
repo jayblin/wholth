@@ -3,7 +3,6 @@
 
 #include <string_view>
 #include "sqlw/statement.hpp"
-#include "sqlw/status.hpp"
 /* #include "wholth/pager.hpp" */
 #include "wholth/entity/utils.hpp"
 

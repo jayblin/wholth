@@ -16,7 +16,6 @@
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
-#include "sqlw/status.hpp"
 #include "wholth/concepts.hpp"
 #include "wholth/entity/locale.hpp"
 #include "wholth/entity/nutrient.hpp"

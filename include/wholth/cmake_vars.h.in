@@ -7,6 +7,8 @@
 
 #define DATABASE_DIR "@CMAKE_INSTALL_PREFIX@"
 
+#define WHOLTH_APP_VERSION "0.0.1"
+
 #define DATABASE_NAME "wholth.db"
 
 #endif // WHOLTH_CMAKE_VARS_H_

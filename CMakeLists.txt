@@ -14,9 +14,8 @@ add_compile_definitions(SQLITE_ENABLE_FTS5)
 
 add_executable(
 	wholth
-	src/main_4.cpp
+    src/utils/json_serializer.cpp
 	src/utils.cpp
-    # vk
 	src/vk/vk.cpp
     src/vk/instance.cpp
     src/vk/physical_device.cpp
@@ -24,15 +23,12 @@ add_executable(
     src/vk/swapchain.cpp
     src/vk/descriptor_pool.cpp
     src/vk/render_pass.cpp
-    # ui
     src/ui/glfw_window.cpp
     src/ui/imgui.cpp
-    # db
 	src/db/db.cpp
-    # wholth
 	src/entity/food.cpp
 	src/list/food.cpp
-	src/utils.cpp
+	src/main_4.cpp
 )
 
 target_compile_options(
@@ -63,7 +59,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        ff1ade2a162f14118d7b0ba5f86f57bf16b8f85f
+  GIT_TAG        38a30bed5d2f5f51796de767fcdb6c75a596572d
 )
 
 FetchContent_Declare(

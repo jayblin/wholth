@@ -4,7 +4,6 @@
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
-#include "sqlw/status.hpp"
 #include "sqlw/utils.hpp"
 #include "wholth/concepts.hpp"
 #include "wholth/entity/locale.hpp"
@@ -26,7 +25,7 @@ using SC = wholth::StatusCode;
 
 static SC check_stmt(sqlw::Statement& stmt) noexcept
 {
-	if (!sqlw::status::is_ok(stmt.status())) {
+	if (sqlw::status::Condition::OK != stmt.status()) {
 		return SC::SQL_STATEMENT_ERROR;
 	}
 
@@ -99,8 +98,6 @@ wholth::StatusCode wholth::insert_food(
 		return SC::INVALID_LOCALE_ID;
 	}
 
-	using sqlw::status::is_ok;
-
 	sqlw::Statement stmt {&con};
 	stmt("SAVEPOINT insert_food_pnt");
 
@@ -112,7 +109,7 @@ wholth::StatusCode wholth::insert_food(
 		.bind(1, now)
 		.exec();
 
-	if (!sqlw::status::is_ok(stmt.status()))
+	if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO insert_food_pnt");
 		return SC::SQL_STATEMENT_ERROR;
@@ -125,7 +122,7 @@ wholth::StatusCode wholth::insert_food(
 		}
 	);
 
-	if (!is_ok(stmt.status()))
+	if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO insert_food_pnt");
 		return SC::SQL_STATEMENT_ERROR;
@@ -141,7 +138,7 @@ wholth::StatusCode wholth::insert_food(
 		.bind(4, food.description)
 		.exec();
 
-	if (!is_ok(stmt.status()))
+	if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO insert_food_pnt");
 		return SC::SQL_STATEMENT_ERROR;
@@ -160,7 +157,6 @@ wholth::UpdateFoodStatus wholth::update_food(
 	wholth::entity::locale::id_t locale_id
 ) noexcept
 {
-	using sqlw::status::is_ok;
 	wholth::UpdateFoodStatus status {};
 
 	if (!(food.title.size() > 0)
@@ -230,7 +226,7 @@ wholth::UpdateFoodStatus wholth::update_food(
 
 	stmt.exec();
 
-	if (!is_ok(stmt.status()))
+	if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO update_food_pnt");
 		status.rc = SC::SQL_STATEMENT_ERROR;
@@ -243,8 +239,6 @@ wholth::UpdateFoodStatus wholth::update_food(
 
 SC wholth::remove_food(wholth::entity::food::id_t food_id, sqlw::Connection& con) noexcept
 {
-	using sqlw::status::is_ok;
-
 	if (food_id.size() == 0 || !sqlw::utils::is_numeric(food_id))
 	{
 		return SC::INVALID_FOOD_ID;
@@ -279,8 +273,6 @@ void wholth::add_nutrients(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	sqlw::Statement stmt {&con};
 	stmt("SAVEPOINT add_food_nutrient_pnt");
 
@@ -337,7 +329,7 @@ void wholth::add_nutrients(
 
 	stmt.exec();
 
-	if (!is_ok(stmt.status()))
+	if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO add_food_nutrient_pnt");
 		return;
@@ -352,8 +344,6 @@ void wholth::remove_nutrients(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	const std::string now = wholth::utils::current_time_and_date();
 	sqlw::Statement stmt {&con};
 
@@ -370,7 +360,7 @@ void wholth::remove_nutrients(
 			.bind(2, nutrient.id, sqlw::Type::SQL_INT)
 			.exec();
 
-		if (!is_ok(stmt.status()))
+        if (sqlw::status::Condition::OK != stmt.status())
 		{
 			stmt("ROLLBACK TO remove_food_nutrient_pnt");
 			return;
@@ -387,8 +377,6 @@ void wholth::update_nutrients(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	if (!(nutrients.size() > 0))
 	{
 		return;
@@ -410,7 +398,7 @@ void wholth::update_nutrients(
 			.bind(3, food_id)
 			.exec();
 
-		if (!is_ok(stmt.status()))
+        if (sqlw::status::Condition::OK != stmt.status())
 		{
 			stmt("ROLLBACK TO update_food_nutrient_pnt");
 			continue;
@@ -427,8 +415,6 @@ void wholth::add_steps(
 	wholth::entity::locale::id_t locale_id
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	if (!(steps.size() > 0))
 	{
 		return;
@@ -443,7 +429,7 @@ void wholth::add_steps(
 		.bind(2, steps[0].seconds)
 		.exec();
 
-	if (!is_ok(stmt.status()))
+    if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO add_steps_pnt");
 		return;
@@ -468,7 +454,7 @@ void wholth::add_steps(
 		.bind(3, steps[0].description)
 		.exec();
 
-	if (!is_ok(stmt.status()))
+    if (sqlw::status::Condition::OK != stmt.status())
 	{
 		stmt("ROLLBACK TO add_steps_pnt");
 		return;
@@ -482,8 +468,6 @@ void wholth::remove_steps(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	if (!(steps.size() > 0))
 	{
 		return;
@@ -500,7 +484,7 @@ void wholth::remove_steps(
 			.bind(1, step.id, sqlw::Type::SQL_INT)
 			.exec();
 
-		if (!is_ok(stmt.status()))
+        if (sqlw::status::Condition::OK != stmt.status())
 		{
 			stmt("ROLLBACK TO remove_steps_pnt");
 			return;
@@ -515,7 +499,6 @@ void update_steps(
 	sqlw::Connection& con
 )
 {
-	using sqlw::status::is_ok;
 	using wholth::utils::NIL;
 
 	if (!(steps.size() > 0))
@@ -549,7 +532,7 @@ void update_steps(
 
 		stmt.exec();
 
-		if (!is_ok(stmt.status()))
+        if (sqlw::status::Condition::OK != stmt.status())
 		{
 			stmt("ROLLBACK TO update_steps_pnt");
 			continue;
@@ -565,8 +548,6 @@ void wholth::add_ingredients(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	sqlw::Statement stmt {&con};
 	stmt("SAVEPOINT add_foods_to_step_pnt");
 
@@ -627,8 +608,6 @@ void wholth::update_ingredients(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	sqlw::Statement stmt {&con};
 
 	if (!(foods.size() > 0))
@@ -648,7 +627,7 @@ void wholth::update_ingredients(
 			.bind(3, ing.food_id, sqlw::Type::SQL_INT)
 			.exec();
 		
-		if (!is_ok(stmt.status())) {
+        if (sqlw::status::Condition::OK != stmt.status()) {
 			stmt("ROLLBACK TO update_ingreddients_pnt");
 			continue;
 		}
@@ -661,8 +640,6 @@ void wholth::update_ingredients(
 
 SC wholth::recalc_nutrients(wholth::entity::food::id_t food_id, sqlw::Connection& con) noexcept
 {
-	using sqlw::status::is_ok;
-
 	sqlw::Statement stmt {&con};
 
 	stmt("SAVEPOINT food_recalc_nutrients_pnt");
@@ -773,7 +750,7 @@ SC wholth::recalc_nutrients(wholth::entity::food::id_t food_id, sqlw::Connection
 		.exec()
 		;
 
-	if (!is_ok(stmt.status())) {
+    if (sqlw::status::Condition::OK != stmt.status()) {
 		stmt("ROLLBACK TO food_recalc_nutrients_pnt");
 		return SC::SQL_STATEMENT_ERROR;
 	}
@@ -789,8 +766,6 @@ void wholth::remove_ingredients(
 	sqlw::Connection& con
 ) noexcept
 {
-	using sqlw::status::is_ok;
-
 	if (!(foods.size() > 0))
 	{
 		return;
@@ -810,7 +785,7 @@ void wholth::remove_ingredients(
 			.bind(2, foods[i].food_id, sqlw::Type::SQL_INT)
 			.exec();
 
-		if (!is_ok(stmt.status())) {
+        if (sqlw::status::Condition::OK != stmt.status()) {
 			stmt("ROLLBACK TO remove_ingreddients_pnt");
 		}
 		else {
@@ -930,7 +905,7 @@ auto wholth::list_steps(
 		itr.add(e.column_value.size());
 	});
 
-	if (!sqlw::status::is_ok(stmt.status())) {
+    if (sqlw::status::Condition::OK != stmt.status()) {
 		return SC::SQL_STATEMENT_ERROR;
 	}
 
@@ -1002,7 +977,7 @@ auto wholth::list_ingredients(
 		itr.add(e.column_value.size());
 	});
 
-	if (!sqlw::status::is_ok(stmt.status())) {
+    if (sqlw::status::Condition::OK != stmt.status()) {
 		return SC::SQL_STATEMENT_ERROR;
 	}
 
@@ -1132,7 +1107,7 @@ auto wholth::list_nutrients(
 
 	/* return SC{}; */
 
-	if (!sqlw::status::is_ok(stmt.status())) {
+    if (sqlw::status::Condition::OK != stmt.status()) {
 		return SC::SQL_STATEMENT_ERROR;
 	}
 

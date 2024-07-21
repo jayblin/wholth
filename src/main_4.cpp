@@ -3,6 +3,7 @@
 #include <charconv>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -20,12 +21,13 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "fmt/color.h"
+#include "fmt/core.h"
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
-#include "sqlw/status.hpp"
 #include "ui/glfw_window.hpp"
 #include "ui/imgui.hpp"
+#include "utils/json_serializer.hpp"
 #include "vk/device.hpp"
 #include "vk/descriptor_pool.hpp"
 #include "vk/physical_device.hpp"
@@ -38,6 +40,7 @@
 #include "GLFW/glfw3.h"
 #include "db/db.hpp"
 #include "wholth/cmake_vars.h"
+#include "wholth/context.hpp"
 #include "wholth/entity/food.hpp"
 #include "wholth/list/food.hpp"
 #include "wholth/utils.hpp"
@@ -65,7 +68,7 @@ namespace vk
 void setup_imgui_fonts(
     const vk::Device& device,
 	VkQueue queue
-)
+) noexcept(false)
 {
     if (!(device.command_pools.size() > 0)) {
         throw std::runtime_error("No command pools!");
@@ -342,7 +345,9 @@ private:
 
 static void error_log_callback(void *pArg, int iErrCode, const char *zMsg)
 {
-	LOG_RED('[' << iErrCode << "] " << zMsg);
+    wholth::Context* ctx = static_cast<wholth::Context *>(pArg);
+    // todo remake to array
+    ctx->sql_errors.emplace_back(fmt::format("[{}] {}", iErrCode, zMsg));
 }
 
 static void glfw_error_callback(int error_code, const char* description)
@@ -350,21 +355,173 @@ static void glfw_error_callback(int error_code, const char* description)
     fmt::print(fmt::fg(fmt::color::red), "GLFW error [{}]: {}\n", error_code, description);
 }
 
+bool is_app_version_equal_db(sqlw::Connection& con) noexcept(false)
+{
+    using C = sqlw::status::Condition;
+    bool are_versions_same = false;
+    std::error_code ec = (sqlw::Statement {&con})
+        .prepare("SELECT value FROM app_info WHERE field = 'version'")
+        .exec([&are_versions_same](sqlw::Statement::ExecArgs e) { are_versions_same = e.column_value == WHOLTH_APP_VERSION; })
+        .status();
+
+    if (C::OK != ec) {
+        throw std::system_error(ec);
+    }
+
+    return are_versions_same;
+}
+
+static std::filesystem::path get_db_filepath()
+{
+    std::filesystem::path path {DATABASE_DIR};
+    path /= DATABASE_NAME;
+
+    return path;
+}
+
+static bool does_db_file_exist() noexcept
+{
+    auto path = get_db_filepath();
+    return std::filesystem::exists(path);
+}
+
+static void migrate(
+    wholth::Context& ctx,
+    sqlw::Connection& con
+) noexcept
+{
+    ctx.migrate_result = db::migration::migrate({
+        .con = &con,
+        .migrations_dir = MIGRATIONS_DIR,
+        .log = false,
+    });
+}
+
+static void bump_app_version_in_db(sqlw::Connection& con) noexcept(false)
+{
+    auto ec = (sqlw::Statement {&con})
+        .prepare(
+            "INSERT OR REPLACE INTO app_info (field, value) "
+            " VALUES ('version', :1)"
+        )
+        .bind(1, WHOLTH_APP_VERSION, sqlw::Type::SQL_TEXT)
+        .exec()
+        .status();
+
+    if (sqlw::status::Condition::OK != ec) {
+        throw std::system_error(ec);
+    }
+}
+
+static sqlw::Connection connect_to_db() noexcept(false)
+{
+    using C = sqlw::status::Condition;
+
+    auto path = get_db_filepath();
+    sqlw::Connection con {path.string()};
+
+    if (C::OK != con.status())
+    {
+        throw std::system_error(con.status());
+    }
+
+    return con;
+}
+
+static void setup_global_db_options(wholth::Context& ctx)
+{
+	sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, &ctx);
+}
+
+static void setup_db_instance_options(sqlw::Connection& con) noexcept(false)
+{
+
+    sqlw::Statement stmt {&con};
+    std::error_code ec;
+
+    stmt("PRAGMA foreign_keys = ON");
+    ec = stmt.status();
+
+    if (sqlw::status::Condition::OK != ec) {
+        throw std::system_error{ec};
+    }
+
+    stmt("PRAGMA automatic_index = OFF");
+    ec = stmt.status();
+
+    if (sqlw::status::Condition::OK != ec) {
+        throw std::system_error{ec};
+    }
+
+    sqlite3_create_function_v2(
+        con.handle(),
+        "seconds_to_readable_time",
+        1,
+        SQLITE_DETERMINISTIC | SQLITE_DIRECTONLY,
+        nullptr,
+        wholth::utils::sqlite::seconds_to_readable_time,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+}
+
+// @todo test this workflow
+static sqlw::Connection setup_db(
+    wholth::Context& ctx
+) noexcept(false)
+{
+    sqlw::Connection con;
+
+    if (!does_db_file_exist())
+    {
+        con = connect_to_db();
+        migrate(ctx, con);
+
+        if (db::status::Condition::OK != ctx.migrate_result.error_code) {
+            std::filesystem::remove(get_db_filepath());
+            throw std::system_error(ctx.migrate_result.error_code);
+        }
+
+        bump_app_version_in_db(con);
+    }
+    else {
+        con = connect_to_db();
+
+        if (!is_app_version_equal_db(con)) {
+            migrate(ctx, con);
+
+            if (db::status::Condition::OK != ctx.migrate_result.error_code) {
+                throw std::system_error(ctx.migrate_result.error_code);
+            }
+
+            bump_app_version_in_db(con);
+        }
+    }
+
+    setup_db_instance_options(con);
+
+    return con;
+}
+
 int main()
 {
-	sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, nullptr);
+    wholth::Context ctx;
 
+    setup_global_db_options(ctx);
+
+    // todo: move elsewhere
     glfwSetErrorCallback(glfw_error_callback);
 
     vk::Instance instance_obj {};
     vk::Device device_obj {};
 
-	sqlw::Connection con {(std::filesystem::path {DATABASE_DIR} / DATABASE_NAME).string()};
-
 	const float width = 1280.0f;
 	const float height = 720.0f;
 
 	try {
+        sqlw::Connection con = setup_db(ctx);
+        
         ui::WindowFactory<ui::GlfwWindow> window_factory {};
 
         instance_obj.init();
@@ -650,10 +807,20 @@ int main()
 			end = std::chrono::steady_clock{}.now();
 		}
 	}
-	catch (const std::runtime_error& err)
-	{
-		std::cout << "Runtime excpetion: " << err.what() << '\n';
-	}
+    catch (const std::system_error& err)
+    {
+        ctx.exception_message = fmt::format(
+            "Caught an exception: {} [{}] {}\n",
+            err.code().category().name(),
+            err.code().value(),
+            err.what()
+        );
+        fmt::print(
+            fmt::fg(fmt::color::dark_red),
+            "{}\n",
+            (utils::JsonSerializer {}).serialize(ctx)
+        );
+    }
 
 	vk::check_silently(
 		vkDeviceWaitIdle(device_obj.handle),
