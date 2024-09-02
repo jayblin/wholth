@@ -3,9 +3,9 @@
 
 /* #define GLFW_INCLUDE_VULKAN */
 #include "GLFW/glfw3.h"
-#include "ui/window.hpp"
+#include "ui/internal/window.hpp"
 
-namespace ui
+namespace ui::internal
 {
     class GlfwWindow
     {
@@ -21,7 +21,7 @@ namespace ui
 
         auto should_close() -> bool;
 
-        GlfwWindow(const ui::WindowOptions&);
+        GlfwWindow(const ui::internal::WindowOptions&);
 
         GLFWwindow* handle {nullptr};
     };

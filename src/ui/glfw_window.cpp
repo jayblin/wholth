@@ -1,14 +1,13 @@
-#include "ui/window.hpp"
-#include "ui/glfw_window.hpp"
+#include "ui/internal/window.hpp"
+#include "ui/internal/glfw_window.hpp"
 #include "vk/instance.hpp"
 #include "vk/vk.hpp"
 #include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_vulkan.h"
 #include <stdexcept>
 #include <utility>
 
 
-ui::GlfwWindow::~GlfwWindow()
+ui::internal::GlfwWindow::~GlfwWindow()
 {
     if (nullptr != handle)
     {
@@ -16,12 +15,12 @@ ui::GlfwWindow::~GlfwWindow()
     }
 }
 
-ui::GlfwWindow::GlfwWindow(ui::GlfwWindow&& other)
+ui::internal::GlfwWindow::GlfwWindow(ui::internal::GlfwWindow&& other)
 {
     *this = std::move(other);
 }
 
-ui::GlfwWindow& ui::GlfwWindow::operator=(ui::GlfwWindow&& other)
+ui::internal::GlfwWindow& ui::internal::GlfwWindow::operator=(ui::internal::GlfwWindow&& other)
 {
     if (this != &other)
     {
@@ -33,12 +32,12 @@ ui::GlfwWindow& ui::GlfwWindow::operator=(ui::GlfwWindow&& other)
     return *this;
 }
 
-bool ui::GlfwWindow::should_close()
+bool ui::internal::GlfwWindow::should_close()
 {
     return glfwWindowShouldClose(handle);
 }
 
-ui::GlfwWindow::GlfwWindow(const ui::WindowOptions& options)
+ui::internal::GlfwWindow::GlfwWindow(const ui::internal::WindowOptions& options)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     handle = glfwCreateWindow(options.width, options.height, "Window Title", nullptr, nullptr);
@@ -56,7 +55,7 @@ ui::GlfwWindow::GlfwWindow(const ui::WindowOptions& options)
 
 
 template<>
-ui::WindowFactory<ui::GlfwWindow>::WindowFactory()
+ui::internal::WindowFactory<ui::internal::GlfwWindow>::WindowFactory()
 {
     if (!glfwInit())
     {
@@ -72,13 +71,13 @@ ui::WindowFactory<ui::GlfwWindow>::WindowFactory()
 }
 
 template<>
-ui::WindowFactory<ui::GlfwWindow>::~WindowFactory()
+ui::internal::WindowFactory<ui::internal::GlfwWindow>::~WindowFactory()
 {
     glfwTerminate();
 }
 
 template<>
-VkSurfaceKHR ui::SurfaceFactory<ui::GlfwWindow>::create(VkInstance instance, ui::GlfwWindow& window)
+VkSurfaceKHR ui::internal::SurfaceFactory<ui::internal::GlfwWindow>::create(VkInstance instance, ui::internal::GlfwWindow& window)
 {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
@@ -96,10 +95,10 @@ VkSurfaceKHR ui::SurfaceFactory<ui::GlfwWindow>::create(VkInstance instance, ui:
 }
 
 template<>
-VkSurfaceKHR vk::Instance::create_surface(ui::GlfwWindow& window)
+VkSurfaceKHR vk::Instance::create_surface(ui::internal::GlfwWindow& window)
 {
     if (VK_NULL_HANDLE == this->surface) {
-        this->surface = (ui::SurfaceFactory<ui::GlfwWindow>{}).create(this->handle, window);
+        this->surface = (ui::internal::SurfaceFactory<ui::internal::GlfwWindow>{}).create(this->handle, window);
     }
 
     return this->surface;

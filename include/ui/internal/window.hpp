@@ -1,10 +1,10 @@
-#ifndef UI_WINDOW_H_
-#define UI_WINDOW_H_
+#ifndef UI_INTERNAL_WINDOW_H_
+#define UI_INTERNAL_WINDOW_H_
 
 #include "vulkan/vulkan_core.h"
 #include <concepts>
 
-namespace ui
+namespace ui::internal
 {
     struct WindowOptions
     {
@@ -48,4 +48,4 @@ namespace ui
     };
 }
 
-#endif // UI_WINDOW_H_
+#endif // UI_INTERNAL_WINDOW_H_
