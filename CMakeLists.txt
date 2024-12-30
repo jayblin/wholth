@@ -51,15 +51,9 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-	glm
-	GIT_REPOSITORY https://github.com/g-truc/glm.git
-	GIT_TAG 0.9.9.8
-)
-
-FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        38a30bed5d2f5f51796de767fcdb6c75a596572d
+  GIT_TAG        ff015b3bfc8c7fecc70e9bc667ea169dc8e30f25
 )
 
 FetchContent_Declare(
@@ -81,8 +75,7 @@ FetchContent_Declare(
 )
 
 # @todo: uncomment later
-FetchContent_MakeAvailable(glfw glm sqlw imgui_src fmt)
-# FetchContent_MakeAvailable(sqlw fmt)
+FetchContent_MakeAvailable(glfw sqlw imgui_src fmt)
 
 FetchContent_GetProperties(
 	imgui_src
@@ -152,7 +145,6 @@ target_include_directories(
 target_link_libraries(
 	wholth
 	# glfw
-	glm
 	# vulkan_sdk_lib
 	/Users/jiorn/VulkanSDK/1.3.250.1/macOS/Frameworks/vulkan.framework/vulkan
 	sqlw
@@ -178,10 +170,11 @@ add_custom_target(wholth_tests_t)
 add_executable(
 	wholth_tests
 	src/db/db.cpp
-	src/entity/food.cpp
-	src/list/food.cpp
+	# src/entity/food.cpp
+	# src/list/food.cpp
 	src/utils.cpp
-	tests/food.cpp
+	# tests/food.cpp
+    tests/db/db.cpp
 )
 
 target_link_libraries(
@@ -196,6 +189,7 @@ target_include_directories(
 	wholth_tests
 	PUBLIC
 		include
+        tests
 )
 
 add_dependencies(wholth_tests_t wholth_tests)

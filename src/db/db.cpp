@@ -1,14 +1,13 @@
 #include "db/db.hpp"
-#include "fmt/color.h"
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
+#include "sqlw/transaction.hpp"
 #include "wholth/utils.hpp"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
+#include <iterator>
 #include <set>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -29,6 +28,10 @@ namespace db::status
             {
                 case Code::MIGRATION_TABLE_DOES_NOT_EXIST:
                     return "migration table does not exist";
+                case Code::MIGRATION_FAILED:
+                    return "error while executing a migration";
+                case Code::MIGRATION_LOG_FAILED:
+                    return "error while trying to log info about a migration";
                 case Code::OK:
                     return "no error";
             }
@@ -48,10 +51,8 @@ namespace db::status
         {
             switch (static_cast<Condition>(ev))
             {
-                case Condition::ERROR:
-                    return "error";
                 case Condition::OK:
-                    return "no error";
+                    return "ok";
             }
 
             return "(unrecognized error)";
@@ -71,8 +72,6 @@ namespace db::status
             {
                 case Condition::OK:
                     return static_cast<Code>(ec.value()) == Code::OK;
-				case Condition::ERROR:
-                    return static_cast<Code>(ec.value()) != Code::OK;
                 default:
                     return false;
 			}
@@ -94,29 +93,18 @@ std::error_condition db::status::make_error_condition(db::status::Condition e)
 }
 
 static std::error_code log_migration(
-    sqlw::Statement& stmt,
+    sqlw::Connection* con,
     const std::filesystem::directory_entry& entry
 )
 {
-    stmt("SAVEPOINT migration_log_sp");
-
-    stmt.prepare(
+    return sqlw::Transaction{con}(
         "INSERT INTO migration (filename, executed_at) "
-        "VALUES (:1, :2)"
-    )
-        .bind(1, entry.path().filename().string(), sqlw::Type::SQL_TEXT)
-        .bind(2, wholth::utils::current_time_and_date(), sqlw::Type::SQL_TEXT)
-        .exec();
-
-    if (sqlw::status::Condition::OK != stmt.status())
-    {
-        stmt("ROLLBACK TO migration_log_sp");
-    }
-    else {
-        stmt("RELEASE migration_log_sp");
-    }
-
-    return stmt.status();
+        "VALUES (:1, :2)",
+        std::array<sqlw::Statement::bindable_t, 2>{{
+            {entry.path().filename().string(), sqlw::Type::SQL_TEXT},
+            {wholth::utils::current_time_and_date(), sqlw::Type::SQL_TEXT}
+        }}
+    );
 }
 
 static std::error_code does_migration_table_exist(sqlw::Connection* con)
@@ -125,7 +113,7 @@ static std::error_code does_migration_table_exist(sqlw::Connection* con)
 	bool result = false;
 
 	sqlw::Statement stmt {con};
-    stmt(
+    const auto ec = stmt(
 	    "SELECT name "
 	    "FROM sqlite_master "
 	    "WHERE type='table' AND name='migration'",
@@ -136,26 +124,14 @@ static std::error_code does_migration_table_exist(sqlw::Connection* con)
 	);
 
     return result ?
-        stmt.status() :
+        ec :
         db::status::Code::MIGRATION_TABLE_DOES_NOT_EXIST;
 }
 
-static std::tuple<std::error_code, std::vector<std::string>> find_executed_migrations(sqlw::Connection* con)
+static std::tuple<std::error_code, std::vector<std::string>> find_already_executed_migrations(sqlw::Connection* con)
 {
 	std::vector<std::string> result;
-	const std::error_code ec = does_migration_table_exist(con);
-
-	if (
-        db::status::Condition::OK != ec
-        /* || sqlw::status::Condition::OK != ec */
-        /* db::status::Code::MIGRATION_TABLE_DOES_NOT_EXIST == ec */
-        /* || sqlw::status::Condition::OK != con->status() */
-    )
-	{
-		return {ec, result};
-	}
-
-	sqlw::Statement {con}(
+	const std::error_code ec = sqlw::Statement {con}(
 	    "SELECT filename FROM migration",
 	    [&result](sqlw::Statement::ExecArgs args)
 	    {
@@ -163,7 +139,7 @@ static std::tuple<std::error_code, std::vector<std::string>> find_executed_migra
 	    }
 	);
 
-	return {con->status(), result};
+	return {ec, result};
 }
 
 static bool is_migrated_already(
@@ -188,98 +164,123 @@ static std::error_code execute_migration(
     const std::filesystem::directory_entry& entry
 ) noexcept
 {
-	const auto fstream = std::ifstream {entry.path()};
-	auto sstream = std::stringstream {};
-	sstream << fstream.rdbuf();
+	std::ifstream fstream {entry.path()};
+    std::string sql(
+        (std::istreambuf_iterator<char>(fstream)),
+        (std::istreambuf_iterator<char>())
+    );
 
-	sqlw::Statement stmt {con};
-	std::string sql = sstream.str();
-
-    stmt("SAVEPOINT actual_migration_sp;");
-
-	stmt.prepare(sql);
-
-    if (sqlw::status::Condition::OK != stmt.status())
-    {
-        stmt("ROLLBACK TO actual_migration_sp");
-        return stmt.status();
-    }
-
-	stmt.exec();
-
-    if (sqlw::status::Condition::OK != stmt.status())
-    {
-        stmt("ROLLBACK TO actual_migration_sp");
-    }
-    else {
-        stmt("RELEASE actual_migration_sp");
-    }
-
-    return stmt.status();
+    return sqlw::Transaction{con}(sql);
 }
 
-db::migration::MigrateResult db::migration::migrate(MigrateArgs args) noexcept
+std::error_code db::migration::make_migration_table(sqlw::Connection* con) noexcept
 {
-	const auto [fem_ec, executed_migrations] = find_executed_migrations(args.con);
+    return sqlw::Transaction{con}(
+        R"SQL(
+        CREATE TABLE IF NOT EXISTS migration (
+            filename TEXT,
+            executed_at TEXT,
+            UNIQUE (filename)
+        ) STRICT
+        )SQL"
+    );
+}
 
-    db::migration::MigrateResult result {
-        .error_code = fem_ec,
-        .executed_migrations = executed_migrations
-    };
-
-    if (
-        db::status::Code::MIGRATION_TABLE_DOES_NOT_EXIST != result.error_code
-        && db::status::Condition::OK != result.error_code
-        /* db::status::Code::MIGRATION_TABLE_DOES_NOT_EXIST != result.error_code */
-        /* && sqlw::status::Condition::OK != result.error_code */
-    ) {
-        return result;
-    }
-
-	sqlw::Statement stmt {args.con};
-
-	const auto path = std::filesystem::path {args.migrations_dir};
-
+std::vector<std::filesystem::directory_entry> db::migration::list_sorted_migrations(std::filesystem::path path)
+{
 	std::set<std::filesystem::directory_entry> sorted_by_name;
 
 	for (const auto& entry : std::filesystem::directory_iterator(path))
 	{
 		sorted_by_name.insert(entry);
 	}
-	
-	for (const auto& entry : sorted_by_name)
+
+    return {sorted_by_name.begin(), sorted_by_name.end()};
+}
+
+db::migration::MigrateResult db::migration::migrate(MigrateArgs args) noexcept
+{
+    db::migration::MigrateResult result {};
+
+	result.error_code = does_migration_table_exist(args.con);
+
+	if (db::status::Condition::OK != result.error_code)
 	{
-		if (
-			is_migrated_already(entry, executed_migrations)
-			|| (args.filter && !args.filter(entry))
-		)
+		return result;
+	}
+
+    std::error_code ec;
+
+	auto faem_result = find_already_executed_migrations(args.con);
+
+    result.error_code = std::get<std::error_code>(faem_result);
+
+    if (db::status::Condition::OK != result.error_code) {
+        return result;
+    }
+
+	sqlw::Statement stmt {args.con};
+
+	for (const auto& entry : args.migrations)
+	{
+		if (is_migrated_already(entry, std::get<1>(faem_result)))
 		{
 			continue;
 		}
 
-		stmt("BEGIN EXCLUSIVE TRANSACTION");
+		result.error_code = stmt("BEGIN EXCLUSIVE TRANSACTION");
+
+        if (sqlw::status::Condition::OK != result.error_code)
+        {
+            return result;
+        }
 
 		result.error_code = execute_migration(args.con, entry);
 
         if (sqlw::status::Condition::OK != result.error_code)
         {
-            stmt("ROLLBACK");
+            ec = stmt("ROLLBACK");
 
-            result.problematic_migration = entry.path();
+            if (sqlw::status::Condition::OK != ec)
+            {
+                result.error_code = sqlw::status::Code::ROLLBACK_ERROR;
+                return result;
+            }
+
+            result.error_code = db::status::Code::MIGRATION_FAILED;
+            result.problematic_migration = entry.path().filename();
 
             return result;
         }
 
-		result.error_code = log_migration(stmt, entry);
+		result.error_code = log_migration(args.con, entry);
 
 		if (sqlw::status::Condition::OK != result.error_code)
 		{
-			stmt("ROLLBACK");
+			ec = stmt("ROLLBACK");
+
+            if (sqlw::status::Condition::OK != ec)
+            {
+                result.error_code = sqlw::status::Code::ROLLBACK_ERROR;
+                return result;
+            }
+            
+            result.error_code = db::status::Code::MIGRATION_LOG_FAILED;
 
             return result;
 		}
 
-		stmt("COMMIT");
+		ec = stmt("COMMIT");
+
+        if (sqlw::status::Condition::OK != ec)
+        {
+            // todo remane to COMMIT_ERROR
+            result.error_code = sqlw::status::Code::RELEASE_ERROR;
+            return result;
+        }
+
+        result.error_code = db::status::Code::OK;
+        result.executed_migrations.push_back(entry.path().filename());
 	}
 
     return result;
