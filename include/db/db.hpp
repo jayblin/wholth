@@ -4,7 +4,7 @@
 #include "sqlw/connection.hpp"
 #include "utils/serializer.hpp"
 #include <filesystem>
-#include <functional>
+#include <span>
 #include <string>
 #include <system_error>
 #include <type_traits>
@@ -18,12 +18,13 @@ namespace db
         {
             OK = 0,
             MIGRATION_TABLE_DOES_NOT_EXIST,
+            MIGRATION_FAILED,
+            MIGRATION_LOG_FAILED,
         };
 
         enum class Condition : int
         {
             OK = 0,
-            ERROR,
         };
 
         std::error_code make_error_code(Code);
@@ -45,8 +46,7 @@ namespace db::migration
 	struct MigrateArgs
 	{
 		sqlw::Connection* con;
-		std::filesystem::path migrations_dir;
-		std::function<bool (const std::filesystem::directory_entry &)> filter;
+        std::span<const std::filesystem::directory_entry> migrations;
 		bool log {true};
 	};
 
@@ -66,6 +66,9 @@ namespace db::migration
                 ;
         }
     };
+
+    std::error_code make_migration_table(sqlw::Connection*) noexcept;
+    std::vector<std::filesystem::directory_entry> list_sorted_migrations(std::filesystem::path);
 
     MigrateResult migrate(MigrateArgs) noexcept;
 }
