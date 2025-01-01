@@ -1,0 +1,14 @@
+# BasedOnStyle: LLVM
+# BasedOnStyle: Google
+# BasedOnStyle: Chromium
+# BasedOnStyle: Mozilla
+# BasedOnStyle: WebKit
+BasedOnStyle: Microsoft
+# BasedOnStyle: GNU
+SortIncludes: false
+ColumnLimit: 80
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+PointerAlignment: Left
