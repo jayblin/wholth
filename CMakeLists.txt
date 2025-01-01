@@ -10,6 +10,18 @@ set(
 )
 set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
 
+set(VULKAN_SDK_INCLUDE_DIR "0" CACHE FILEPATH "Path to the vulkan sdk inlude directory")
+
+if (VULKAN_SDK_INCLUDE_DIR STREQUAL "0")
+    message(FATAL_ERROR "You must provide a value for VULKAN_SDK_INCLUDE_DIR variable!")
+endif()
+
+set(VULKAN_SDK_LIBRARY_PATH "0" CACHE FILEPATH "Path to the vulkan sdk library object")
+
+if (VULKAN_SDK_LIBRARY_PATH STREQUAL "0")
+    message(FATAL_ERROR "You must provide a value for VULKAN_SDK_LIBRARY_PATH variable!")
+endif()
+
 add_compile_definitions(SQLITE_ENABLE_FTS5)
 
 add_executable(
@@ -113,19 +125,17 @@ add_library(
 target_include_directories(
 	imgui
 	PUBLIC
-		vulkan_sdk_include
+        ${VULKAN_SDK_INCLUDE_DIR}
 		${SRC_DIR_IMGUI}
 		${SRC_DIR_GLFW}/include
 		${SRC_DIR_GSL}/include
 )
 
-# todo: uncomment later
 target_link_libraries(
 	imgui
 	glfw
 	Microsoft.GSL::GSL
-	# todo: fix this
-	/Users/jiorn/VulkanSDK/1.3.250.1/macOS/Frameworks/vulkan.framework/vulkan
+    ${VULKAN_SDK_LIBRARY_PATH}
 )
 
 # target_link_libraries(
@@ -136,19 +146,15 @@ target_include_directories(
 	wholth
 	PUBLIC
 		include
-		# C:/VulkanSDK/1.3.250.0/Include
-		vulkan_sdk_include # link to Vulkan SDK
+        ${VULKAN_SDK_INCLUDE_DIR}
 		${SRC_DIR_IMGUI}
 		${SRC_DIR_GLFW}/include
 )
 
 target_link_libraries(
 	wholth
-	# glfw
-	# vulkan_sdk_lib
-	/Users/jiorn/VulkanSDK/1.3.250.1/macOS/Frameworks/vulkan.framework/vulkan
+    ${VULKAN_SDK_LIBRARY_PATH}
 	sqlw
-	# C:/VulkanSDK/1.3.250.0/Lib/vulkan-1.lib
 	Microsoft.GSL::GSL
 	imgui
     fmt
