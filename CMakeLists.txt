@@ -22,6 +22,8 @@ if (VULKAN_SDK_LIBRARY_PATH STREQUAL "0")
     message(FATAL_ERROR "You must provide a value for VULKAN_SDK_LIBRARY_PATH variable!")
 endif()
 
+set(DEFAULT_FONT_PATH "" CACHE FILEPATH "Path to the default ttf font")
+
 add_compile_definitions(SQLITE_ENABLE_FTS5)
 
 add_executable(
@@ -38,8 +40,20 @@ add_executable(
     src/ui/glfw_window.cpp
     src/ui/imgui.cpp
 	src/db/db.cpp
+    src/wholth/page.cpp
+    src/wholth/context.cpp
+    src/wholth/status.cpp
 	src/entity/food.cpp
 	src/list/food.cpp
+    src/ui/glfw_platform.cpp
+    src/ui/glfw_window.cpp
+    src/ui/imgui.cpp
+    src/ui/platform.cpp
+    src/ui/components/food_list.cpp
+    src/ui/components/food_edit_modal.cpp
+    src/ui/components/foods_page.cpp
+    src/wholth/controller/expanded_food.cpp
+    src/wholth/controller/foods_page.cpp
 	src/main_4.cpp
 )
 
@@ -65,7 +79,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        ff015b3bfc8c7fecc70e9bc667ea169dc8e30f25
+  GIT_TAG        57170c131200b63da4fa1c222117eca7f6b0ee5d
 )
 
 FetchContent_Declare(
@@ -176,11 +190,13 @@ add_custom_target(wholth_tests_t)
 add_executable(
 	wholth_tests
 	src/db/db.cpp
-	# src/entity/food.cpp
-	# src/list/food.cpp
+    src/wholth/status.cpp
+	src/entity/food.cpp
+	src/list/food.cpp
 	src/utils.cpp
-	# tests/food.cpp
+	tests/food.cpp
     tests/db/db.cpp
+    tests/helpers.cpp
 )
 
 target_link_libraries(
