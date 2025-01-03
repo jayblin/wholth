@@ -6,8 +6,8 @@
 #include "ui/internal/imgui.hpp"
 #include "ui/internal/platform.hpp"
 
-#ifdef BUILD_FOR_IOS
-#else
+/* #ifdef BUILD_FOR_IOS */
+/* #else */
 
 #include "ui/internal/glfw_platform.hpp"
 #include "ui/internal/window.hpp"
@@ -19,7 +19,7 @@ namespace ui
     typedef ui::internal::GlfwImgui ImguiImplementation;
 }
 
-#endif
+/* #endif */
 
 namespace ui
 {
