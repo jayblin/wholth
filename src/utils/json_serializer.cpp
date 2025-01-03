@@ -1,6 +1,5 @@
 #include "utils/json_serializer.hpp"
 
-constexpr const char obracket = '{';
 constexpr const char obj_beg = '{';
 constexpr const char obj_end = '}';
 constexpr const char arr_beg = '[';
@@ -11,35 +10,7 @@ constexpr const char nl = '\n';
 
 bool utils::JsonSerializer::should_delimit()
 {
-    auto buf_size = m_output_stream.rdbuf()->in_avail();
-
-    if (buf_size < 1)
-    {
-        return false;
-    }
-
-    const auto g = m_output_stream.tellg();
-
-    if (buf_size < 2)
-    {
-        const char ch = m_output_stream.get();
-
-        m_output_stream.seekg(g);
-
-        return ch != obracket;
-    }
-
-    m_output_stream.seekg(-1, m_output_stream.end);
-
-    const char ch1 = m_output_stream.get();
-
-    m_output_stream.seekg(-2, m_output_stream.end);
-
-    const char ch2 = m_output_stream.get();
-
-    m_output_stream.seekg(g);
-
-    return ch2 != obracket || ch1 != nl;
+    return m_depth == m_upstairs_neighbor_depth;
 }
 
 void utils::JsonSerializer::begin_object()

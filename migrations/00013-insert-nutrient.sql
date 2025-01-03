@@ -1,5 +1,5 @@
 INSERT INTO nutrient (id,unit,position) VALUES
-	 (2047,'KCAL',9999),
+	 (2047,'KCAL',0),
 	 (2048,'KCAL',9999),
 	 (1001,'G',9999),
 	 (1002,'G',9999),
@@ -7,7 +7,7 @@ INSERT INTO nutrient (id,unit,position) VALUES
 	 (1004,'G',3),
 	 (1005,'G',9999),
 	 (1007,'G',9999),
-	 (1008,'KCAL',0),
+	 (1008,'KCAL',9999),
 	 (1009,'G',9999),
 	 (1010,'G',9999),
 	 (1011,'G',9999),

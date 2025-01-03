@@ -1,8 +1,9 @@
 #include "wholth/list/food.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/utils.hpp"
+#include <charconv>
 
-using SC = wholth::StatusCode;
+using SC = wholth::status::Code;
 
 namespace whf = wholth::list::food;
 
@@ -115,17 +116,17 @@ static std::string create_where(
 	return tpl_stream.str();
 }
 
-auto whf::Lister::prepare_ingredient_data(
-	const Query& q
-) -> IngredientData {
+static auto prepare_ingredient_data(
+	const whf::Query& q
+) -> whf::IngredientData {
 	std::stringstream where_stream;
 	std::stringstream tokens_stream;
 	size_t start = 0;
-	std::array<size_t, 32> lengths;
+	std::array<uint64_t, 32> lengths;
 	std::fill(lengths.begin(), lengths.end(), 0);
 
 	// Starting from 1, because first one is always locale_id.
-	size_t param_idx = 1;
+	uint64_t param_idx = 1;
 	for (size_t i = 0; i < q.ingredients.size() && i < lengths.size(); i++) {
 		const char ch = q.ingredients[i];
 		size_t j = i + 1;
@@ -164,10 +165,10 @@ auto whf::Lister::prepare_ingredient_data(
 	}
 
 	return {
-		param_idx,
-		where,
-		tokens_stream.str(),
-		lengths
+		.parameter_count = param_idx,
+		.parameter_buffer = tokens_stream.str(),
+		.parameter_lengths = lengths,
+		.where = where,
 	};
 }
 
@@ -241,18 +242,21 @@ static void bind_params(
 					std::get<whf::nutrient_filter::NutrientId::index>(entry),
 					sqlw::Type::SQL_INT
 				);
+                /* fmt::print("{} and {}\n", idx, std::get<whf::nutrient_filter::NutrientId::index>(entry)); */
 				idx++;
 				stmt.bind(
 					idx,
 					values[0],
 					sqlw::Type::SQL_DOUBLE
 				);
+                /* fmt::print("{} and {}\n", idx, values[0]); */
 				idx++;
 				stmt.bind(
 					idx,
 					values[1],
 					sqlw::Type::SQL_DOUBLE
 				);
+                /* fmt::print("{} and {}\n", idx, values[1]); */
 				idx++;
 				break;
 			}
@@ -279,8 +283,8 @@ auto list_foods_prepare_stmt(
 	sqlw::Connection* con
 ) -> sqlw::Statement
 {
-	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = ingredient_data;
-	size_t param_idx = ingredient_param_count;
+	/* const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = ingredient_data; */
+	size_t param_idx = ingredient_data.parameter_count;
 	/* fmt::print("{}\n", sql); */
 	
 	sqlw::Statement stmt {con};
@@ -293,18 +297,18 @@ auto list_foods_prepare_stmt(
 	stmt.bind(param_idx, q.locale_id, sqlw::Type::SQL_INT);
 	param_idx++;
 
-	for (size_t i = 0; i < ingredient_tokens_lengths.size(); i++) {
+	for (size_t i = 0; i < ingredient_data.parameter_lengths.size(); i++) {
 
-		if (0 == ingredient_tokens_lengths[i]) {
+		if (0 == ingredient_data.parameter_lengths[i]) {
 			break;
 		}
 
 		stmt.bind(
 			param_idx,
-			std::string_view{ingredient_tokens.data() + ing_start, ingredient_tokens_lengths[i]},
+			std::string_view{ingredient_data.parameter_buffer.data() + ing_start, ingredient_data.parameter_lengths[i]},
 			sqlw::Type::SQL_TEXT
 		);
-		ing_start += ingredient_tokens_lengths[i];
+		ing_start += ingredient_data.parameter_lengths[i];
 		param_idx++;
 	}
 
@@ -313,12 +317,20 @@ auto list_foods_prepare_stmt(
 	return stmt;
 }
 
-auto whf::Lister::list(
-	std::span<wholth::entity::shortened::Food> span,
-	whf::Lister::buffer_t& buffer
-) -> wholth::StatusCode
+std::error_code whf::list(
+    std::span<wholth::entity::shortened::Food> list,
+    uint64_t& count,
+    buffer_t& buffer,
+    const Query& query,
+    sqlw::Connection& con
+)
 {
-	if (m_q.locale_id.size() == 0 || !sqlw::utils::is_numeric(m_q.locale_id)) {
+    count = 0;
+
+	if (
+        query.locale_id.size() == 0
+        || !sqlw::utils::is_numeric(query.locale_id)
+    ) {
 		return SC::INVALID_LOCALE_ID;
 	}
 
@@ -327,9 +339,9 @@ auto whf::Lister::list(
 	// @todo: rethink this jank!
 	constexpr size_t field_count = 4;
 	wholth::utils::LengthContainer itr {
-		(span.size() * field_count)
+		(list.size() * field_count)
 	};
-	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = m_ingredient_data;
+    const auto ingredient_data = prepare_ingredient_data(query);
 	constexpr std::string_view sql = R"sql(
 		WITH RECURSIVE
 		recipe_tree(
@@ -369,42 +381,78 @@ auto whf::Lister::list(
 			LEFT JOIN food_localisation fl
 				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1
 			ORDER BY 1 DESC
-		)
-		SELECT
-			rt.recipe_id AS id,
-			COALESCE(rt.recipe_title, '[N/A]') AS title,
-			COALESCE(
-				seconds_to_readable_time(rt.step_seconds),
-				'[N/A]'
-			) AS time,
-			COALESCE(mvfn.value, '[N/A]') || ' ' || COALESCE(mvn.unit, '') AS top_nutrient
-		FROM recipe_tree rt
-		LEFT JOIN food_nutrient mvfn
-			ON mvfn.food_id = rt.recipe_id
-		LEFT JOIN nutrient mvn
-			ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id
-		{1}
-		GROUP BY rt.recipe_id
-		ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC
-		LIMIT {2}
-		OFFSET {3}
+		),
+        top_nutrient AS NOT MATERIALIZED (
+            SELECT
+                COALESCE(mvfn.value, '[N/A]') || ' ' || COALESCE(mvn.unit, '') AS value,
+                mvfn.food_id AS recipe_id,
+                mvn.position
+                -- ROW_NUMBER() OVER (
+                --     PARTITION BY rt.recipe_id
+                --     ORDER BY mvn.postion ASC
+                -- ) AS row_num
+            FROM food_nutrient mvfn
+            LEFT JOIN nutrient mvn
+                ON mvn.id = mvfn.nutrient_id
+            ORDER BY mvn.position ASC
+        ),
+        the_list AS (
+            SELECT
+                rt.recipe_id AS id,
+                COALESCE(rt.recipe_title, '[N/A]') AS title,
+                COALESCE(
+                    seconds_to_readable_time(rt.step_seconds),
+                    '[N/A]'
+                ) AS time,
+                COALESCE(tp.value, '[N/A]') AS top_nutrient
+            FROM recipe_tree rt
+            LEFT JOIN top_nutrient tp
+                ON tp.recipe_id = rt.recipe_id AND tp.position = 0
+            {1}
+            GROUP BY rt.recipe_id
+            ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC
+        )
+        SELECT COUNT(the_list.id), NULL, NULL, NULL FROM the_list
+        UNION ALL
+        SELECT * FROM (SELECT * FROM the_list LIMIT {2} OFFSET {3})
 	)sql";
 
 	auto stmt = list_foods_prepare_stmt(
 		fmt::format(
 			sql,
-			ingredient_where,
-			create_where(m_q, ingredient_param_count + 1),
-			span.size(),
-			span.size() * m_q.page
+			ingredient_data.where,
+			create_where(query, ingredient_data.parameter_count + 1),
+			list.size(),
+			list.size() * query.page
 		),
-		m_q,
-		m_ingredient_data,
-		m_db_con
+		query,
+		ingredient_data,
+		&con
 	);
 
-	stmt([&buffer_stream, &itr](sqlw::Statement::ExecArgs e)
+    uint64_t i = 0;
+	stmt([&buffer_stream, &itr, &i, &count](sqlw::Statement::ExecArgs e)
 		{
+        /* fmt::print("{} {}\n", e.column_name, e.column_value); */
+            i++;
+
+            if (1 == i) {
+        /* fmt::print("{} {}\n", e.column_name, e.column_value); */
+                auto res = std::from_chars(
+                    e.column_value.data(),
+                    e.column_value.data() + e.column_value.size(),
+                    count
+                );
+                if (res.ec != std::errc()) {
+                    // todo ????
+                    count = 0;
+                }
+            }
+
+            if (i <= 4) {
+                return;
+            }
+
 			buffer_stream << e.column_value;
 
 			itr.add(e.column_value.size());
@@ -418,8 +466,9 @@ auto whf::Lister::list(
 	}
 
 	buffer = buffer_stream.str();
+    /* fmt::print("{}\n", buffer); */
 
-	for (size_t j = 0; j < span.size(); j ++)
+	for (size_t j = 0; j < list.size(); j++)
 	{
 		wholth::entity::shortened::Food entry;
 
@@ -428,217 +477,604 @@ auto whf::Lister::list(
 		entry.preparation_time = itr.next(buffer);
 		entry.top_nutrient = itr.next(buffer);
 
-		span[j] = entry;
+		list[j] = entry;
 	}
 
-	return SC::NO_ERROR;
+	return SC::OK;
 }
 
-auto whf::Lister::count(
-	whf::Lister::buffer_t& buffer
-) -> wholth::StatusCode
-{
-	if (m_q.locale_id.size() == 0 || !sqlw::utils::is_numeric(m_q.locale_id)) {
-		return SC::INVALID_LOCALE_ID;
-	}
+/* auto whf::count( */
+/*     PaginationInfo& info, */
+/*     buffer_t& buffer, */
+/*     sqlw::Connection& con, */
+/*     const Query& query, */
+/*     const IngredientData& ingredient_data, */
+/*     int64_t list_size */
+/* ) -> wholth::StatusCode */
+/* { */
+/* 	if ( */
+/*         query.locale_id.size() == 0 */
+/*         || !sqlw::utils::is_numeric(query.locale_id) */
+/*     ) { */
+/* 		return SC::INVALID_LOCALE_ID; */
+/* 	} */
 
-	std::stringstream buffer_stream;
+/* 	std::stringstream buffer_stream; */
 
-	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = m_ingredient_data;
-	constexpr std::string_view sql = R"sql(
-		WITH RECURSIVE
-		recipe_tree(
-			lvl,
-			recipe_id,
-			recipe_title,
-			recipe_ingredient_count,
-			ingredient_id,
-			step_seconds
-		) AS (
-			SELECT
-				1,
-				f.id,
-				fl.title,
-				0,
-				NULL,
-				rs.seconds
-			FROM food f
-			LEFT JOIN recipe_info ri
-				ON ri.recipe_id = f.id
-			LEFT JOIN recipe_step rs
-				ON rs.recipe_id = f.id
-			LEFT JOIN food_localisation fl
-				ON fl.food_id = f.id AND fl.locale_id = ?1
-			WHERE {0}
-			UNION
-			SELECT
-				rt.lvl + 1,
-				node.recipe_id,
-				fl.title,
-				node.recipe_ingredient_count,
-				node.ingredient_id,
-				node.step_seconds
-			FROM recipe_tree rt
-			INNER JOIN recipe_tree_node node
-				ON node.ingredient_id = rt.recipe_id
-			LEFT JOIN food_localisation fl
-				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1
-			ORDER BY 1 DESC
-		)
-		SELECT
-			COUNT(g.id) AS cnt
-		FROM (
-			SELECT
-				rt.recipe_id AS id
-			FROM recipe_tree rt
-			LEFT JOIN food_nutrient mvfn
-				ON mvfn.food_id = rt.recipe_id
-			LEFT JOIN nutrient mvn
-				ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id
-			{1}
-			GROUP BY rt.recipe_id
-			ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC
-		) AS g
-	)sql";
+/* 	wholth::utils::LengthContainer itr {3}; */
 
-	auto stmt = list_foods_prepare_stmt(
-		fmt::format(
-			sql,
-			ingredient_where,
-			create_where(m_q, ingredient_param_count + 1)
-		),
-		m_q,
-		m_ingredient_data,
-		m_db_con
-	);
+/* 	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = ingredient_data; */
+/*     /1* fmt::print("{}\n", ingredient_where); *1/ */
+/* 	constexpr std::string_view sql = R"sql( */
+/* 		WITH RECURSIVE */
+/* 		recipe_tree( */
+/* 			lvl, */
+/* 			recipe_id, */
+/* 			recipe_title, */
+/* 			recipe_ingredient_count, */
+/* 			ingredient_id, */
+/* 			step_seconds */
+/* 		) AS ( */
+/* 			SELECT */
+/* 				1, */
+/* 				f.id, */
+/* 				fl.title, */
+/* 				0, */
+/* 				NULL, */
+/* 				rs.seconds */
+/* 			FROM food f */
+/* 			LEFT JOIN recipe_info ri */
+/* 				ON ri.recipe_id = f.id */
+/* 			LEFT JOIN recipe_step rs */
+/* 				ON rs.recipe_id = f.id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = f.id AND fl.locale_id = ?1 */
+/* 			WHERE {0} */
+/* 			UNION */
+/* 			SELECT */
+/* 				rt.lvl + 1, */
+/* 				node.recipe_id, */
+/* 				fl.title, */
+/* 				node.recipe_ingredient_count, */
+/* 				node.ingredient_id, */
+/* 				node.step_seconds */
+/* 			FROM recipe_tree rt */
+/* 			INNER JOIN recipe_tree_node node */
+/* 				ON node.ingredient_id = rt.recipe_id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1 */
+/* 			ORDER BY 1 DESC */
+/* 		) */
+/* 		SELECT */
+/* 			r.cnt AS cnt, */
+/* 			MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {1} + 0.49) as int)) AS max_page, */
+/* 			'{2}' || '/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {3} + 0.49) AS int))) AS paginator_str */
+/* 		FROM ( */
+/* 			SELECT */
+/* 				COUNT(g.id) AS cnt */
+/* 			FROM ( */
+/* 				SELECT */
+/* 					rt.recipe_id AS id */
+/* 				FROM recipe_tree rt */
+/* 				LEFT JOIN food_nutrient mvfn */
+/* 					ON mvfn.food_id = rt.recipe_id */
+/* 				LEFT JOIN nutrient mvn */
+/* 					ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id */
+/* 				{4} */
+/* 				GROUP BY rt.recipe_id */
+/* 				ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC */
+/* 			) AS g */
+/* 		) AS r */
+/* 	)sql"; */
 
-	stmt([&buffer_stream](sqlw::Statement::ExecArgs e)
-		{
-			buffer_stream << e.column_value;
-		}
-	);
+/* 	auto stmt = list_foods_prepare_stmt( */
+/* 		fmt::format( */
+/* 			sql, */
+/* 			ingredient_where, */
+/* 			list_size, */
+/* 			query.page + 1, */
+/* 			list_size, */
+/* 			create_where(query, ingredient_param_count + 1) */
+/* 		), */
+/* 		query, */
+/* 		ingredient_data, */
+/* 		&con */
+/* 	); */
 
-	if (!(buffer_stream.rdbuf()->in_avail() > 0))
-	{
-		// todo test
-		return SC::ENTITY_NOT_FOUND;
-	}
+/* 	stmt([&buffer_stream, &itr, &info](sqlw::Statement::ExecArgs e) */
+/* 		{ */
+/*             if ("max_page" == e.column_name) { */
+/*                 auto res = std::from_chars( */
+/*                     e.column_value.data(), */
+/*                     e.column_value.data() + e.column_value.size(), */
+/*                     info.max_page_int */
+/*                 ); */
+/*                 if (res.ec != std::errc()) { */
+/*                     // todo ???? */
+/*                     info.max_page_int = 0; */
+/*                 } */
+/*             } */
 
-	buffer = buffer_stream.str();
+/* 			buffer_stream << e.column_value; */
 
-	return SC::NO_ERROR;
-}
+/* 			itr.add(e.column_value.size()); */
+/* 		} */
+/* 	); */
 
-auto whf::Lister::pagination(
-	PaginationInfo& p_info,
-	whf::Lister::buffer_t& buffer,
-	size_t list_size
-) -> wholth::StatusCode
-{
-	if (m_q.locale_id.size() == 0 || !sqlw::utils::is_numeric(m_q.locale_id)) {
-		return SC::INVALID_LOCALE_ID;
-	}
+/* 	if (!(buffer_stream.rdbuf()->in_avail() > 0)) */
+/* 	{ */
+/* 		// todo test */
+/* 		return SC::ENTITY_NOT_FOUND; */
+/* 	} */
 
-	std::stringstream buffer_stream;
+/* 	buffer = buffer_stream.str(); */
 
-	wholth::utils::LengthContainer itr {3};
+/* 	info.element_count = itr.next(buffer); */
+/* 	info.max_page = itr.next(buffer); */
+/* 	info.progress_string = itr.next(buffer); */
 
-	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = m_ingredient_data;
-	constexpr std::string_view sql = R"sql(
-		WITH RECURSIVE
-		recipe_tree(
-			lvl,
-			recipe_id,
-			recipe_title,
-			recipe_ingredient_count,
-			ingredient_id,
-			step_seconds
-		) AS (
-			SELECT
-				1,
-				f.id,
-				fl.title,
-				0,
-				NULL,
-				rs.seconds
-			FROM food f
-			LEFT JOIN recipe_info ri
-				ON ri.recipe_id = f.id
-			LEFT JOIN recipe_step rs
-				ON rs.recipe_id = f.id
-			LEFT JOIN food_localisation fl
-				ON fl.food_id = f.id AND fl.locale_id = ?1
-			WHERE {0}
-			UNION
-			SELECT
-				rt.lvl + 1,
-				node.recipe_id,
-				fl.title,
-				node.recipe_ingredient_count,
-				node.ingredient_id,
-				node.step_seconds
-			FROM recipe_tree rt
-			INNER JOIN recipe_tree_node node
-				ON node.ingredient_id = rt.recipe_id
-			LEFT JOIN food_localisation fl
-				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1
-			ORDER BY 1 DESC
-		)
-		SELECT
-			r.cnt AS cnt,
-			MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {1} + 0.49) as int)) AS max_page,
-			'{2}' || '/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {3} + 0.49) AS int))) AS paginator_str
-		FROM (
-			SELECT
-				COUNT(g.id) AS cnt
-			FROM (
-				SELECT
-					rt.recipe_id AS id
-				FROM recipe_tree rt
-				LEFT JOIN food_nutrient mvfn
-					ON mvfn.food_id = rt.recipe_id
-				LEFT JOIN nutrient mvn
-					ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id
-				{4}
-				GROUP BY rt.recipe_id
-				ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC
-			) AS g
-		) AS r
-	)sql";
+/* 	return SC::NO_ERROR; */
+/* } */
 
-	auto stmt = list_foods_prepare_stmt(
-		fmt::format(
-			sql,
-			ingredient_where,
-			list_size,
-			m_q.page + 1,
-			list_size,
-			create_where(m_q, ingredient_param_count + 1)
-		),
-		m_q,
-		m_ingredient_data,
-		m_db_con
-	);
+/* auto whf::paginate( */
+/*     PaginationInfo& info, */
+/*     buffer_t& buffer, */
+/*     sqlw::Connection& con, */
+/*     const Query& query, */
+/*     const IngredientData& ingredient_data, */
+/*     int64_t list_size */
+/* ) -> wholth::StatusCode */
+/* { */
+/* 	if ( */
+/*         query.locale_id.size() == 0 */
+/*         || !sqlw::utils::is_numeric(query.locale_id) */
+/*     ) { */
+/* 		return SC::INVALID_LOCALE_ID; */
+/* 	} */
 
-	stmt([&buffer_stream, &itr](sqlw::Statement::ExecArgs e)
-		{
-			buffer_stream << e.column_value;
+/* 	std::stringstream buffer_stream; */
 
-			itr.add(e.column_value.size());
-		}
-	);
+/* 	wholth::utils::LengthContainer itr {3}; */
 
-	if (!(buffer_stream.rdbuf()->in_avail() > 0))
-	{
-		// todo test
-		return SC::ENTITY_NOT_FOUND;
-	}
+/* 	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = ingredient_data; */
+/*     /1* fmt::print("{}\n", ingredient_where); *1/ */
+/* 	constexpr std::string_view sql = R"sql( */
+/* 		WITH RECURSIVE */
+/* 		recipe_tree( */
+/* 			lvl, */
+/* 			recipe_id, */
+/* 			recipe_title, */
+/* 			recipe_ingredient_count, */
+/* 			ingredient_id, */
+/* 			step_seconds */
+/* 		) AS ( */
+/* 			SELECT */
+/* 				1, */
+/* 				f.id, */
+/* 				fl.title, */
+/* 				0, */
+/* 				NULL, */
+/* 				rs.seconds */
+/* 			FROM food f */
+/* 			LEFT JOIN recipe_info ri */
+/* 				ON ri.recipe_id = f.id */
+/* 			LEFT JOIN recipe_step rs */
+/* 				ON rs.recipe_id = f.id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = f.id AND fl.locale_id = ?1 */
+/* 			WHERE {0} */
+/* 			UNION */
+/* 			SELECT */
+/* 				rt.lvl + 1, */
+/* 				node.recipe_id, */
+/* 				fl.title, */
+/* 				node.recipe_ingredient_count, */
+/* 				node.ingredient_id, */
+/* 				node.step_seconds */
+/* 			FROM recipe_tree rt */
+/* 			INNER JOIN recipe_tree_node node */
+/* 				ON node.ingredient_id = rt.recipe_id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1 */
+/* 			ORDER BY 1 DESC */
+/* 		) */
+/* 		SELECT */
+/* 			r.cnt AS cnt, */
+/* 			MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {1} + 0.49) as int)) AS max_page, */
+/* 			'{2}' || '/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {3} + 0.49) AS int))) AS paginator_str */
+/* 		FROM ( */
+/* 			SELECT */
+/* 				COUNT(g.id) AS cnt */
+/* 			FROM ( */
+/* 				SELECT */
+/* 					rt.recipe_id AS id */
+/* 				FROM recipe_tree rt */
+/* 				LEFT JOIN food_nutrient mvfn */
+/* 					ON mvfn.food_id = rt.recipe_id */
+/* 				LEFT JOIN nutrient mvn */
+/* 					ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id */
+/* 				{4} */
+/* 				GROUP BY rt.recipe_id */
+/* 				ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC */
+/* 			) AS g */
+/* 		) AS r */
+/* 	)sql"; */
 
-	buffer = buffer_stream.str();
+/* 	auto stmt = list_foods_prepare_stmt( */
+/* 		fmt::format( */
+/* 			sql, */
+/* 			ingredient_where, */
+/* 			list_size, */
+/* 			query.page + 1, */
+/* 			list_size, */
+/* 			create_where(query, ingredient_param_count + 1) */
+/* 		), */
+/* 		query, */
+/* 		ingredient_data, */
+/* 		&con */
+/* 	); */
 
-	p_info.element_count = itr.next(buffer);
-	p_info.max_page = itr.next(buffer);
-	p_info.progress_string = itr.next(buffer);
+/* 	stmt([&buffer_stream, &itr, &info](sqlw::Statement::ExecArgs e) */
+/* 		{ */
+/*             if ("max_page" == e.column_name) { */
+/*                 auto res = std::from_chars( */
+/*                     e.column_value.data(), */
+/*                     e.column_value.data() + e.column_value.size(), */
+/*                     info.max_page_int */
+/*                 ); */
+/*                 if (res.ec != std::errc()) { */
+/*                     // todo ???? */
+/*                     info.max_page_int = 0; */
+/*                 } */
+/*             } */
 
-	return SC::NO_ERROR;
-}
+/* 			buffer_stream << e.column_value; */
+
+/* 			itr.add(e.column_value.size()); */
+/* 		} */
+/* 	); */
+
+/* 	if (!(buffer_stream.rdbuf()->in_avail() > 0)) */
+/* 	{ */
+/* 		// todo test */
+/* 		return SC::ENTITY_NOT_FOUND; */
+/* 	} */
+
+/* 	buffer = buffer_stream.str(); */
+
+/* 	info.element_count = itr.next(buffer); */
+/* 	info.max_page = itr.next(buffer); */
+/* 	info.progress_string = itr.next(buffer); */
+
+/* 	return SC::NO_ERROR; */
+/* } */
+
+/* auto whf::Lister::list( */
+/* 	std::span<wholth::entity::shortened::Food> span, */
+/* 	whf::Lister::buffer_t& buffer */
+/* ) -> wholth::StatusCode */
+/* { */
+/* 	if (m_q.locale_id.size() == 0 || !sqlw::utils::is_numeric(m_q.locale_id)) { */
+/* 		return SC::INVALID_LOCALE_ID; */
+/* 	} */
+
+/* 	std::stringstream buffer_stream; */
+
+/* 	// @todo: rethink this jank! */
+/* 	constexpr size_t field_count = 4; */
+/* 	wholth::utils::LengthContainer itr { */
+/* 		(span.size() * field_count) */
+/* 	}; */
+/* 	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = m_ingredient_data; */
+/* 	constexpr std::string_view sql = R"sql( */
+/* 		WITH RECURSIVE */
+/* 		recipe_tree( */
+/* 			lvl, */
+/* 			recipe_id, */
+/* 			recipe_title, */
+/* 			recipe_ingredient_count, */
+/* 			ingredient_id, */
+/* 			step_seconds */
+/* 		) AS ( */
+/* 			SELECT */
+/* 				1, */
+/* 				f.id, */
+/* 				fl.title, */
+/* 				0, */
+/* 				NULL, */
+/* 				rs.seconds */
+/* 			FROM food f */
+/* 			LEFT JOIN recipe_info ri */
+/* 				ON ri.recipe_id = f.id */
+/* 			LEFT JOIN recipe_step rs */
+/* 				ON rs.recipe_id = f.id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				 ON fl.food_id = f.id AND fl.locale_id = ?1 */
+/* 			WHERE {0} */
+/* 			UNION */
+/* 			SELECT */
+/* 				rt.lvl + 1, */
+/* 				node.recipe_id, */
+/* 				fl.title, */
+/* 				node.recipe_ingredient_count, */
+/* 				node.ingredient_id, */
+/* 				node.step_seconds */
+/* 			FROM recipe_tree rt */
+/* 			INNER JOIN recipe_tree_node node */
+/* 				ON node.ingredient_id = rt.recipe_id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1 */
+/* 			ORDER BY 1 DESC */
+/* 		) */
+/* 		SELECT */
+/* 			rt.recipe_id AS id, */
+/* 			COALESCE(rt.recipe_title, '[N/A]') AS title, */
+/* 			COALESCE( */
+/* 				seconds_to_readable_time(rt.step_seconds), */
+/* 				'[N/A]' */
+/* 			) AS time, */
+/* 			COALESCE(mvfn.value, '[N/A]') || ' ' || COALESCE(mvn.unit, '') AS top_nutrient */
+/* 		FROM recipe_tree rt */
+/* 		LEFT JOIN food_nutrient mvfn */
+/* 			ON mvfn.food_id = rt.recipe_id */
+/* 		LEFT JOIN nutrient mvn */
+/* 			ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id */
+/* 		{1} */
+/* 		GROUP BY rt.recipe_id */
+/* 		ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC */
+/* 		LIMIT {2} */
+/* 		OFFSET {3} */
+/* 	)sql"; */
+
+/* 	auto stmt = list_foods_prepare_stmt( */
+/* 		fmt::format( */
+/* 			sql, */
+/* 			ingredient_where, */
+/* 			create_where(m_q, ingredient_param_count + 1), */
+/* 			span.size(), */
+/* 			span.size() * m_q.page */
+/* 		), */
+/* 		m_q, */
+/* 		m_ingredient_data, */
+/* 		m_db_con */
+/* 	); */
+
+/* 	stmt([&buffer_stream, &itr](sqlw::Statement::ExecArgs e) */
+/* 		{ */
+/* 			buffer_stream << e.column_value; */
+
+/* 			itr.add(e.column_value.size()); */
+/* 		} */
+/* 	); */
+
+/* 	if (!(buffer_stream.rdbuf()->in_avail() > 0)) */
+/* 	{ */
+/* 		// todo test */
+/* 		return SC::ENTITY_NOT_FOUND; */
+/* 	} */
+
+/* 	buffer = buffer_stream.str(); */
+
+/* 	for (size_t j = 0; j < span.size(); j ++) */
+/* 	{ */
+/* 		wholth::entity::shortened::Food entry; */
+
+/* 		entry.id = itr.next(buffer); */
+/* 		entry.title = itr.next(buffer); */
+/* 		entry.preparation_time = itr.next(buffer); */
+/* 		entry.top_nutrient = itr.next(buffer); */
+
+/* 		span[j] = entry; */
+/* 	} */
+
+/* 	return SC::NO_ERROR; */
+/* } */
+
+/* auto whf::Lister::count( */
+/* 	whf::Lister::buffer_t& buffer */
+/* ) -> wholth::StatusCode */
+/* { */
+/* 	if (m_q.locale_id.size() == 0 || !sqlw::utils::is_numeric(m_q.locale_id)) { */
+/* 		return SC::INVALID_LOCALE_ID; */
+/* 	} */
+
+/* 	std::stringstream buffer_stream; */
+
+/* 	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = m_ingredient_data; */
+/* 	constexpr std::string_view sql = R"sql( */
+/* 		WITH RECURSIVE */
+/* 		recipe_tree( */
+/* 			lvl, */
+/* 			recipe_id, */
+/* 			recipe_title, */
+/* 			recipe_ingredient_count, */
+/* 			ingredient_id, */
+/* 			step_seconds */
+/* 		) AS ( */
+/* 			SELECT */
+/* 				1, */
+/* 				f.id, */
+/* 				fl.title, */
+/* 				0, */
+/* 				NULL, */
+/* 				rs.seconds */
+/* 			FROM food f */
+/* 			LEFT JOIN recipe_info ri */
+/* 				ON ri.recipe_id = f.id */
+/* 			LEFT JOIN recipe_step rs */
+/* 				ON rs.recipe_id = f.id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = f.id AND fl.locale_id = ?1 */
+/* 			WHERE {0} */
+/* 			UNION */
+/* 			SELECT */
+/* 				rt.lvl + 1, */
+/* 				node.recipe_id, */
+/* 				fl.title, */
+/* 				node.recipe_ingredient_count, */
+/* 				node.ingredient_id, */
+/* 				node.step_seconds */
+/* 			FROM recipe_tree rt */
+/* 			INNER JOIN recipe_tree_node node */
+/* 				ON node.ingredient_id = rt.recipe_id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1 */
+/* 			ORDER BY 1 DESC */
+/* 		) */
+/* 		SELECT */
+/* 			COUNT(g.id) AS cnt */
+/* 		FROM ( */
+/* 			SELECT */
+/* 				rt.recipe_id AS id */
+/* 			FROM recipe_tree rt */
+/* 			LEFT JOIN food_nutrient mvfn */
+/* 				ON mvfn.food_id = rt.recipe_id */
+/* 			LEFT JOIN nutrient mvn */
+/* 				ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id */
+/* 			{1} */
+/* 			GROUP BY rt.recipe_id */
+/* 			ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC */
+/* 		) AS g */
+/* 	)sql"; */
+
+/* 	auto stmt = list_foods_prepare_stmt( */
+/* 		fmt::format( */
+/* 			sql, */
+/* 			ingredient_where, */
+/* 			create_where(m_q, ingredient_param_count + 1) */
+/* 		), */
+/* 		m_q, */
+/* 		m_ingredient_data, */
+/* 		m_db_con */
+/* 	); */
+
+/* 	stmt([&buffer_stream](sqlw::Statement::ExecArgs e) */
+/* 		{ */
+/* 			buffer_stream << e.column_value; */
+/* 		} */
+/* 	); */
+
+/* 	if (!(buffer_stream.rdbuf()->in_avail() > 0)) */
+/* 	{ */
+/* 		// todo test */
+/* 		return SC::ENTITY_NOT_FOUND; */
+/* 	} */
+
+/* 	buffer = buffer_stream.str(); */
+
+/* 	return SC::NO_ERROR; */
+/* } */
+
+/* auto whf::Lister::pagination( */
+/* 	PaginationInfo& p_info, */
+/* 	whf::Lister::buffer_t& buffer, */
+/* 	size_t list_size */
+/* ) -> wholth::StatusCode */
+/* { */
+/* 	if (m_q.locale_id.size() == 0 || !sqlw::utils::is_numeric(m_q.locale_id)) { */
+/* 		return SC::INVALID_LOCALE_ID; */
+/* 	} */
+
+/* 	std::stringstream buffer_stream; */
+
+/* 	wholth::utils::LengthContainer itr {3}; */
+
+/* 	const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = m_ingredient_data; */
+/* 	constexpr std::string_view sql = R"sql( */
+/* 		WITH RECURSIVE */
+/* 		recipe_tree( */
+/* 			lvl, */
+/* 			recipe_id, */
+/* 			recipe_title, */
+/* 			recipe_ingredient_count, */
+/* 			ingredient_id, */
+/* 			step_seconds */
+/* 		) AS ( */
+/* 			SELECT */
+/* 				1, */
+/* 				f.id, */
+/* 				fl.title, */
+/* 				0, */
+/* 				NULL, */
+/* 				rs.seconds */
+/* 			FROM food f */
+/* 			LEFT JOIN recipe_info ri */
+/* 				ON ri.recipe_id = f.id */
+/* 			LEFT JOIN recipe_step rs */
+/* 				ON rs.recipe_id = f.id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = f.id AND fl.locale_id = ?1 */
+/* 			WHERE {0} */
+/* 			UNION */
+/* 			SELECT */
+/* 				rt.lvl + 1, */
+/* 				node.recipe_id, */
+/* 				fl.title, */
+/* 				node.recipe_ingredient_count, */
+/* 				node.ingredient_id, */
+/* 				node.step_seconds */
+/* 			FROM recipe_tree rt */
+/* 			INNER JOIN recipe_tree_node node */
+/* 				ON node.ingredient_id = rt.recipe_id */
+/* 			LEFT JOIN food_localisation fl */
+/* 				ON fl.food_id = node.recipe_id AND fl.locale_id = ?1 */
+/* 			ORDER BY 1 DESC */
+/* 		) */
+/* 		SELECT */
+/* 			r.cnt AS cnt, */
+/* 			MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {1} + 0.49) as int)) AS max_page, */
+/* 			'{2}' || '/' || (MAX(1, CAST(ROUND(CAST(r.cnt AS float) / {3} + 0.49) AS int))) AS paginator_str */
+/* 		FROM ( */
+/* 			SELECT */
+/* 				COUNT(g.id) AS cnt */
+/* 			FROM ( */
+/* 				SELECT */
+/* 					rt.recipe_id AS id */
+/* 				FROM recipe_tree rt */
+/* 				LEFT JOIN food_nutrient mvfn */
+/* 					ON mvfn.food_id = rt.recipe_id */
+/* 				LEFT JOIN nutrient mvn */
+/* 					ON mvn.position = 0 AND mvn.id = mvfn.nutrient_id */
+/* 				{4} */
+/* 				GROUP BY rt.recipe_id */
+/* 				ORDER BY rt.lvl DESC, rt.recipe_id ASC, rt.recipe_title ASC */
+/* 			) AS g */
+/* 		) AS r */
+/* 	)sql"; */
+
+/* 	auto stmt = list_foods_prepare_stmt( */
+/* 		fmt::format( */
+/* 			sql, */
+/* 			ingredient_where, */
+/* 			list_size, */
+/* 			m_q.page + 1, */
+/* 			list_size, */
+/* 			create_where(m_q, ingredient_param_count + 1) */
+/* 		), */
+/* 		m_q, */
+/* 		m_ingredient_data, */
+/* 		m_db_con */
+/* 	); */
+
+/* 	stmt([&buffer_stream, &itr](sqlw::Statement::ExecArgs e) */
+/* 		{ */
+/* 			buffer_stream << e.column_value; */
+
+/* 			itr.add(e.column_value.size()); */
+/* 		} */
+/* 	); */
+
+/* 	if (!(buffer_stream.rdbuf()->in_avail() > 0)) */
+/* 	{ */
+/* 		// todo test */
+/* 		return SC::ENTITY_NOT_FOUND; */
+/* 	} */
+
+/* 	buffer = buffer_stream.str(); */
+
+/* 	p_info.element_count = itr.next(buffer); */
+/* 	p_info.max_page = itr.next(buffer); */
+/* 	p_info.progress_string = itr.next(buffer); */
+
+/* 	return SC::NO_ERROR; */
+/* } */

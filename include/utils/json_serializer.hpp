@@ -6,6 +6,15 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <tuple>
+#include <type_traits>
+#include <span>
+
+template <typename T>
+concept is_span = /*::utils::is_std_container<T> &&*/
+requires(T t) {
+    t.subspan(size_t{}, size_t{});
+};
 
 namespace utils {
     class JsonSerializer
@@ -42,6 +51,7 @@ namespace utils {
 
             tabulate();
 
+            /* m_output_stream << m_upstairs_neighbor_depth << ":" << m_depth << '"' << nvp.name() << "\":"; */
             m_output_stream << '"' << nvp.name() << "\":";
 
             recurse(nvp.value());
@@ -60,6 +70,8 @@ namespace utils {
             return;
         }
 
+        m_upstairs_neighbor_depth = m_depth;
+
         if constexpr (utils::is_serializable<Value, utils::JsonSerializer>) {
             begin_object();
             descend();
@@ -71,7 +83,7 @@ namespace utils {
             tabulate();
             end_object();
         }
-        else if constexpr (utils::is_std_container<Value>) {
+        else if constexpr (utils::is_std_vector<Value> || is_span<Value>) {
             begin_array();
 
             if (value.size() > 0) {
@@ -96,8 +108,37 @@ namespace utils {
 
             end_array();
         }
+        else if constexpr (utils::is_tuple_like<Value>) {
+            begin_array();
+            descend(),
+            new_line();
+            constexpr size_t size = std::tuple_size_v<Value>;
+
+            std::apply(
+                [this] (auto&&... args) {
+                    size_t i = 0;
+                    auto print_elem = [this, &i] (const auto& x) {
+                        i++;
+                        tabulate();
+                        recurse(x);
+
+                        if (i < size) {
+                            delimit();
+                        }
+
+                        new_line();
+                    };
+                    ((print_elem(args)), ...);
+                },
+                value
+            );
+
+            ascend();
+            tabulate();
+            end_array();
+        }
         else if constexpr (std::is_arithmetic_v<Value>) {
-            m_output_stream << value;
+            m_output_stream << static_cast<uint64_t>(value);
         }
         else {
             auto start_pos = m_output_stream.tellp();
@@ -132,6 +173,7 @@ namespace utils {
     private:
         std::stringstream m_output_stream;
         int64_t m_depth {0};
+        int64_t m_upstairs_neighbor_depth {0};
 
         auto begin_object() -> void;
         auto end_object() -> void;
@@ -157,6 +199,7 @@ namespace utils {
         {
             if (m_depth > 0) {
                 m_depth--;
+                m_upstairs_neighbor_depth = m_depth;
             }
         }
     };

@@ -1,3 +1,6 @@
 build
 include/wholth/cmake_vars.h
 CMakeFiles
+imgui.ini
+todo.md
+Session.vim

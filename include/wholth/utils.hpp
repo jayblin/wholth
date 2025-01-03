@@ -4,6 +4,7 @@
 #include "fmt/color.h"
 #include "sqlite3.h"
 #include <array>
+#include <gsl/gsl>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -22,7 +23,8 @@
 
 namespace wholth::utils
 {
-	constexpr std::string_view NIL = "<NIL>";
+	/* constexpr std::string_view NIL = "<NIL>"; */
+	const gsl::czstring NIL = "<NIL>";
 
 	// YYYY-MM-DDTHH:MM:SS
 	std::string current_time_and_date();

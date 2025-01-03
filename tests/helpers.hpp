@@ -5,9 +5,9 @@
 #include "sqlw/statement.hpp"
 #include <gtest/gtest.h>
 
-#define ASSERT_STREQ2(a,b) ASSERT_STREQ(a, std::string{b}.data());
-#define ASSERT_STREQ3(a,b) ASSERT_STREQ(a.data(), std::string{b}.data());
-#define ASSERT_STRNEQ2(a,b) ASSERT_STRNE(a, std::string{b}.data());
+#define ASSERT_STREQ2(a,b) ASSERT_STREQ(a, std::string{b}.data())
+#define ASSERT_STREQ3(a,b) ASSERT_STREQ(a.data(), std::string{b}.data())
+#define ASSERT_STRNEQ2(a,b) ASSERT_STRNE(a, std::string{b}.data())
 
 static void error_log_callback(void *pArg, int iErrCode, const char *zMsg)
 {
@@ -25,7 +25,6 @@ protected:
 		db_con = {":memory:"};
 	}
 };
-sqlw::Connection GlobalInMemoryDatabaseAwareTest::db_con {};
 
 class InMemoryDatabaseAwareTest : public testing::Test
 {
@@ -42,9 +41,8 @@ protected:
 		db_con = {":memory:"};
 	}
 };
-sqlw::Connection InMemoryDatabaseAwareTest::db_con {};
 
-class InMemorySavepointWrappedTest : public GlobalInMemoryDatabaseAwareTest
+class GlobalInMemorySavepointWrappedTest : public GlobalInMemoryDatabaseAwareTest
 {
 protected:
 	void SetUp() override
