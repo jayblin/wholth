@@ -79,7 +79,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        57170c131200b63da4fa1c222117eca7f6b0ee5d
+  GIT_TAG        93f91846ead377aca6c2dfa46044bf895a160695
 )
 
 FetchContent_Declare(
