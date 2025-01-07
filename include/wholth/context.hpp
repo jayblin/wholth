@@ -11,7 +11,7 @@
 #include "wholth/entity/food.hpp"
 #include "wholth/list/food.hpp"
 #include "wholth/model/foods_page.hpp"
-#include "wholth/task_queue.hpp"
+#include "wholth/task_list.hpp"
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -66,19 +66,19 @@ class Context
         serializer << NVP(connection.status())
                    /* << NVP(style) */  // this segfaults!
                    << NVP(m_locale_id)  //
-                   << NVP(m_task_queue)      //
+                   << NVP(m_task_list)      //
                    << NVP(m_foods_page) //
                    /* << NVP(m_task_mutex) */
                    << NVP(migrate_result) << NVP(sql_errors)
                    << NVP(exception_message);
     }
-    wholth::controller::FoodsPage foods_page_ctrl{m_foods_page, m_task_queue};
+    wholth::controller::FoodsPage foods_page_ctrl{m_foods_page, m_task_list};
 
   private:
     std::string m_locale_id{"1"};
     std::mutex m_task_mutex;
     wholth::model::FoodsPage m_foods_page{};
-    TaskQueue m_task_queue;
+    TaskList m_task_list{};
 };
 } // namespace wholth
 

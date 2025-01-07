@@ -7,7 +7,7 @@ void wholth::controller::FoodsPage::update(const std::chrono::duration<double>& 
 
     // @todo test
     if (m_model.input_timer.has_expired()) {
-        m_task_queue.enqueue(Task::FETCH_FOODS);
+        m_task_list.add(Task::FETCH_FOODS);
     }
 }
 
@@ -37,6 +37,7 @@ void wholth::controller::FoodsPage::fetch(
             .title = {m_model.title_buffer, m_model.title_input_size},
         },
         connection);
+
     m_model.page.update();
     m_model.swappable_list.swap();
 

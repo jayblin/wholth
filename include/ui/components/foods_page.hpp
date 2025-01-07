@@ -3,7 +3,6 @@
 
 #include "ui/style.hpp"
 #include "wholth/controller/foods_page.hpp"
-#include "wholth/task_queue.hpp"
 
 namespace ui::components
 {

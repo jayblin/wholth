@@ -3,17 +3,17 @@
 
 #include "wholth/controller/expanded_food.hpp"
 #include "wholth/model/foods_page.hpp"
-#include "wholth/task_queue.hpp"
+#include "wholth/task_list.hpp"
 
 namespace wholth::controller
 {
 class FoodsPage
 {
   public:
-    FoodsPage(wholth::model::FoodsPage& m_model, wholth::TaskQueue& task_queue)
+    FoodsPage(wholth::model::FoodsPage& m_model, wholth::TaskList& task_list)
         : m_model(m_model),
-          m_expanded_food_ctrl(m_model.expanded_food, task_queue),
-          m_task_queue(task_queue)
+          m_expanded_food_ctrl(m_model.expanded_food, task_list),
+          m_task_list(task_list)
     {
     }
 
@@ -54,7 +54,7 @@ class FoodsPage
   private:
     wholth::model::FoodsPage& m_model;
     wholth::controller::ExpandedFood m_expanded_food_ctrl;
-    wholth::TaskQueue& m_task_queue;
+    wholth::TaskList& m_task_list;
 };
 } // namespace wholth::controller
 

@@ -24,7 +24,7 @@ void wholth::controller::ExpandedFood::fetch(
 void wholth::controller::ExpandedFood::expand(wholth::entity::food::id_t food_id)
 {
     if (m_model.food.id != food_id) {
-        m_task_queue.enqueue(wholth::Task::FETCH_EXPANDED_FOOD_INFO);
+        m_task_list.add(wholth::Task::FETCH_EXPANDED_FOOD_INFO);
         m_model.food.id = food_id;
         m_model.should_show = true;
     }
