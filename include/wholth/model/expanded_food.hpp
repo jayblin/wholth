@@ -1,7 +1,6 @@
 #ifndef WHOLTH_MODEL_EXPANDED_FOOD_H_
 #define WHOLTH_MODEL_EXPANDED_FOOD_H_
 
-#include "utils/serializer.hpp"
 #include "wholth/entity/food.hpp"
 #include <span>
 
@@ -23,21 +22,6 @@ struct ExpandedFood
     std::string nutrients_buffer{""};
     std::array<wholth::entity::expanded::food::RecipeStep, 1> steps{};
     std::string steps_buffer{};
-
-    template <typename Serializer>
-    auto serialize(Serializer& serializer) const noexcept -> void
-    {
-        serializer << NVP(should_show) //
-                   << NVP(food)        //
-                   << NVP(food_buffer) //
-                   /* << NVP(std::span( */
-                   /*        nutrients.begin(), */
-                   /*        nutrients.begin() + 20)) // */
-                   << NVP(nutrients_buffer)        //
-                   << NVP(steps)                   //
-                   << NVP(steps_buffer)            //
-            ;
-    }
 };
 } // namespace wholth::model
 

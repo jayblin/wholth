@@ -6,7 +6,6 @@
 #include "ui/style.hpp"
 #include "db/db.hpp"
 #include "entity/locale.hpp"
-#include "utils/serializer.hpp"
 #include "wholth/controller/foods_page.hpp"
 #include "wholth/entity/food.hpp"
 #include "wholth/list/food.hpp"
@@ -27,6 +26,7 @@ namespace wholth
 
 // @todo
 // - do i even need locale_id as a member?
+// - make members private?
 class Context
 {
   public:
@@ -41,6 +41,16 @@ class Context
     auto locale_id() const -> std::string_view
     {
         return m_locale_id;
+    }
+
+    auto task_list() const -> const TaskList&
+    {
+        return m_task_list;
+    }
+
+    auto foods_page() const -> const wholth::model::FoodsPage&
+    {
+        return m_foods_page;
     }
 
     // __________INGREDIENTS__________
@@ -60,18 +70,6 @@ class Context
     std::vector<std::string> sql_errors;
     std::string exception_message;
 
-    template <typename Serializer>
-    auto serialize(Serializer& serializer) const noexcept -> void
-    {
-        serializer << NVP(connection.status())
-                   /* << NVP(style) */  // this segfaults!
-                   << NVP(m_locale_id)  //
-                   << NVP(m_task_list)      //
-                   << NVP(m_foods_page) //
-                   /* << NVP(m_task_mutex) */
-                   << NVP(migrate_result) << NVP(sql_errors)
-                   << NVP(exception_message);
-    }
     wholth::controller::FoodsPage foods_page_ctrl{m_foods_page, m_task_list};
 
   private:

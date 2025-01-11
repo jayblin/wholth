@@ -1,7 +1,6 @@
 #ifndef WHOLTH_SWAPPABLE_H_
 #define WHOLTH_SWAPPABLE_H_
 
-#include "utils/serializer.hpp"
 #include <array>
 
 namespace wholth {
@@ -13,13 +12,13 @@ public:
     auto next() -> T& { return m_values[(m_idx + 1) % 2]; };
     auto view_next() const -> const T& { return m_values[(m_idx + 1) % 2]; };
     auto swap() -> void { m_idx = (m_idx + 1) % 2; };
-
-    template <typename Serializer>
-    auto serialize(Serializer& serializer) const noexcept -> void
+    auto values() const -> const std::array<T, 2>&
     {
-        serializer
-            << NVP(m_values)
-            << NVP(m_idx);
+        return m_values;
+    }
+    auto current_index() const -> uint8_t
+    {
+        return m_idx;
     }
 
 private:

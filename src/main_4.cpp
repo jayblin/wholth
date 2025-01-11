@@ -55,6 +55,7 @@
 #include "wholth/entity/food.hpp"
 #include "wholth/list/food.hpp"
 #include "wholth/utils.hpp"
+#include "wholth/serialization_definitions.hpp"
 #include "vk/instance.hpp"
 
 #include "imgui.h"

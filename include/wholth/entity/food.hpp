@@ -16,7 +16,6 @@
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
-#include "utils/serializer.hpp"
 #include "wholth/concepts.hpp"
 #include "wholth/entity/locale.hpp"
 #include "wholth/entity/nutrient.hpp"
@@ -71,17 +70,6 @@ namespace wholth::entity::shortened
 		wholth::entity::food::title_t title;
 		std::string_view preparation_time;
 		wholth::entity::nutrient::value_t top_nutrient;
-
-        template <typename Serializer>
-        auto serialize(Serializer& serializer) const noexcept -> void
-        {
-            serializer
-                << NVP(id)
-                << NVP(title)
-                << NVP(preparation_time)
-                << NVP(top_nutrient)
-            ;
-        }
 	};
 
 	namespace food
@@ -154,17 +142,6 @@ namespace wholth::entity::expanded
 		wholth::entity::food::title_t title;
 		wholth::entity::food::description_t description;
 		std::string_view preparation_time;
-
-        template <typename Serializer>
-        auto serialize(Serializer& serializer) const noexcept -> void
-        {
-            serializer
-                << NVP(id)
-                << NVP(title)
-                << NVP(description)
-                << NVP(preparation_time)
-            ;
-        }
 	};
 
 	namespace food
@@ -176,18 +153,6 @@ namespace wholth::entity::expanded
 			wholth::entity::nutrient::value_t value;
 			std::string_view unit;
 			wholth::entity::nutrient::value_t user_value;
-
-            template <typename Serializer>
-            auto serialize(Serializer& serializer) const noexcept -> void
-            {
-                serializer
-                    << NVP(id)
-                    << NVP(title)
-                    << NVP(value)
-                    << NVP(unit)
-                    << NVP(user_value)
-                ;
-            }
 		};
 
 		struct Ingredient
@@ -196,17 +161,6 @@ namespace wholth::entity::expanded
 			wholth::entity::food::title_t title;
 			wholth::entity::ingredient::canonical_mass_t canonical_mass;
 			std::string_view ingredient_count;
-
-            template <typename Serializer>
-            auto serialize(Serializer& serializer) const noexcept -> void
-            {
-                serializer
-                    << NVP(food_id)
-                    << NVP(title)
-                    << NVP(canonical_mass)
-                    << NVP(ingredient_count)
-                ;
-            }
 		};
 
 		struct RecipeStep
@@ -214,16 +168,6 @@ namespace wholth::entity::expanded
 			wholth::entity::recipe_step::id_t id;
 			wholth::entity::recipe_step::time_t time;
 			wholth::entity::recipe_step::description_t description;
-
-            template <typename Serializer>
-            auto serialize(Serializer& serializer) const noexcept -> void
-            {
-                serializer
-                    << NVP(id)
-                    << NVP(time)
-                    << NVP(description)
-                ;
-            }
 		};
 	}
 }

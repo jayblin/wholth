@@ -1,7 +1,6 @@
 #ifndef WHOLTH_PAGE_H_
 #define WHOLTH_PAGE_H_
 
-#include "utils/serializer.hpp"
 #include <string>
 #include <string_view>
 
@@ -23,9 +22,13 @@ class Page
     {
         return m_pagination;
     };
-    auto count() -> uint64_t&
+    auto count() const -> uint64_t
     {
         return m_count;
+    };
+    auto count(uint64_t new_count) -> void
+    {
+        m_count = new_count;
     };
     auto current_page() const -> uint64_t
     {
@@ -36,14 +39,7 @@ class Page
         m_cur_page = new_cur_page;
     };
 
-    template <typename Serializer>
-    auto serialize(Serializer& serializer) const noexcept -> void
-    {
-        serializer << NVP(m_count) << NVP(m_cur_page) << NVP(m_max_page)
-                   << NVP(m_pagination);
-    }
-
-  private:
+  protected:
     uint64_t m_per_page{0};
     uint64_t m_count{0};
     uint64_t m_cur_page{0};

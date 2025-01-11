@@ -2,7 +2,6 @@
 #define DB_H_
 
 #include "sqlw/connection.hpp"
-#include "utils/serializer.hpp"
 #include <filesystem>
 #include <span>
 #include <string>
@@ -55,16 +54,6 @@ namespace db::migration
         std::error_code error_code;
         std::vector<std::string> executed_migrations;
         std::string problematic_migration;
-
-        template <typename Serializer>
-        auto serialize(Serializer& serializer) const noexcept  -> void
-        {
-            serializer 
-                << NVP(error_code)
-                << NVP(executed_migrations)
-                << NVP(problematic_migration)
-                ;
-        }
     };
 
     std::error_code make_migration_table(sqlw::Connection*) noexcept;

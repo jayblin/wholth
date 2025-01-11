@@ -9,7 +9,7 @@
 
 namespace wholth
 {
-enum Task : uint16_t
+enum UNUSED_Task : uint16_t
 {
     /* _FIRST_ = 0, */
     /* CHANGED_LOCALE, */
@@ -21,23 +21,23 @@ enum Task : uint16_t
 // @todo
 // - add bounds checking?
 // - rename cause i need it to mean something like 'ThreadedTaskQueue'.
-class TaskQueue
+class UNUSED_TaskQueue
 {
   public:
     typedef uint16_t event_t;
-    typedef std::array<uint8_t, Task::_LAST_> queue_t;
+    typedef std::array<uint8_t, UNUSED_Task::_LAST_> queue_t;
     /* typedef std::tuple< */
     /*     nullptr_t,                 // */
     /*     wholth::entity::food::id_t // */
     /*     > */
     /*     data_t; */
 
-    auto enqueue(Task t) -> void
+    auto enqueue(UNUSED_Task t) -> void
     {
         m_queue[t] = m_queue[t] + 1;
         m_size++;
     }
-    auto dequeue(Task t) -> void
+    auto dequeue(UNUSED_Task t) -> void
     {
         if (m_queue[t] > 0)
         {

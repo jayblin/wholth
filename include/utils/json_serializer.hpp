@@ -8,7 +8,6 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <span>
 
 template <typename T>
 concept is_span = /*::utils::is_std_container<T> &&*/
@@ -25,13 +24,17 @@ namespace utils {
         }
 
         template <typename Value>
-        requires utils::is_serializable<Value, utils::JsonSerializer>
         std::string serialize(const Value& value) noexcept
         {
             begin_object();
             descend();
 
-            value.serialize(*this);
+             if constexpr (serialization::is_inherently_serializable<Value, utils::JsonSerializer>) {
+                value.serialize(*this);
+             }
+             else if constexpr (serialization::is_convertably_serializable<Value, JsonSerializer>) {
+                (serialization::Serializable<Value>{{}, value}).serialize(*this);
+             }
 
             ascend();
             new_line();
@@ -41,7 +44,7 @@ namespace utils {
         }
 
         template<typename Value>
-        JsonSerializer& operator<<(const NameValuePair<Value>& nvp)
+        JsonSerializer& operator<<(const serialization::NameValuePair<Value>& nvp)
         {
             if (should_delimit()) {
                 delimit();
@@ -72,18 +75,25 @@ namespace utils {
 
         m_upstairs_neighbor_depth = m_depth;
 
-        if constexpr (utils::is_serializable<Value, utils::JsonSerializer>) {
+        if constexpr (
+            serialization::is_inherently_serializable<Value, utils::JsonSerializer>
+            || serialization::is_convertably_serializable<Value, JsonSerializer>) {
             begin_object();
             descend();
 
-            value.serialize(*this);
+             if constexpr (serialization::is_inherently_serializable<Value, utils::JsonSerializer>) {
+                value.serialize(*this);
+             }
+             else if constexpr (serialization::is_convertably_serializable<Value, JsonSerializer>) {
+                (serialization::Serializable<Value>{{}, value}).serialize(*this);
+             }
 
             new_line();
             ascend();
             tabulate();
             end_object();
         }
-        else if constexpr (utils::is_std_vector<Value> || is_span<Value>) {
+        else if constexpr (serialization::is_std_vector<Value> || is_span<Value>) {
             begin_array();
 
             if (value.size() > 0) {
@@ -108,7 +118,7 @@ namespace utils {
 
             end_array();
         }
-        else if constexpr (utils::is_tuple_like<Value>) {
+        else if constexpr (serialization::is_tuple_like<Value>) {
             begin_array();
             descend(),
             new_line();

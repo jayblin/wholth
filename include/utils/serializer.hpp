@@ -1,23 +1,17 @@
 #ifndef UTILS_SERIALIZER_H_
 #define UTILS_SERIALIZER_H_
 
-#include <any>
 #include <array>
 #include <concepts>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 
-#define NVP(x) ::utils::NameValuePair{#x, x}
+#define NVP(x) ::serialization::NameValuePair{#x, x}
+#define ONVP(x) ::serialization::NameValuePair{#x, this->o.x}
 
-namespace utils
+namespace serialization
 {
-    template <typename Value, typename Stream>
-    concept is_serializable = requires(Value v, Stream& stream)
-    {
-        { v.serialize(stream) } -> std::same_as<void>;
-    };
-
     template <typename T>
     concept is_std_container = requires (T t)
     {
@@ -73,6 +67,32 @@ namespace utils
     private:
         std::pair<std::string_view, const Value& > m_pair;
     };
+
+    template <typename T>
+    struct Ref
+    {
+        const T& o;
+    };
+
+    template <typename Value>
+    struct Serializable : std::false_type
+    {
+        template <typename Serializer>
+        auto serialize(Serializer& serializer) -> void;
+    };
+
+    template <typename Value, typename Serializer>
+    concept is_inherently_serializable = requires(Value v, Serializer& serializer_ref)
+    {
+        v.serialize(serializer_ref);
+    };
+
+    template <typename Value, typename Serializer>
+    concept is_convertably_serializable = requires(const Value& value_ref, Serializer& serializer_ref, Serializable<Value> si)
+    {
+        si.serialize(serializer_ref);
+    } 
+    && std::is_base_of_v<std::true_type, Serializable<Value>>;
 }
 
 #endif // UTILS_SERIALIZER_H_

@@ -27,9 +27,10 @@ void wholth::controller::FoodsPage::fetch(
     m_model.is_fetching.store(true, std::memory_order_seq_cst);
     auto& items = m_model.swappable_list.next().view;
     auto& buffer = m_model.swappable_list.next().buffer;
+    uint64_t new_count = 0;
     wholth::list::food::list(
         items,
-        m_model.page.count(),
+        new_count,
         buffer,
         {
             .page = m_model.page.current_page(),
@@ -37,6 +38,8 @@ void wholth::controller::FoodsPage::fetch(
             .title = {m_model.title_buffer, m_model.title_input_size},
         },
         connection);
+
+    m_model.page.count(new_count);
 
     m_model.page.update();
     m_model.swappable_list.swap();

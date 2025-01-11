@@ -21,19 +21,6 @@ struct FoodsPage
     ExpandedFood expanded_food;
     Swappable<BufferView<std::array<wholth::entity::shortened::Food, 20>>>
         swappable_list;
-
-    template <typename Serializer>
-    auto serialize(Serializer& serializer) const noexcept -> void
-    {
-        serializer << NVP(title_buffer)        //
-                   << NVP(title_input_size)    //
-                   << NVP(page)                //
-                   << NVP(swappable_list)      //
-                   << NVP(input_timer.count()) //
-                   << NVP(is_fetching.load())  //
-                   << NVP(expanded_food)       //
-            ;
-    }
 };
 } // namespace wholth::model
 

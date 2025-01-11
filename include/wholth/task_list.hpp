@@ -1,7 +1,6 @@
 #ifndef WHOLTH_TASK_LIST_H_
 #define WHOLTH_TASK_LIST_H_
 
-#include "utils/serializer.hpp"
 #include <cstdint>
 #include <type_traits>
 
@@ -41,11 +40,9 @@ class TaskList
         return t == (m_tasks_mask & t);
     }
 
-    template <typename Serializer>
-    auto serialize(Serializer& serializer) const noexcept -> void
+    auto mask() const -> std::underlying_type_t<Task>
     {
-        serializer << NVP(m_tasks_mask) //
-            ;
+        return m_tasks_mask;
     }
 
   protected:

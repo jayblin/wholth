@@ -12,6 +12,7 @@ concept has_tuple_get = requires(T t)
     { get<Index>(t) } -> std::convertible_to<const std::tuple_element_t<Index, T>&>;
 };
 
+// @todo is this a duplicate of `serialization::is_tuple_like`?
 template<class T>
 concept is_tuple_like = !std::is_reference_v<T>
 	&& requires(T t)
