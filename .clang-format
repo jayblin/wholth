@@ -12,3 +12,6 @@ AllowAllParametersOfDeclarationOnNextLine: false
 BinPackArguments: false
 BinPackParameters: false
 PointerAlignment: Left
+# BreakTemplateDeclarations: No
+# deprecated, but BreakTemplateDeclarations literally breaks clang-format for me.
+AlwaysBreakTemplateDeclarations: true
