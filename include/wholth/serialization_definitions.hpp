@@ -3,7 +3,7 @@
 
 #include "db/db.hpp"
 #include "ui/style.hpp"
-#include "utils/serializer.hpp"
+#include "serialization.hpp"
 #include "wholth/buffer_view.hpp"
 #include "wholth/context.hpp"
 #include "wholth/entity/food.hpp"

@@ -1,7 +1,7 @@
 #ifndef UTILS_JSON_SERIALIZER_H_
 #define UTILS_JSON_SERIALIZER_H_
 
-#include "utils/serializer.hpp"
+#include "serialization.hpp"
 #include <cstdint>
 #include <iostream>
 #include <sstream>
