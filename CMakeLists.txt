@@ -26,8 +26,9 @@ set(DEFAULT_FONT_PATH "" CACHE FILEPATH "Path to the default ttf font")
 
 add_compile_definitions(SQLITE_ENABLE_FTS5)
 
-add_executable(
-	wholth
+list(
+    APPEND
+    WHOLTH_SOURCE_FILES
     src/utils/json_serializer.cpp
 	src/utils.cpp
 	src/vk/vk.cpp
@@ -54,7 +55,15 @@ add_executable(
     src/ui/components/foods_page.cpp
     src/wholth/controller/expanded_food.cpp
     src/wholth/controller/foods_page.cpp
-	src/main_4.cpp
+    src/wholth/app.cpp
+)
+
+# add_executable(wholth ${WHOLTH_SOURCE_FILES} src/main_4.cpp)
+
+add_library(
+	wholth
+	SHARED
+    ${WHOLTH_SOURCE_FILES}
 )
 
 target_compile_options(
