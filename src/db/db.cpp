@@ -188,6 +188,8 @@ std::error_code db::migration::make_migration_table(sqlw::Connection* con) noexc
 
 std::vector<std::filesystem::directory_entry> db::migration::list_sorted_migrations(std::filesystem::path path)
 {
+    assert(std::filesystem::exists(path));
+
 	std::set<std::filesystem::directory_entry> sorted_by_name;
 
 	for (const auto& entry : std::filesystem::directory_iterator(path))

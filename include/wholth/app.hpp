@@ -1,15 +1,17 @@
 #ifndef WHOLTH_APP_H_
 #define WHOLTH_APP_H_
 
+#include "wholth/context.hpp"
+#include <tuple>
+
 namespace wholth::app
 {
-    struct InitArgs
-    {
-        float window_height;
-        float window_width;
-    };
-
-    void init(const InitArgs);
+/* template <typename... C, typename... M> */
+void setup(
+    wholth::Context&
+    /* std::tuple<C...> controllers, */
+    /* std::tuple<M...> models */
+);
 }
 
-# endif // WHOLTH_APP_H_
+#endif // WHOLTH_APP_H_

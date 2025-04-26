@@ -1,28 +1,43 @@
 #ifndef WHOLTH_MODEL_EXPANDED_FOOD_H_
 #define WHOLTH_MODEL_EXPANDED_FOOD_H_
 
+#include "wholth/buffer_view.hpp"
 #include "wholth/entity/food.hpp"
+#include "wholth/hydrate.hpp"
+#include "wholth/page.hpp"
 #include <span>
+#include <vector>
 
 // todo: move to model namespace
 namespace wholth::model
 {
+template<wholth::concepts::is_describable D, wholth::concepts::is_nutrient Nutrient, typename RecipeStep, typename Ingredient>
 struct ExpandedFood
 {
-    ExpandedFood()
+    /* bool should_show{false}; */
+    BufferView<D> details;
+
+    BufferView<std::array<RecipeStep, 1>> steps {};
+
+    BufferView<std::array<Ingredient, 30>> ingredients {};
+
+    /* BufferView<std::array<Nutrient, 500>> nutrients; */
+    BufferView<std::array<Nutrient, 500>> nutrients {};
+};
+
+template<wholth::concepts::is_nutrient Nutrient>
+struct NutrientsPage
+{
+    NutrientsPage()
     {
-        /* nutrients.reserve(500); */
+        nutrients.view.resize(20);
     }
 
-    bool should_show{false};
-    wholth::entity::expanded::Food food;
-    std::string food_buffer{""};
-    std::array<wholth::entity::expanded::food::Nutrient, 500> nutrients{};
-    /* std::vector<wholth::entity::expanded::food::Nutrient> nutrients{}; */
-    std::string nutrients_buffer{""};
-    std::array<wholth::entity::expanded::food::RecipeStep, 1> steps{};
-    std::string steps_buffer{};
+    Page page {20};
+    BufferView<std::vector<Nutrient>> nutrients {};
 };
+
+
 } // namespace wholth::model
 
 #endif // WHOLTH_MODEL_EXPANDED_FOOD_H_

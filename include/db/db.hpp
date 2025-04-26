@@ -46,6 +46,7 @@ namespace db::migration
 	{
 		sqlw::Connection* con;
         std::span<const std::filesystem::directory_entry> migrations;
+        // todo remove???
 		bool log {true};
 	};
 

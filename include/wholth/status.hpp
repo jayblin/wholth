@@ -4,12 +4,13 @@
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
+#include <cstdint>
 #include <limits>
 #include <system_error>
 #include <tuple>
 
 namespace wholth::status {
-    enum class Code : int
+    enum class Code : int8_t
     {
         OK = 0,
         /* SQL_STATEMENT_ERROR, */
@@ -21,9 +22,12 @@ namespace wholth::status {
         UNCHANGED_FOOD_DESCRIPTION,
         INVALID_DATE,
         INVALID_MASS,
+        SPAN_SIZE_TOO_BIG,
+        QUERY_PAGE_TOO_BIG,
+        QUERY_OFFSET_TOO_BIG,
     };
 
-    enum class Condition : int
+    enum class Condition : int8_t
     {
         OK = 0,
         ERROR,

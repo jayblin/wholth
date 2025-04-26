@@ -3,10 +3,16 @@
 
 #include "wholth/entity/utils.hpp"
 #include <string_view>
+
 namespace wholth::entity::locale
 {
 	typedef std::string_view id_t;
 	typedef std::string_view alias;
+
+    /* struct Shortened */
+    /* { */
+    /*     id_t id; */
+    /* }; */
 
 	namespace view
 	{

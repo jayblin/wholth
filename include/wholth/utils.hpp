@@ -3,6 +3,7 @@
 
 #include "fmt/color.h"
 #include "sqlite3.h"
+#include "sqlw/statement.hpp"
 #include <array>
 #include <gsl/gsl>
 #include <iomanip>
@@ -20,6 +21,7 @@
 #define LOG_CYAN(x) std::cout << "\033[1;36m" << x << "\033[0m\n"
 #define LOG_WHITE(x) std::cout << "\033[1;37m" << x << "\033[0m\n"
 #define LOG(x) std::cout << x << '\n'
+#define assertm(exp, msg) assert((void(msg), exp))
 
 namespace wholth::utils
 {
@@ -63,9 +65,14 @@ namespace wholth::utils
 		std::array<size_t, Size> m_idxs;
 	};
 
+    // todo maybe remake with array insteadof vector?
 	class LengthContainer
 	{
 	public:
+		LengthContainer()
+		{
+		};
+
 		LengthContainer(size_t size)
 		{
 			m_lengths.resize(size);
@@ -73,6 +80,7 @@ namespace wholth::utils
 
 		void add(size_t length)
 		{
+            // todo check bounds
 			if (m_i1 < m_lengths.size())
 			{
 				m_lengths[m_i1] = length;
@@ -80,11 +88,13 @@ namespace wholth::utils
 			}
 		}
 
-		std::string_view next(const std::string& buffer)
+        template <typename T>
+		T next(const std::string& buffer)
 		{
+            // todo check bounds
 			if (m_i2 < m_lengths.size())
 			{
-				std::string_view result {
+				T result {
 					buffer.data() + m_offset,
 					m_lengths[m_i2]
 				};
@@ -94,7 +104,7 @@ namespace wholth::utils
 				return result;
 			}
 
-			return NIL;
+			return {NIL, strlen(NIL)};
 		}
 
 	private:
@@ -140,6 +150,12 @@ namespace wholth::utils
 			sqlite3_value** argv
 		);
 	}
+
+
+    inline bool ok(const sqlw::Statement& stmt)
+    {
+        return sqlw::status::Condition::OK == stmt.status();
+    }
 }
 
 #endif // WHOLTH_UTILS_H_

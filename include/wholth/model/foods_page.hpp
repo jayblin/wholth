@@ -1,7 +1,6 @@
 #ifndef WHOLTH_MODEL_FOODS_PAGE_H_
 #define WHOLTH_MODEL_FOODS_PAGE_H_
 
-#include "ui/components/timer.hpp"
 #include "wholth/buffer_view.hpp"
 #include "wholth/entity/food.hpp"
 #include "wholth/model/expanded_food.hpp"
@@ -10,16 +9,17 @@
 
 namespace wholth::model
 {
+template <typename T = wholth::entity::shortened::Food>
 struct FoodsPage
 {
-    char title_buffer[255]{""};
-    size_t title_input_size{0};
+    FoodsPage(){};
+    /* char title_buffer[255]{""}; */
+    /* size_t title_input_size{0}; */
     wholth::Page page{20};
-    // @todo move timer out of components
-    ui::components::Timer input_timer{};
+    /* ui::components::Timer input_timer{}; */
     std::atomic<bool> is_fetching{false};
-    ExpandedFood expanded_food;
-    Swappable<BufferView<std::array<wholth::entity::shortened::Food, 20>>>
+    /* ExpandedFood expanded_food {}; */
+    Swappable<BufferView<std::array<T, 20>>>
         swappable_list;
 };
 } // namespace wholth::model

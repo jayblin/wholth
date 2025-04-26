@@ -2,17 +2,18 @@
 #define WHOLTH_LIST_FOOD_H_
 
 #include "sqlw/connection.hpp"
+#include "sqlw/utils.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/entity/food.hpp"
+#include "wholth/list.hpp"
 #include "wholth/status.hpp"
 #include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
-#include <system_error>
 
 namespace wholth::list::food
 {
-    typedef std::string buffer_t;
-
 	namespace nutrient_filter
 	{
 		enum class Operation
@@ -22,6 +23,7 @@ namespace wholth::list::food
 			BETWEEN,
 		};
 
+        // todo remove wholth::entity::nutrient::view::id::value_type
 		typedef TupleElement<wholth::entity::nutrient::view::id::value_type, 1> NutrientId;
 		typedef TupleElement<std::string_view, 2> Value;
 
@@ -63,14 +65,6 @@ namespace wholth::list::food
          */
 		std::string where;
     };
-
-    auto list(
-        std::span<wholth::entity::shortened::Food>,
-        uint64_t& count,
-        buffer_t&,
-        const Query&,
-        sqlw::Connection&
-    ) -> std::error_code;
 }
 
 #endif // WHOLTH_LIST_FOOD_H_

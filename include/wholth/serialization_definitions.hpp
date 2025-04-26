@@ -23,12 +23,12 @@ template <> struct serialization::Serializable<wholth::Context> : std::true_type
             << ONVP(connection.status())
             /* << NVP(style) */   // this segfaults!
             << ONVP(locale_id())  //
-            << ONVP(task_list())  //
-            << ONVP(foods_page()) //
+            /* << ONVP(task_list())  // */
+            /* << ONVP(foods_page()) // */
             /* << NVP(m_task_mutex) */
-            << ONVP(migrate_result)    //
+            /* << ONVP(migrate_result)    // */
             << ONVP(sql_errors)        //
-            << ONVP(exception_message) //
+            /* << ONVP(exception_message) // */
             ;
     }
 };

@@ -31,6 +31,8 @@
 using SC = wholth::status::Code;
 using Condition = wholth::status::Condition;
 using bindable_t = sqlw::Statement::bindable_t;
+template <size_t N>
+using bindable_array_t = std::array<bindable_t, N>;
 
 /* static bool check_stmt(sqlw::Statement& stmt) noexcept */
 /* { */
@@ -130,6 +132,47 @@ std::error_code wholth::insert_food(
     /* return ec; */
 }
 
+/* std::error_code wholth::entity::food::insert( */
+/*     const Editable& food, */
+/*     const wholth::entity::locale::id_t locale_id, */
+/*     id_t& new_food_id, */
+/*     sqlw::Connection& con */
+/* ) noexcept */
+/* { */
+/*     if (locale_id.size() == 0 || !sqlw::utils::is_numeric(locale_id)) */
+/*     { */
+/*         return SC::INVALID_LOCALE_ID; */
+/*     } */
+
+/*     /1* sqlw::Statement stmt {&con}; *1/ */
+
+/*     sqlw::Transaction transaction{&con}; */
+
+/*     const std::string now = wholth::utils::current_time_and_date(); */
+
+/*     { */
+/*         const std::array<bindable_t, 5> params {{ */
+/*            {now, sqlw::Type::SQL_TEXT}, */
+/*            {locale_id, sqlw::Type::SQL_INT}, */
+/*            {food.title, sqlw::Type::SQL_TEXT}, */
+/*            {food.description, sqlw::Type::SQL_TEXT} */
+/*         }}; */
+
+/*         const auto ec = transaction( */
+/*             "INSERT INTO food (created_at) VALUES (:1) RETURNING id;" */
+/*             "INSERT INTO food_localisation (food_id,locale_id,title,description) " */
+/*             "VALUES (last_insert_rowid(),:1,trim(:2),:3)", */
+/*             [&new_food_id](auto e) { new_food_id = e.column_value; }, */
+/*             params); */
+
+/*         return ec; */
+/*     } */
+
+/*     // todo add calories calculation here. */
+
+/*     /1* return ec; *1/ */
+/* } */
+
 wholth::UpdateFoodStatus wholth::update_food(
     const wholth::entity::editable::Food& food,
     const wholth::entity::locale::id_t locale_id,
@@ -215,6 +258,198 @@ std::error_code wholth::remove_food(
         "DELETE FROM food WHERE id = :1",
         std::array<bindable_t, 1>{std::pair{food_id, sqlw::Type::SQL_INT}});
 }
+
+std::error_code wholth::entity::food::fill_details(
+    food::id_t id,
+    wholth::entity::locale::id_t locale_id,
+    wholth::BufferView<wholth::utils::LengthContainer>& details,
+    sqlw::Connection& con
+) noexcept
+{
+    if (sqlw::status::Condition::OK != con.status()) {
+        return con.status();
+    }
+
+    if (id.size() == 0 || !sqlw::utils::is_numeric(id)) {
+        return SC::INVALID_FOOD_ID;
+    }
+
+    if (locale_id.size() == 0 || !sqlw::utils::is_numeric(locale_id))
+    {
+        return SC::INVALID_LOCALE_ID;
+    }
+
+    sqlw::Statement stmt{&con};
+
+    std::stringstream ss{};
+    wholth::utils::LengthContainer lc{
+        1 // description
+    };
+
+    stmt.prepare("SELECT "
+                 "COALESCE(fl.description, '[N/A]') AS description "
+                 "FROM food f "
+                 "LEFT JOIN food_localisation fl "
+                 "ON fl.food_id = f.id AND fl.locale_id = :1 "
+                 "LEFT JOIN recipe_step rs "
+                 "ON rs.recipe_id = f.id "
+                 "WHERE f.id = :2")
+        .bind(1, locale_id, sqlw::Type::SQL_INT)
+        .bind(2, id, sqlw::Type::SQL_INT)
+        .exec([&ss, &lc](sqlw::Statement::ExecArgs e) {
+            ss << e.column_value;
+            lc.add(e.column_value.size());
+        });
+
+    if (wholth::status::Condition::OK != stmt.status())
+    {
+        return stmt.status();
+    }
+
+    if (ss.rdbuf()->in_avail() == 0)
+    {
+        return SC::ENTITY_NOT_FOUND;
+    }
+
+    details.buffer = ss.str();
+    details.view = std::move(lc);
+
+    return SC::OK;
+}
+
+
+std::error_code wholth::entity::food::fill_nutrients(
+    food::id_t food_id,
+    /* std::span<Nutrient> nutrients, */
+    wholth::entity::locale::id_t locale_id,
+    wholth::BufferView<wholth::utils::LengthContainer>& nutrients,
+    size_t size,
+    sqlw::Connection& con
+    ) noexcept
+{
+    assert(0 <= size);
+
+    if (sqlw::status::Condition::OK != con.status()) {
+        return con.status();
+    }
+
+    if (food_id.size() == 0 || !sqlw::utils::is_numeric(food_id)) {
+        return SC::INVALID_FOOD_ID;
+    }
+
+    if (locale_id.size() == 0 || !sqlw::utils::is_numeric(locale_id))
+    {
+        return SC::INVALID_LOCALE_ID;
+    }
+
+    sqlw::Statement stmt{&con};
+
+    std::stringstream ss{};
+    wholth::utils::LengthContainer lc{
+        5 // id, title, value, unit, user_value
+        /* * details.size()}; */
+        * size};
+    const std::string_view sql = R"sql(
+			SELECT
+				n.id,
+                COALESCE(nl.title, '[N/A]'),
+                ROUND(fn.value, 3),
+                n.unit,
+                0
+			FROM food_nutrient fn
+            INNER JOIN nutrient n
+                ON n.id = fn.nutrient_id
+            LEFT JOIN nutrient_localisation nl
+                ON nl.nutrient_id = n.id AND nl.locale_id = ?2
+            WHERE
+                fn.food_id = ?1
+                AND fn.value > 0
+            ORDER BY n.position ASC, nl.title ASC
+            LIMIT ?3
+		)sql";
+
+    /* stmt.prepare(sql) */
+    /*     .bind(1, food_id, sqlw::Type::SQL_INT) */
+    /*     .bind(2, locale_id, sqlw::Type::SQL_INT) */
+    /*     // todo check size */
+    /*     /1* .bind(3, static_cast<int>(details.size())); *1/ */
+    /*     .bind(3, static_cast<int>(size)); */
+    const auto ec = stmt(
+        sql,
+        [&ss, &lc /*, &i */](sqlw::Statement::ExecArgs e) {
+            /* if (0 == i % e.column_count) { */
+            /* 	fmt::print("\n"); */
+            /* } */
+            /* i++; */
+            /* fmt::print("{}: {}\n", e.column_name, e.column_value); */
+
+            ss << e.column_value;
+            lc.add(e.column_value.size());
+        },
+        std::tuple{
+            bindable_t{food_id, sqlw::Type::SQL_INT},
+            bindable_t{locale_id, sqlw::Type::SQL_INT},
+            static_cast<int>(size)
+        }
+    );
+
+    /* return SC{}; */
+    /* std::cout << */
+    /*     "AAAAAAAAAAAAAAAAAAA\n" */
+    /*     << food_id << '\n' */
+    /*     << locale_id << '\n' */
+    /*     << nutrients.size() << '\n' */
+    /*     << stmt.status() << '\n'; */
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        return ec;
+        /* return SC::SQL_STATEMENT_ERROR; */
+    }
+
+    if (ss.rdbuf()->in_avail() == 0)
+    {
+        return SC::ENTITY_NOT_FOUND;
+    }
+
+    nutrients.buffer = ss.str();
+    nutrients.view = std::move(lc);
+
+    /* for (size_t j = 0; j < details.size(); j++) */
+    /* { */
+    /*     auto& entry = nutrients[j]; */
+
+    /*     entry.id = itr.next(buffer); */
+    /*     entry.title = itr.next(buffer); */
+    /*     entry.value = itr.next(buffer); */
+    /*     entry.unit = itr.next(buffer); */
+    /*     entry.user_value = itr.next(buffer); */
+    /* } */
+
+    /* return SC::NO_ERROR; */
+    return ec;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* std::error_code wholth::add_nutrients( */
 /*     wholth::entity::food::id_t food_id, */

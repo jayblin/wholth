@@ -5,10 +5,11 @@
 
 namespace wholth
 {
-template <typename T> struct BufferView
+template <typename T>
+struct BufferView
 {
     T view;
-    std::string buffer;
+    std::string buffer = {};
 };
 } // namespace wholth
 

@@ -15,9 +15,23 @@ enum Task : uint8_t
 class TaskList
 {
   public:
+    TaskList()
+    {
+    }
+
+    TaskList(Task t)
+    {
+        add(t);
+    }
+
     auto add(Task t) -> void
     {
         m_tasks_mask |= t;
+    }
+
+    auto add(const TaskList& tl) -> void
+    {
+        m_tasks_mask |= tl.mask();
     }
 
     auto remove(Task t) -> void
