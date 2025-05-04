@@ -2,9 +2,11 @@
 #define WHOLTH_HYDRATE
 
 #include "wholth/utils.hpp"
+#include <type_traits>
 
 namespace wholth::concepts
 {
+
 template <typename T>
 concept is_food = requires(T t) {
     t.id;
@@ -25,12 +27,6 @@ concept is_nutrient = requires(T t) {
 template <typename T>
 concept is_describable = requires(T t) { t.description; };
 
-template <typename T>
-concept is_query = requires(T t) {
-    t.page;
-
-    std::is_integral_v<decltype(t.page)>;
-};
 } // namespace wholth::concepts
 
 namespace wholth

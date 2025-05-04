@@ -1,4 +1,3 @@
-#include "wholth/list/nutrient.hpp"
 #include "gtest/gtest.h"
 #include <array>
 #include <gtest/gtest.h>
@@ -9,7 +8,9 @@
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "wholth/buffer_view.hpp"
+#include "wholth/context.hpp"
 #include "wholth/list.hpp"
+#include "wholth/model/expanded_food.hpp"
 #include "wholth/status.hpp"
 #include "wholth/entity/food.hpp"
 
@@ -69,6 +70,8 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
 	);
     ASSERT_TRUE(sqlw::status::Condition::OK == ec) << ec;
 
+    wholth::Context ctx {};
+
     // No locale in query
 	{
         wholth::BufferView<std::array<wholth::entity::Nutrient, 2>> bv {
@@ -76,9 +79,14 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = 0,
-		};
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = 0, */
+		/* }; */
+        ctx.locale_id = "";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            .pagination={bv.view.size()},
+        };
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -104,10 +112,15 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = 0,
-			.locale_id = "1",
-		};
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = 0, */
+		/* 	.locale_id = "1", */
+		/* }; */
+        ctx.locale_id = "1";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            .pagination={bv.view.size()},
+        };
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -133,10 +146,15 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = 0,
-            .locale_id = "12f",
-		};
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = 0, */
+            /* .locale_id = "12f", */
+		/* }; */
+        ctx.locale_id = "12f";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            .pagination={bv.view.size()},
+        };
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -162,11 +180,17 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = 0,
-			.locale_id = "1",
-            .food_id = "388e",
-		};
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = 0, */
+		/* 	.locale_id = "1", */
+            /* .food_id = "388e", */
+		/* }; */
+        ctx.locale_id = "1";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            .pagination={bv.view.size()},
+            .food_id="388e"
+        };
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -192,11 +216,19 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = std::numeric_limits<uint64_t>::max(),
-			.locale_id = "1",
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = std::numeric_limits<uint64_t>::max(), */
+		/* 	.locale_id = "1", */
+            /* .food_id = "388e", */
+		/* }; */
+        ctx.locale_id = "1";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            /* .pagination={std::numeric_limits<uint64_t>::max()}, */
+            .pagination={bv.view.size()},
             .food_id = "388e",
-		};
+        };
+        q.pagination.advance(std::numeric_limits<uint64_t>::max());
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -222,11 +254,19 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = std::numeric_limits<int>::max()/2,
-			.locale_id = "1",
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = std::numeric_limits<int>::max()/2, */
+		/* 	.locale_id = "1", */
+            /* .food_id = "388", */
+		/* }; */
+        ctx.locale_id = "1";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            /* .pagination={std::numeric_limits<int>::max()/2}, */
+            .pagination={bv.view.size()},
             .food_id = "388",
-		};
+        };
+        q.pagination.advance(std::numeric_limits<int>::max()/2);
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -252,11 +292,17 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = 0,
-			.locale_id = "1",
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = 0, */
+		/* 	.locale_id = "1", */
+            /* .food_id = "3", */
+		/* }; */
+        ctx.locale_id = "1";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            .pagination={bv.view.size()},
             .food_id = "3",
-		};
+        };
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 
@@ -282,11 +328,18 @@ TEST_F(MigrationAwareTest, fill_span_with_nutrients)
             /* .buffer={} */
         };
         uint64_t count;
-		wholth::list::nutrient::FoodDependentQuery q {
-			.page = 0,
-			.locale_id = "1",
+		/* wholth::list::nutrient::FoodDependentQuery q { */
+		/* 	.page = 0, */
+		/* 	.locale_id = "1", */
+            /* .food_id = "3", */
+		/* }; */
+        ctx.locale_id = "1";
+        wholth::model::NutrientsPage q {
+            .ctx=ctx,
+            /* .pagination={0}, */
+            .pagination={bv.view.size()},
             .food_id = "3",
-		};
+        };
 		ec = wholth::fill_span<wholth::entity::Nutrient>(bv.view, bv.buffer, count, q, db_con);
         auto list = std::span{bv.view};
 

@@ -1,111 +1,252 @@
 #include "wholth/list/food.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
-#include "sqlw/utils.hpp"
-#include "wholth/entity/food.hpp"
 #include "wholth/list.hpp"
+#include "wholth/model/foods_page.hpp"
 #include "wholth/status.hpp"
-#include "wholth/utils.hpp"
-#include <charconv>
 
 using SC = wholth::status::Code;
 
 namespace whf = wholth::list::food;
 
-static bool is_empty(const whf::nutrient_filter::Entry& entry)
+/* static bool is_empty(const whf::nutrient_filter::Entry& entry) */
+/* { */
+/* 	return !(std::get<whf::nutrient_filter::Value::index>(entry).length() > 0); */
+/* } */
+
+// @todo rename `idx`.
+static void bind_params(
+	sqlw::Statement& stmt,
+	/* const whf::Query& q, */
+	const wholth::model::FoodsPage& q,
+	size_t idx
+)
 {
-	return !(std::get<whf::nutrient_filter::Value::index>(entry).length() > 0);
+	/* using OP = whf::nutrient_filter::Operation; */
+
+	/* for (const whf::nutrient_filter::Entry& entry : q.nutrient_filters) */
+	/* { */
+	/* 	if (is_empty(entry)) */
+	/* 	{ */
+	/* 		break; */
+	/* 	} */
+
+	/* 	const auto& value = std::get<whf::nutrient_filter::Value::index>(entry); */
+
+	/* 	switch (std::get<OP>(entry)) */
+	/* 	{ */
+	/* 		case OP::EQ: { */
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				std::get<whf::nutrient_filter::NutrientId::index>(entry), */
+	/* 				sqlw::Type::SQL_INT */
+	/* 			); */
+	/* 			idx++; */
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				value, */
+	/* 				sqlw::Type::SQL_DOUBLE */
+	/* 			); */
+	/* 			idx++; */
+	/* 			break; */
+	/* 		} */
+	/* 		case OP::NEQ: { */
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				std::get<whf::nutrient_filter::NutrientId::index>(entry), */
+	/* 				sqlw::Type::SQL_INT */
+	/* 			); */
+	/* 			idx++; */
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				value, */
+	/* 				sqlw::Type::SQL_DOUBLE */
+	/* 			); */
+	/* 			idx++; */
+	/* 			break; */
+	/* 		} */
+	/* 		case OP::BETWEEN: { */
+	/* 			std::array<std::string_view, 2> values { */
+	/* 				"0", */
+	/* 				"0" */
+	/* 			}; */
+
+	/* 			for (size_t i = 0; i < value.length(); i++) { */
+	/* 				if (',' == value[i] && (value.length() - 1) != i) */
+	/* 				{ */
+	/* 					values[0] = value.substr(0, i); */
+	/* 					values[1] = value.substr(i + 1); */
+	/* 					break; */
+	/* 				} */
+	/* 			} */
+
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				std::get<whf::nutrient_filter::NutrientId::index>(entry), */
+	/* 				sqlw::Type::SQL_INT */
+	/* 			); */
+                /* /1* fmt::print("{} and {}\n", idx, std::get<whf::nutrient_filter::NutrientId::index>(entry)); *1/ */
+	/* 			idx++; */
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				values[0], */
+	/* 				sqlw::Type::SQL_DOUBLE */
+	/* 			); */
+                /* /1* fmt::print("{} and {}\n", idx, values[0]); *1/ */
+	/* 			idx++; */
+	/* 			stmt.bind( */
+	/* 				idx, */
+	/* 				values[1], */
+	/* 				sqlw::Type::SQL_DOUBLE */
+	/* 			); */
+                /* /1* fmt::print("{} and {}\n", idx, values[1]); *1/ */
+	/* 			idx++; */
+	/* 			break; */
+	/* 		} */
+	/* 	} */
+	/* } */
+
+	if (q.title.size() > 0)
+	{
+		std::string _title = fmt::format("%{}%", q.title);
+
+		stmt.bind(
+			idx,
+			_title,
+			sqlw::Type::SQL_TEXT
+		);
+		idx++;
+	}
 }
 
-static std::string create_where(
-	const whf::Query& q,
+auto list_foods_prepare_stmt(
+	std::string_view sql,
+	const wholth::model::FoodsPage& q,
+	const wholth::list::food::IngredientData& ingredient_data,
+	sqlw::Connection* con
+) -> sqlw::Statement
+{
+	/* const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = ingredient_data; */
+	size_t param_idx = ingredient_data.parameter_count;
+	/* fmt::print("{}\n", sql); */
+	
+	sqlw::Statement stmt {con};
+	stmt.prepare(sql);
+
+	param_idx = 1;
+
+	stmt.bind(param_idx, q.ctx.locale_id, sqlw::Type::SQL_INT);
+	param_idx++;
+
+	size_t ing_start = 0;
+	for (size_t i = 0; i < ingredient_data.parameter_lengths.size(); i++) {
+		if (0 == ingredient_data.parameter_lengths[i]) {
+			break;
+		}
+
+		stmt.bind(
+			param_idx,
+			std::string_view{ingredient_data.parameter_buffer.data() + ing_start, ingredient_data.parameter_lengths[i]},
+			sqlw::Type::SQL_TEXT
+		);
+		ing_start += ingredient_data.parameter_lengths[i];
+		param_idx++;
+	}
+
+	bind_params(stmt, q, param_idx);
+
+	return stmt;
+}
+
+std::string create_where(
+	const wholth::model::FoodsPage& q,
 	size_t sql_param_idx
 )
 {
-	using OP = whf::nutrient_filter::Operation;
+	/* using OP = whf::nutrient_filter::Operation; */
 
 	std::stringstream tpl_stream;
 	/* size_t sql_param_idx = 2; */
 
-	for (size_t i = 0; i < q.nutrient_filters.size(); i++)
-	{
-		const auto& entry = q.nutrient_filters[i];
+	/* for (size_t i = 0; i < q.nutrient_filters.size(); i++) */
+	/* { */
+	/* 	const auto& entry = q.nutrient_filters[i]; */
 
-		if (is_empty(entry))
-		{
-			break;
-		}
+	/* 	if (is_empty(entry)) */
+	/* 	{ */
+	/* 		break; */
+	/* 	} */
 
-		switch (std::get<OP>(entry))
-		{
-			case OP::EQ: {
-				auto idx1 = sql_param_idx;
-				sql_param_idx++;
-				auto idx2 = sql_param_idx;
-				sql_param_idx++;
-				tpl_stream << fmt::format(
-					"INNER JOIN food_nutrient AS fn{} "
-					" ON fn{}.food_id = rt.recipe_id "
-					" AND fn{}.nutrient_id = ?{} "
-					" AND (fn{}.value <= (?{} + 0.001) AND fn{}.value >= (?{} - 0.001)) ",
-					i,
-					i,
-					i,
-					idx1,
-					i,
-					idx2,
-					i,
-					idx2
-				);
-				break;
-			}
-			case OP::NEQ: {
-				auto idx1 = sql_param_idx;
-				sql_param_idx++;
-				auto idx2 = sql_param_idx;
-				sql_param_idx++;
-				tpl_stream << fmt::format(
-					"INNER JOIN food_nutrient AS fn{} "
-					" ON fn{}.food_id = rt.recipe_id "
-					" AND fn{}.nutrient_id = ?{} "
-					" AND (fn{}.value < (?{} - 0.001) or fn{}.value > (?{} + 0.001)) ",
-					i,
-					i,
-					i,
-					idx1,
-					i,
-					idx2,
-					i,
-					idx2
-				);
-				break;
-			}
-			case OP::BETWEEN: {
-				auto idx1 = sql_param_idx;
-				sql_param_idx++;
-				auto idx2 = sql_param_idx;
-				sql_param_idx++;
-				auto idx3 = sql_param_idx;
-				sql_param_idx++;
+	/* 	switch (std::get<OP>(entry)) */
+	/* 	{ */
+	/* 		case OP::EQ: { */
+	/* 			auto idx1 = sql_param_idx; */
+	/* 			sql_param_idx++; */
+	/* 			auto idx2 = sql_param_idx; */
+	/* 			sql_param_idx++; */
+	/* 			tpl_stream << fmt::format( */
+	/* 				"INNER JOIN food_nutrient AS fn{} " */
+	/* 				" ON fn{}.food_id = rt.recipe_id " */
+	/* 				" AND fn{}.nutrient_id = ?{} " */
+	/* 				" AND (fn{}.value <= (?{} + 0.001) AND fn{}.value >= (?{} - 0.001)) ", */
+	/* 				i, */
+	/* 				i, */
+	/* 				i, */
+	/* 				idx1, */
+	/* 				i, */
+	/* 				idx2, */
+	/* 				i, */
+	/* 				idx2 */
+	/* 			); */
+	/* 			break; */
+	/* 		} */
+	/* 		case OP::NEQ: { */
+	/* 			auto idx1 = sql_param_idx; */
+	/* 			sql_param_idx++; */
+	/* 			auto idx2 = sql_param_idx; */
+	/* 			sql_param_idx++; */
+	/* 			tpl_stream << fmt::format( */
+	/* 				"INNER JOIN food_nutrient AS fn{} " */
+	/* 				" ON fn{}.food_id = rt.recipe_id " */
+	/* 				" AND fn{}.nutrient_id = ?{} " */
+	/* 				" AND (fn{}.value < (?{} - 0.001) or fn{}.value > (?{} + 0.001)) ", */
+	/* 				i, */
+	/* 				i, */
+	/* 				i, */
+	/* 				idx1, */
+	/* 				i, */
+	/* 				idx2, */
+	/* 				i, */
+	/* 				idx2 */
+	/* 			); */
+	/* 			break; */
+	/* 		} */
+	/* 		case OP::BETWEEN: { */
+	/* 			auto idx1 = sql_param_idx; */
+	/* 			sql_param_idx++; */
+	/* 			auto idx2 = sql_param_idx; */
+	/* 			sql_param_idx++; */
+	/* 			auto idx3 = sql_param_idx; */
+	/* 			sql_param_idx++; */
 
-				tpl_stream << fmt::format(
-					" INNER JOIN food_nutrient AS fn{} "
-					" ON fn{}.food_id = rt.recipe_id "
-					" AND fn{}.nutrient_id = ?{} "
-					" AND (fn{}.value >= ?{} AND fn{}.value <= ?{}) ",
-					i,
-					i,
-					i,
-					idx1,
-					i,
-					idx2,
-					i,
-					idx3
-				);
-				break;
-			}
-		}
-	}
+	/* 			tpl_stream << fmt::format( */
+	/* 				" INNER JOIN food_nutrient AS fn{} " */
+	/* 				" ON fn{}.food_id = rt.recipe_id " */
+	/* 				" AND fn{}.nutrient_id = ?{} " */
+	/* 				" AND (fn{}.value >= ?{} AND fn{}.value <= ?{}) ", */
+	/* 				i, */
+	/* 				i, */
+	/* 				i, */
+	/* 				idx1, */
+	/* 				i, */
+	/* 				idx2, */
+	/* 				i, */
+	/* 				idx3 */
+	/* 			); */
+	/* 			break; */
+	/* 		} */
+	/* 	} */
+	/* } */
 
 	if (q.title.size() > 0)
 	{
@@ -122,7 +263,8 @@ static std::string create_where(
 }
 
 static auto prepare_ingredient_data(
-	const whf::Query& q
+	/* const whf::Query& q */
+    const wholth::model::FoodsPage& q
 ) -> whf::IngredientData {
 	std::stringstream where_stream;
 	std::stringstream tokens_stream;
@@ -177,167 +319,9 @@ static auto prepare_ingredient_data(
 	};
 }
 
-// @todo rename `idx`.
-static void bind_params(
-	sqlw::Statement& stmt,
-	const whf::Query& q,
-	size_t idx
-)
-{
-	using OP = whf::nutrient_filter::Operation;
-
-	for (const whf::nutrient_filter::Entry& entry : q.nutrient_filters)
-	{
-		if (is_empty(entry))
-		{
-			break;
-		}
-
-		const auto& value = std::get<whf::nutrient_filter::Value::index>(entry);
-
-		switch (std::get<OP>(entry))
-		{
-			case OP::EQ: {
-				stmt.bind(
-					idx,
-					std::get<whf::nutrient_filter::NutrientId::index>(entry),
-					sqlw::Type::SQL_INT
-				);
-				idx++;
-				stmt.bind(
-					idx,
-					value,
-					sqlw::Type::SQL_DOUBLE
-				);
-				idx++;
-				break;
-			}
-			case OP::NEQ: {
-				stmt.bind(
-					idx,
-					std::get<whf::nutrient_filter::NutrientId::index>(entry),
-					sqlw::Type::SQL_INT
-				);
-				idx++;
-				stmt.bind(
-					idx,
-					value,
-					sqlw::Type::SQL_DOUBLE
-				);
-				idx++;
-				break;
-			}
-			case OP::BETWEEN: {
-				std::array<std::string_view, 2> values {
-					"0",
-					"0"
-				};
-
-				for (size_t i = 0; i < value.length(); i++) {
-					if (',' == value[i] && (value.length() - 1) != i)
-					{
-						values[0] = value.substr(0, i);
-						values[1] = value.substr(i + 1);
-						break;
-					}
-				}
-
-				stmt.bind(
-					idx,
-					std::get<whf::nutrient_filter::NutrientId::index>(entry),
-					sqlw::Type::SQL_INT
-				);
-                /* fmt::print("{} and {}\n", idx, std::get<whf::nutrient_filter::NutrientId::index>(entry)); */
-				idx++;
-				stmt.bind(
-					idx,
-					values[0],
-					sqlw::Type::SQL_DOUBLE
-				);
-                /* fmt::print("{} and {}\n", idx, values[0]); */
-				idx++;
-				stmt.bind(
-					idx,
-					values[1],
-					sqlw::Type::SQL_DOUBLE
-				);
-                /* fmt::print("{} and {}\n", idx, values[1]); */
-				idx++;
-				break;
-			}
-		}
-	}
-
-	if (q.title.size() > 0)
-	{
-		std::string _title = fmt::format("%{}%", q.title);
-
-		stmt.bind(
-			idx,
-			_title,
-			sqlw::Type::SQL_TEXT
-		);
-		idx++;
-	}
-}
-
-auto list_foods_prepare_stmt(
-	std::string_view sql,
-	const whf::Query& q,
-	const whf::IngredientData& ingredient_data,
-	sqlw::Connection* con
-) -> sqlw::Statement
-{
-	/* const auto& [ingredient_param_count, ingredient_where, ingredient_tokens, ingredient_tokens_lengths] = ingredient_data; */
-	size_t param_idx = ingredient_data.parameter_count;
-	/* fmt::print("{}\n", sql); */
-	
-	sqlw::Statement stmt {con};
-	stmt.prepare(sql);
-
-	size_t ing_start = 0;
-
-	param_idx = 1;
-
-	stmt.bind(param_idx, q.locale_id, sqlw::Type::SQL_INT);
-	param_idx++;
-
-	for (size_t i = 0; i < ingredient_data.parameter_lengths.size(); i++) {
-
-		if (0 == ingredient_data.parameter_lengths[i]) {
-			break;
-		}
-
-		stmt.bind(
-			param_idx,
-			std::string_view{ingredient_data.parameter_buffer.data() + ing_start, ingredient_data.parameter_lengths[i]},
-			sqlw::Type::SQL_TEXT
-		);
-		ing_start += ingredient_data.parameter_lengths[i];
-		param_idx++;
-	}
-
-	bind_params(stmt, q, param_idx);
-
-	return stmt;
-}
-
 template <>
-std::error_code wholth::check_query<wholth::list::food::Query>(const wholth::list::food::Query& query)
-{
-    if (
-        query.locale_id.size() == 0
-        || !sqlw::utils::is_numeric(query.locale_id)
-    ) {
-        return wholth::status::Code::INVALID_LOCALE_ID;
-    }
-
-    return wholth::status::Code::OK;
-}
-
-template <>
-sqlw::Statement wholth::prepare_fill_span_statement<wholth::list::food::Query>(
-    const wholth::list::food::Query& query,
+sqlw::Statement wholth::prepare_fill_span_statement(
+    const wholth::model::FoodsPage& query,
     size_t span_size,
     sqlw::Connection& db_con
 )
@@ -424,7 +408,7 @@ sqlw::Statement wholth::prepare_fill_span_statement<wholth::list::food::Query>(
             ingredient_data.where,
             create_where(query, ingredient_data.parameter_count + 1),
             span_size,
-            span_size * query.page
+            span_size * query.pagination.current_page()
         ),
         query,
         ingredient_data,

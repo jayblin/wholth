@@ -1,17 +1,14 @@
 #include "wholth/context.hpp"
-#include "wholth/controller/foods_page.hpp"
-#include "wholth/model/foods_page.hpp"
-#include <thread>
 #include <tuple>
 
-void wholth::Context::locale_id(std::string new_locale_id)
-{
-    // @todo add lock?
-    m_locale_id = std::move(new_locale_id);
+/* void wholth::Context::locale_id(std::string new_locale_id) */
+/* { */
+/*     // @todo add lock? */
+/*     m_locale_id = std::move(new_locale_id); */
 
-    /* m_task_list.add(Task::FETCH_FOODS); */
-    /* scheduler.schedule(Task::FETCH_FOODS); */
-}
+/*     /1* m_task_list.add(Task::FETCH_FOODS); *1/ */
+/*     /1* scheduler.schedule(Task::FETCH_FOODS); *1/ */
+/* } */
 
 /* template <typename... M, typename... C> */
 template <typename... C>

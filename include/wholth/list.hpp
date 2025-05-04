@@ -3,11 +3,15 @@
 
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
+#include "sqlw/utils.hpp"
+#include "wholth/context.hpp"
 #include "wholth/hydrate.hpp"
+#include "wholth/model/abstract_page.hpp"
 #include "wholth/status.hpp"
 #include <charconv>
 #include <cstdint>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -15,38 +19,57 @@
 
 namespace wholth
 {
-template <wholth::concepts::is_query Q>
+/* template <wholth::concepts::is_queryable Q> */
+/* auto check_query(const Q&) -> std::error_code; */
+template <typename Q>
 auto check_query(const Q&) -> std::error_code;
 
-template <wholth::concepts::is_query Q>
+// todo move elsewhere?
+template <wholth::concepts::is_context_aware Q>
+auto check_query(const Q& query) -> std::error_code
+{
+    if (query.ctx.locale_id.size() == 0 ||
+        !sqlw::utils::is_numeric(query.ctx.locale_id))
+    {
+        return wholth::status::Code::INVALID_LOCALE_ID;
+    }
+
+    return wholth::status::Code::OK;
+}
+
+/* template <wholth::concepts::is_queryable Q> */
+template <typename Q>
 auto prepare_fill_span_statement(
     const Q& query,
     size_t span_size,
     sqlw::Connection& db_con) -> sqlw::Statement;
 
-
-template <wholth::concepts::is_query Q>
+template <wholth::concepts::has_pagination Q>
 std::error_code check_numeric_limits(const Q& query, size_t span_size)
 {
     using SC = wholth::status::Code;
 
-    if (span_size > std::numeric_limits<int>::max()) {
+    if (span_size > std::numeric_limits<int>::max())
+    {
         return SC::SPAN_SIZE_TOO_BIG;
     }
 
-    if (query.page > std::numeric_limits<int>::max()) {
+    if (query.pagination.current_page() > std::numeric_limits<int>::max())
+    {
         return SC::QUERY_PAGE_TOO_BIG;
     }
 
-    const auto offset = span_size * query.page;
-    if (offset > std::numeric_limits<int>::max() || (query.page > 0 && offset < span_size)) {
+    const auto offset = span_size * query.pagination.current_page();
+    if (offset > std::numeric_limits<int>::max() ||
+        (query.pagination.current_page() > 0 && offset < span_size))
+    {
         return SC::QUERY_OFFSET_TOO_BIG;
     }
 
     return SC::OK;
 }
 
-template <typename T, wholth::concepts::is_query Q>
+template <typename T, wholth::concepts::has_pagination Q>
 auto fill_span(
     std::span<T> span,
     std::string& buffer,
@@ -54,6 +77,11 @@ auto fill_span(
     const Q& query,
     sqlw::Connection& con) -> std::error_code
 {
+    /* assertm(span.size() == query.pagination.per_page(), "YO WASUP"); */
+    if (span.size() != query.pagination.per_page()) {
+        throw std::runtime_error("AYYYYYYYY LMAO");
+    }
+
     count = 0;
 
     auto ec = check_numeric_limits(query, span.size());

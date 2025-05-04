@@ -7,18 +7,23 @@
 
 namespace wholth
 {
-class Page
+// todo remove file
+class Pagination
 {
   public:
-    Page(uint64_t per_page) : m_per_page(per_page)
+    using per_page_t = uint64_t;
+
+    Pagination(uint64_t per_page) : m_per_page(per_page)
     {
     }
 
     // todo rename to `update_pagination()`?
     auto update() -> void;
-    auto advance() -> bool;
-    auto retreat() -> bool;
+    auto advance(uint64_t pages = 1) -> bool;
+    auto retreat(uint64_t pages = 1) -> bool;
+    auto per_page() const -> per_page_t {return m_per_page;};
 
+    // todo rename or remove ?
     auto pagination() const -> std::string_view
     {
         return m_pagination;
@@ -46,14 +51,6 @@ class Page
     {
         return m_max_page - 1;
     }
-    /* auto is_last_page() const -> bool */
-    /* { */
-    /*     return (m_cur_page + 1) == m_max_page; */
-    /* } */
-    /* auto is_first_page() const -> bool */
-    /* { */
-    /*     return 0 == m_cur_page; */
-    /* } */
 
   protected:
     uint64_t m_per_page{0};

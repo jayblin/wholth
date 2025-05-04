@@ -20,8 +20,6 @@ add_library(
 	src/entity/food.cpp
 	src/list/food.cpp
 	src/list/nutrient.cpp
-    src/wholth/controller/expanded_food.cpp
-    src/wholth/controller/foods_page.cpp
     src/wholth/app.cpp
     src/wholth/scheduler.cpp
     src/wholth/app_c.cpp

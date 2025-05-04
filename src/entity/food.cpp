@@ -1,32 +1,22 @@
 #include "wholth/entity/food.hpp"
-#include "fmt/color.h"
 #include "fmt/core.h"
 #include "sqlw/connection.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/transaction.hpp"
 #include "sqlw/utils.hpp"
-#include "wholth/concepts.hpp"
 #include "wholth/entity/locale.hpp"
-#include "wholth/entity/nutrient.hpp"
-#include "wholth/pager.hpp"
 #include "wholth/status.hpp"
 #include "wholth/utils.hpp"
-#include <algorithm>
 #include <array>
 #include <cctype>
-#include <charconv>
-#include <exception>
 #include <gsl/util>
-#include <optional>
 #include <span>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <system_error>
 #include <tuple>
 #include <utility>
-#include "gsl/assert"
 
 using SC = wholth::status::Code;
 using Condition = wholth::status::Condition;

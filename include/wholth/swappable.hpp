@@ -3,15 +3,52 @@
 
 #include <array>
 
-namespace wholth {
+namespace wholth::concepts
+{
+    template <typename T>
+    concept is_swappable = requires (T t)
+    {
+        /* T::value_t; */
+        t.next();
+        t.swap();
+    };
+}
+
+namespace wholth
+{
 template <typename T>
-class Swappable {
-public:
-    auto current() -> T& { return m_values[m_idx]; };
-    auto view_current() const -> const T& { return m_values[m_idx]; };
-    auto next() -> T& { return m_values[(m_idx + 1) % 2]; };
-    auto view_next() const -> const T& { return m_values[(m_idx + 1) % 2]; };
-    auto swap() -> void { m_idx = (m_idx + 1) % 2; };
+class Swappable
+{
+  public:
+    /* typedef T value_t; */
+
+    Swappable()
+    {
+    }
+    Swappable(std::array<T, 2>&& values) : m_values(values)
+    {
+    }
+
+    auto current() -> T&
+    {
+        return m_values[m_idx];
+    };
+    auto view_current() const -> const T&
+    {
+        return m_values[m_idx];
+    };
+    auto next() -> T&
+    {
+        return m_values[(m_idx + 1) % 2];
+    };
+    auto view_next() const -> const T&
+    {
+        return m_values[(m_idx + 1) % 2];
+    };
+    auto swap() -> void
+    {
+        m_idx = (m_idx + 1) % 2;
+    };
     auto values() const -> const std::array<T, 2>&
     {
         return m_values;
@@ -21,10 +58,12 @@ public:
         return m_idx;
     }
 
-private:
+  private:
     std::array<T, 2> m_values;
-    uint8_t m_idx { 0 };
+    uint8_t m_idx{0};
 };
-}
+static_assert(wholth::concepts::is_swappable<Swappable<int>>);
+
+} // namespace wholth
 
 #endif // WHOLTH_SWAPPABLE_H_

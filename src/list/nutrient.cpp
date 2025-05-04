@@ -1,20 +1,22 @@
-#include "wholth/list/nutrient.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/utils.hpp"
 #include "wholth/entity/food.hpp"
+#include "wholth/list.hpp"
+#include "wholth/model/expanded_food.hpp"
 #include "wholth/status.hpp"
 #include "wholth/utils.hpp"
 
-using FDQuery = wholth::list::nutrient::FoodDependentQuery;
+/* using FDQuery = wholth::list::nutrient::FoodDependentQuery; */
+using FDQuery = wholth::model::NutrientsPage;
 
 template <>
 std::error_code wholth::check_query<FDQuery>(const FDQuery& query)
 {
     using SC = wholth::status::Code;
 
-    if (query.locale_id.size() == 0 ||
-        !sqlw::utils::is_numeric(query.locale_id))
+    if (query.ctx.locale_id.size() == 0 ||
+        !sqlw::utils::is_numeric(query.ctx.locale_id))
     {
         return SC::INVALID_LOCALE_ID;
     }
@@ -57,11 +59,13 @@ sqlw::Statement wholth::prepare_fill_span_statement<FDQuery>(
 
     sqlw::Statement stmt{&db_con};
 
-    ok(stmt.prepare(sql))                                         //
-        && ok(stmt.bind(1, query.food_id, sqlw::Type::SQL_INT))   //
-        && ok(stmt.bind(2, query.locale_id, sqlw::Type::SQL_INT)) //
-        && ok(stmt.bind(3, static_cast<int>(span_size)))          //
-        && ok(stmt.bind(4, static_cast<int>(span_size * query.page)));
+    ok(stmt.prepare(sql))                                             //
+        && ok(stmt.bind(1, query.food_id, sqlw::Type::SQL_INT))       //
+        && ok(stmt.bind(2, query.ctx.locale_id, sqlw::Type::SQL_INT)) //
+        && ok(stmt.bind(3, static_cast<int>(span_size)))              //
+        &&
+        ok(stmt.bind(
+            4, static_cast<int>(span_size * query.pagination.current_page())));
 
     return stmt;
 }

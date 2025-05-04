@@ -3,7 +3,7 @@
 #include "fmt/core.h"
 #include <cmath>
 
-void wholth::Page::update()
+void wholth::Pagination::update()
 {
     /* Expects(1 == 1); */
     m_max_page =
@@ -17,26 +17,39 @@ void wholth::Page::update()
         m_max_page);
 }
 
-bool wholth::Page::advance()
+bool wholth::Pagination::advance(uint64_t pages)
 {
-    /* if (!m_is_fetching_list && (m_query.page + 1) < m_max_page) { */
-    if ((m_cur_page + 1) < m_max_page)
+    auto new_cur_page = m_cur_page + pages;
+
+    if (0 != m_count &&
+        (new_cur_page > m_max_page || new_cur_page < m_cur_page))
     {
-        m_cur_page++;
+        new_cur_page = m_max_page;
+    }
+
+    if (m_cur_page != new_cur_page)
+    {
+        m_cur_page = new_cur_page;
         update();
-        /* m_timer.start(); */
         return true;
     }
 
     return false;
 }
 
-bool wholth::Page::retreat()
+bool wholth::Pagination::retreat(uint64_t pages)
 {
-    /* if (!m_is_fetching_list && m_query.page > 0) { */
-    if (m_cur_page > 0)
+    auto new_cur_page = m_cur_page - pages;
+
+    if (0 != m_count &&
+        (new_cur_page > m_max_page || new_cur_page > m_cur_page))
     {
-        m_cur_page--;
+        new_cur_page = 0;
+    }
+
+    if (m_cur_page != new_cur_page)
+    {
+        m_cur_page = new_cur_page;
         update();
         return true;
     }

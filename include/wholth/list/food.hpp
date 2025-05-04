@@ -1,53 +1,51 @@
 #ifndef WHOLTH_LIST_FOOD_H_
 #define WHOLTH_LIST_FOOD_H_
 
-#include "sqlw/connection.hpp"
-#include "sqlw/utils.hpp"
-#include "wholth/buffer_view.hpp"
-#include "wholth/entity/food.hpp"
-#include "wholth/list.hpp"
-#include "wholth/status.hpp"
+#include <array>
 #include <cstdint>
-#include <span>
 #include <string>
-#include <string_view>
 
 namespace wholth::list::food
 {
-	namespace nutrient_filter
-	{
-		enum class Operation
-		{
-			EQ,
-			NEQ,
-			BETWEEN,
-		};
+	/* namespace nutrient_filter */
+	/* { */
+	/* 	enum class Operation */
+	/* 	{ */
+	/* 		EQ, */
+	/* 		NEQ, */
+	/* 		BETWEEN, */
+	/* 	}; */
 
-        // todo remove wholth::entity::nutrient::view::id::value_type
-		typedef TupleElement<wholth::entity::nutrient::view::id::value_type, 1> NutrientId;
-		typedef TupleElement<std::string_view, 2> Value;
+        /* // todo remove wholth::entity::nutrient::view::id::value_type */
+	/* 	typedef TupleElement<wholth::entity::nutrient::view::id::value_type, 1> NutrientId; */
+	/* 	typedef TupleElement<std::string_view, 2> Value; */
 
-		typedef std::tuple<
-			nutrient_filter::Operation,
-			NutrientId::value_type,
-			Value::value_type
-		> Entry;
-	};
+	/* 	typedef std::tuple< */
+	/* 		nutrient_filter::Operation, */
+	/* 		NutrientId::value_type, */
+	/* 		Value::value_type */
+	/* 	> Entry; */
+	/* }; */
 
-	struct Query
-	{
-		uint64_t page {0};
-		std::string_view locale_id {""};
-		/**
-		 * Food's title.
-		 */
-		std::string_view title {""};
-		/**
-		 * Coma separated list of ingredient names.
-		 */
-		std::string_view ingredients {""};
-		std::span<nutrient_filter::Entry> nutrient_filters {};
-	};
+	/* struct Query */
+	/* { */
+        /* /1* template <typename T> *1/ */
+        /* /1* Query(const T& model); *1/ */
+
+        /* /1* Query() {} *1/ */
+
+	/* 	uint64_t page {0}; */
+	/* 	std::string_view locale_id {""}; */
+	/* 	/** */
+	/* 	 * Food's title. */
+	/* 	 *1/ */
+	/* 	std::string_view title {""}; */
+	/* 	/** */
+	/* 	 * Coma separated list of ingredient names. */
+	/* 	 *1/ */
+	/* 	std::string_view ingredients {""}; */
+	/* 	std::span<nutrient_filter::Entry> nutrient_filters {}; */
+	/* }; */
 
     struct IngredientData
     {
@@ -66,5 +64,6 @@ namespace wholth::list::food
 		std::string where;
     };
 }
+
 
 #endif // WHOLTH_LIST_FOOD_H_

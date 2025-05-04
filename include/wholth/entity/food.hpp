@@ -1,31 +1,14 @@
 #ifndef WHOLTH_ENTITY_FOOD_H_
 #define WHOLTH_ENTITY_FOOD_H_
 
-#include <array>
-#include <concepts>
-#include <limits>
-#include <optional>
-#include <ostream>
 #include <string>
 #include <system_error>
 #include <type_traits>
-#include <utility>
-#include <initializer_list>
 #include <span>
-#include <sstream>
 #include <string_view>
-#include "fmt/core.h"
 #include "sqlw/connection.hpp"
-#include "sqlw/forward.hpp"
-#include "sqlw/statement.hpp"
 #include "wholth/buffer_view.hpp"
-#include "wholth/concepts.hpp"
 #include "wholth/entity/locale.hpp"
-#include "wholth/entity/nutrient.hpp"
-/* #include "wholth/pager.hpp" */
-#include "wholth/entity/utils.hpp"
-#include "wholth/hydrate.hpp"
-#include "wholth/pager.hpp"
 #include "wholth/status.hpp"
 #include "wholth/utils.hpp"
 

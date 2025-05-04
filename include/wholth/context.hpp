@@ -2,10 +2,7 @@
 #define WHOLTH_CONTEXT_H_
 
 #include "sqlw/connection.hpp"
-#include "db/db.hpp"
-#include "wholth/scheduler.hpp"
-#include <algorithm>
-#include <mutex>
+#include <concepts>
 #include <tuple>
 #include <vector>
 
@@ -13,10 +10,7 @@
 namespace wholth
 {
 
-// @todo
-// - do i even need locale_id as a member?
-// - make members private?
-/* template <typename F = wholth::entity::shortened::Food> */
+// todo remake to struct
 class Context
 {
   public:
@@ -37,16 +31,12 @@ class Context
         this->sql_errors = std::move(other.sql_errors);
         this->connection = std::move(other.connection);
         this->db_path = std::move(other.db_path);
-        this->m_locale_id = std::move(other.m_locale_id);
-        /* this->scheduler */
+        this->locale_id = std::move(other.locale_id);
+
         return *this;
     };
 
     sqlw::Connection connection;
-    // @todo убрать из контекста
-    /* ui::Style style{}; */
-    /* char foods_title_buffer[255] {""}; */
-    /* size_t foods_title_input_size {0}; */
 
     // @todo Rename to handle_tasks???
     /* template <typename... M, typename... C> */
@@ -55,11 +45,6 @@ class Context
         const std::chrono::duration<double>& delta,
         std::tuple<C...>& controllers) -> void;
 
-    auto locale_id(std::string new_locale_id) -> void;
-    auto locale_id() const -> std::string_view
-    {
-        return m_locale_id;
-    }
 
     std::string_view db_path;
 
@@ -87,8 +72,10 @@ class Context
     /* uint64_t ingredients_max_page; */
 
     /* db::migration::MigrateResult migrate_result; */
+    // todo move this outside of context
     std::vector<std::string> sql_errors;
     std::string exception_message;
+    std::string locale_id{"1"};
 
     /* wholth::controller::FoodsPage foods_page_ctrl{m_foods_page, m_task_list};
      */
@@ -105,14 +92,18 @@ class Context
     /* > models {}; */
 
     /* wholth::Scheduler scheduler{}; */
-
-  private:
-    std::string m_locale_id{"1"};
-    /* std::mutex m_task_mutex; */
-
-    /* wholth::model::FoodsPage m_foods_page{}; */
-    /* TaskList m_task_list{}; */
 };
+
 } // namespace wholth
+
+namespace wholth::concepts
+{
+    template <typename T>
+    concept is_context_aware = requires(T t)
+    {
+        t.ctx;
+        requires std::same_as<decltype(t.ctx), const wholth::Context&>;
+    };
+};
 
 #endif // WHOLTH_CONTEXT_H_
