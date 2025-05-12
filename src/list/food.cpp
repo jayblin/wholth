@@ -402,11 +402,12 @@ sqlw::Statement wholth::prepare_fill_span_statement(
         SELECT * FROM (SELECT * FROM the_list LIMIT {2} OFFSET {3})
     )sql";
 
+    const auto where = create_where(query, ingredient_data.parameter_count + 1);
     return list_foods_prepare_stmt(
         fmt::format(
             sql,
             ingredient_data.where,
-            create_where(query, ingredient_data.parameter_count + 1),
+            where,
             span_size,
             span_size * query.pagination.current_page()
         ),

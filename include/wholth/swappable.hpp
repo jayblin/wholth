@@ -11,6 +11,13 @@ namespace wholth::concepts
         /* T::value_t; */
         t.next();
         t.swap();
+        t.current();
+        t.view_current();
+        t.next();
+        t.view_next();
+        t.swap();
+        t.values();
+        t.current_index();
     };
 }
 
@@ -20,7 +27,7 @@ template <typename T>
 class Swappable
 {
   public:
-    /* typedef T value_t; */
+    using value_t = T;
 
     Swappable()
     {

@@ -14,8 +14,9 @@ struct FoodsPage
     const wholth::Context& ctx;
     wholth::Pagination pagination;
     std::atomic<bool> is_fetching{false};
-    std::string title;
-    std::string ingredients;
+    // todo add checks
+    std::string_view title {""};
+    std::string_view ingredients {""};
 };
 
 template <wholth::concepts::is_food T, size_t Size = 20>

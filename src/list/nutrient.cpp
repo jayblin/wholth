@@ -37,7 +37,7 @@ sqlw::Statement wholth::prepare_fill_span_statement<FDQuery>(
 {
     using namespace wholth::utils;
 
-    constexpr std::string_view sql = R"sql(
+    constexpr std::string_view sql_tpl = R"sql(
     WITH the_list as (
         SELECT
             n.id,
@@ -50,6 +50,9 @@ sqlw::Statement wholth::prepare_fill_span_statement<FDQuery>(
             ON fn.nutrient_id = n.id AND fn.food_id = ?1
         LEFT JOIN nutrient_localisation nl
             ON nl.nutrient_id = n.id AND nl.locale_id = ?2
+        WHERE
+            1=1
+            {0}
         ORDER BY n.position ASC
     )
     SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL FROM the_list
@@ -59,6 +62,11 @@ sqlw::Statement wholth::prepare_fill_span_statement<FDQuery>(
 
     sqlw::Statement stmt{&db_con};
 
+    const std::string sql = fmt::format(
+        sql_tpl,
+        query.title.size() > 0 ? "AND nl.title LIKE ?5" : ""
+    );
+
     ok(stmt.prepare(sql))                                             //
         && ok(stmt.bind(1, query.food_id, sqlw::Type::SQL_INT))       //
         && ok(stmt.bind(2, query.ctx.locale_id, sqlw::Type::SQL_INT)) //
@@ -66,6 +74,11 @@ sqlw::Statement wholth::prepare_fill_span_statement<FDQuery>(
         &&
         ok(stmt.bind(
             4, static_cast<int>(span_size * query.pagination.current_page())));
+
+    if (query.title.size() > 0) {
+        std::string title_param_value = fmt::format("%{0}%", query.title);
+        stmt.bind(5, title_param_value, sqlw::Type::SQL_TEXT);
+    }
 
     return stmt;
 }

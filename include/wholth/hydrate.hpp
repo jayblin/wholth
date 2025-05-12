@@ -75,6 +75,22 @@ auto hydrate(const std::string& buffer, wholth::utils::LengthContainer& lc) -> T
 
     return entry;
 }
+
+template <wholth::concepts::is_describable T>
+constexpr auto count_fields() -> size_t
+{
+    return 1;
+}
+
+template <wholth::concepts::is_describable T>
+auto hydrate(const std::string& buffer, wholth::utils::LengthContainer& lc) -> T
+{
+    T entry;
+
+    entry.description = lc.next<decltype(entry.description)>(buffer);
+
+    return entry;
+}
 }; // namespace wholth
 
 #endif // WHOLTH_HYDRATE

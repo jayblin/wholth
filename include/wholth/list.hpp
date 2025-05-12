@@ -77,8 +77,9 @@ auto fill_span(
     const Q& query,
     sqlw::Connection& con) -> std::error_code
 {
-    /* assertm(span.size() == query.pagination.per_page(), "YO WASUP"); */
-    if (span.size() != query.pagination.per_page()) {
+    if (span.size() != query.pagination.per_page())
+    {
+        // todo change message
         throw std::runtime_error("AYYYYYYYY LMAO");
     }
 
@@ -156,6 +157,73 @@ auto fill_span(
 
     return wholth::status::Code::OK;
 }
+
+template <typename Q>
+auto prepare_fill_object_statement(
+    const Q& query,
+    sqlw::Connection& db_con) -> sqlw::Statement;
+
+template <typename T, typename Q>
+auto fill_object(
+    T object,
+    std::string& buffer,
+    uint64_t& count,
+    const Q& query,
+    sqlw::Connection& con) -> std::error_code
+{
+    count = 0;
+
+    auto ec = check_query(query);
+
+    if (wholth::status::Condition::OK != ec)
+    {
+        return ec;
+    }
+
+    wholth::utils::LengthContainer lc{(wholth::count_fields<T>())};
+
+    std::stringstream buffer_stream;
+
+    auto stmt = prepare_fill_object_statement(query, con);
+
+    if (wholth::status::Condition::OK != stmt.status())
+    {
+        return stmt.status();
+    }
+
+    uint64_t i = 0;
+    ec = stmt([&buffer_stream, &lc, &i, &count](sqlw::Statement::ExecArgs e) {
+        i++;
+
+        if (i <= wholth::count_fields<T>())
+        {
+            return;
+        }
+
+        buffer_stream << e.column_value;
+
+        lc.add(e.column_value.size());
+    });
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        return ec;
+    }
+
+    if (buffer_stream.rdbuf()->in_avail() <= 0)
+    {
+        return wholth::status::Code::ENTITY_NOT_FOUND;
+    }
+
+    buffer = buffer_stream.str();
+
+    count = 1;
+    object = hydrate<T>(buffer, lc);
+
+    return wholth::status::Code::OK;
+}
+
+
 } // namespace wholth
 
 #endif // WHOLTH_LIST

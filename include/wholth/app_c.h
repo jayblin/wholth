@@ -10,42 +10,42 @@ extern "C" {
 #endif
 
 #define ARRAY_T(type, name) \
-    struct name\
+    typedef struct name\
     {\
         const struct type* data;\
         const unsigned long size;\
-    }
+    } name
 
-struct wholth_StringView
+typedef struct wholth_StringView
 {
     const char* data;
     unsigned long size;
-};
+} wholth_StringView;
 
 typedef struct wholth_StringView wholth_ErrorMessage;
 typedef int wholth_ErrorCode;
 const int WHOLTH_NO_ERROR = 0;
 
 // todo rename
-struct WholthContext
+typedef struct WholthContext
 {
     const char* db_path;
-};
+} WholthContext;
 
-struct wholth_Food
+typedef struct wholth_Food
 {
     struct wholth_StringView id;
     struct wholth_StringView title;
     struct wholth_StringView preparation_time;
     struct wholth_StringView top_nutrient;
-};
+} wholth_Food;
 
-struct wholth_FoodDetails
+typedef struct wholth_FoodDetails
 {
     struct wholth_StringView description;
-};
+} wholth_FoodDetails;
 
-struct wholth_Nutrient
+typedef struct wholth_Nutrient
 {
     struct wholth_StringView id;
     struct wholth_StringView title;
@@ -54,22 +54,22 @@ struct wholth_Nutrient
     struct wholth_StringView position;
     /* struct wholth_StringView alias; */
     /* struct wholth_StringView description; */
-};
+} wholth_Nutrient;
 
-struct wholth_Ingredient
+typedef struct wholth_Ingredient
 {
     struct wholth_StringView food;
     struct wholth_StringView canonical_mass;
     struct wholth_StringView ingredient_count;
-};
+} wholth_Ingredient;
 
-struct wholth_RecipeStep
+typedef struct wholth_RecipeStep
 {
     struct wholth_StringView id;
     struct wholth_StringView time;
     struct wholth_StringView note;
     struct wholth_StringView description;
-};
+} wholth_RecipeStep;
 
 ARRAY_T(wholth_Food, wholth_FoodArray);
 ARRAY_T(wholth_Nutrient, wholth_NutrientArray);
@@ -83,54 +83,43 @@ ARRAY_T(wholth_RecipeStep, wholth_RecipeStepArray);
 /*     unsigned long size; */
 /* }; */
 
-struct wholth_Page
+// todo rename
+typedef struct wholth_Page
 {
     uint64_t max_page;
     uint64_t cur_page;
-    struct wholth_StringView pagination;
-};
+    /* struct wholth_StringView pagination; // not used */
+} wholth_Page;
 
-wholth_ErrorMessage wholth_app_setup(const struct WholthContext);
+wholth_ErrorMessage wholth_app_setup(const WholthContext);
 
-bool wholth_foods_page_advance();
-bool wholth_foods_page_retreat();
+bool wholth_foods_page_advance(uint64_t by);
+bool wholth_foods_page_retreat(uint64_t by);
+bool wholth_foods_page_skip_to(uint64_t page);
 void wholth_foods_page_fetch();
+void wholth_foods_page_title(wholth_StringView search_title);
 bool wholth_foods_page_is_fetching();
-struct wholth_Page wholth_foods_page_info();
 // todo rename
-const struct wholth_FoodArray wholth_foods_page_list();
-void wholth_entity_food_fetch_nutrients(
-    const struct wholth_StringView food_id
-);
-const struct wholth_NutrientArray wholth_entity_food_nutrients();
-/* void wholth_entity_food_remove( */
-/*     struct wholth_StringView id */
-/* ); */
-/* wholth_ErrorCode wholth_entity_food_insert( */
-/*     struct wholth_StringView title, */
-/*     struct wholth_StringView description */
-/* ); */
-/* wholth_ErrorCode wholth_entity_food_add_nutrients( */
-/*     struct wholth_StringView food_id, */
-/*     const int nutrient_count, */
-/*     const struct wholth_StringView */
-/* ); */
-/* void wholth_entity_food_update( */
-/*     struct wholth_StringView id, */
-/*     struct wholth_StringView title, */
-/*     struct wholth_StringView description */
-/* ); */
-void wholth_entity_food_detail(
-    struct wholth_StringView food_id,
-    struct wholth_FoodDetails* details
-    /* struct wholth_Food* food */
-    /* struct wholth_NutrientArray nutrients, */
-    /* struct wholth_IngredientArray ingredients, */
-    /* struct wholth_RecipeStepArray recipe_steps */
-);
-wholth_ErrorMessage wholth_latest_error_message();
+wholth_Page wholth_foods_page_info();
+// todo rename
+const wholth_FoodArray wholth_foods_page_list();
 
-/* const struct wholth_FoodsView internal_preview_wholth_foods(); */
+const wholth_NutrientArray wholth_food_nutrients();
+void wholth_food_nutrients_food_id(const wholth_StringView food_id);
+void wholth_food_nutrients_title(const wholth_StringView title);
+void wholth_food_nutrients_fetch();
+const wholth_Page wholth_food_nutrients_pagination();
+bool wholth_food_nutrients_advance(uint64_t by);
+bool wholth_food_nutrients_retreat(uint64_t by);
+bool wholth_food_nutrients_skip_to(uint64_t page);
+
+const wholth_FoodDetails wholth_food_details();
+void wholth_food_details_food_id(
+    const wholth_StringView food_id
+);
+void wholth_food_details_fetch();
+
+wholth_ErrorMessage wholth_latest_error_message();
 
 #ifdef __cplusplus /* If this is a C++ compiler, end C linkage */
 }

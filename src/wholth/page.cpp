@@ -56,3 +56,20 @@ bool wholth::Pagination::retreat(uint64_t pages)
 
     return false;
 }
+
+bool wholth::Pagination::skip_to(uint64_t new_cur_page)
+{
+    if (0 != m_count && new_cur_page > m_max_page)
+    {
+        new_cur_page = m_max_page;
+    }
+
+    if (m_cur_page != new_cur_page)
+    {
+        m_cur_page = new_cur_page;
+        update();
+        return true;
+    }
+
+    return false;
+}

@@ -24,7 +24,7 @@ concept has_swappable_buffer_views = requires(T t) {
 template <typename T>
 concept has_pagination = requires(T t) {
     t.pagination;
-    std::same_as<decltype(t.pagination), wholth::Pagination>;
+    requires std::same_as<decltype(t.pagination), wholth::Pagination>;
 };
 
 } // namespace wholth::concepts

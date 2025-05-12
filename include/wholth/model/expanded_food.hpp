@@ -17,11 +17,22 @@ struct NutrientsPage
     wholth::Pagination pagination;
     std::atomic<bool> is_fetching{false};
     wholth::entity::food::id_t food_id{""};
+    wholth::entity::nutrient::title_t title{""};
 };
 
 // todo move to another file or rename
 template <wholth::concepts::is_nutrient T, size_t Size = 20>
 using NutrientsContainer = SwappableBufferViewsAwareContainer<T, Size>;
+
+struct FoodDetails
+{
+    const wholth::Context& ctx;
+    std::atomic<bool> is_fetching{false};
+    wholth::entity::food::id_t food_id{""};
+};
+
+template <wholth::concepts::is_describable T>
+using FoodDetailsContainer = wholth::Swappable<wholth::BufferView<T>>;
 
 } // namespace wholth::model
 

@@ -21,7 +21,10 @@ class Pagination
     auto update() -> void;
     auto advance(uint64_t pages = 1) -> bool;
     auto retreat(uint64_t pages = 1) -> bool;
-    auto per_page() const -> per_page_t {return m_per_page;};
+    auto per_page() const -> per_page_t
+    {
+        return m_per_page;
+    };
 
     // todo rename or remove ?
     auto pagination() const -> std::string_view
@@ -43,13 +46,21 @@ class Pagination
     {
         return m_cur_page;
     };
-    auto current_page(uint64_t new_cur_page) -> void
-    {
-        m_cur_page = new_cur_page;
-    };
+    auto skip_to(uint64_t new_cur_page) -> bool;
+    // todo test this
     auto max_page() const -> uint64_t
     {
-        return m_max_page - 1;
+        if (m_max_page > 0) {
+            return m_max_page - 1;
+        }
+        return 0;
+    }
+    auto reset() -> void
+    {
+        m_count = 0;
+        m_cur_page = 0;
+        m_max_page = 1;
+        m_pagination = "";
     }
 
   protected:
