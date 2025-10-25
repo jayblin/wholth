@@ -1,28 +1,26 @@
 #ifndef WHOLTH_ENTITY_NUTRIENT_H_
 #define WHOLTH_ENTITY_NUTRIENT_H_
 
-#include <string_view>
-#include "wholth/entity/utils.hpp"
+#include <cstddef>
 
-namespace wholth::entity::nutrient
+namespace wholth::entity
 {
-	namespace view
-	{
-		typedef TupleElement<std::string_view, 0> id;
-		typedef TupleElement<std::string_view, 1> title;
-		typedef TupleElement<std::string_view, 2> value;
-		typedef TupleElement<std::string_view, 3> unit;
-		typedef TupleElement<std::string_view, 4> alias;
-		typedef TupleElement<std::string_view, 5> description;
-	};
 
-	typedef std::tuple<
-		view::id::value_type,
-		view::title::value_type,
-		view::unit::value_type,
-		view::alias::value_type,
-		view::description::value_type
-	> View;
+template <typename T>
+concept is_nutrient = requires(T t) {
+    t.id;
+    t.title;
+    t.value;
+    t.unit;
+    t.position;
 };
+
+template <is_nutrient T>
+constexpr auto count_fields() -> size_t
+{
+    return 5;
+}
+
+} // namespace wholth::entity
 
 #endif // WHOLTH_ENTITY_NUTRIENT_H_

@@ -11,19 +11,64 @@ add_library(
 	wholth
 	SHARED
     # STATIC
-    # src/utils/json_serializer.cpp
-	src/utils.cpp
+	# src/list/food.cpp
+	# src/list/food_details.cpp
+	# src/list/food_ingredients.cpp
+	# src/list/ingredients.cpp
+	# src/list/nutrient.cpp
 	src/db/db.cpp
-    src/wholth/page.cpp
-    src/wholth/context.cpp
-    src/wholth/status.cpp
-	src/entity/food.cpp
-	src/list/food.cpp
-	src/list/nutrient.cpp
-	src/list/food_details.cpp
+	# src/entity/food.cpp
+	src/utils.cpp
+    # src/controller/insert_ingredient.cpp
+    # src/controller/insert_recipe_step.cpp
+    # src/controller/update_food.cpp
+    # src/utils/json_serializer.cpp
+    # src/wholth/c/food_details.cpp
+    # src/wholth/c/food_indredients.cpp
+    # src/wholth/c/food_nutreints.cpp
+    # src/wholth/c/foods_page.cpp
+    # src/wholth/c/ingredients.cpp
+    # src/wholth/c/recipe_step.cpp
+    # src/wholth/scheduler.cpp
+    # todo move these to other target
+    src/utils/datetime.cpp
+    src/utils/is_valid_id.cpp
+    src/utils/time_to_seconds.cpp
     src/wholth/app.cpp
-    src/wholth/scheduler.cpp
     src/wholth/app_c.cpp
+    # src/wholth/pages/internal.cpp
+    src/wholth/c/buffer.cpp
+    src/wholth/c/entity/food.cpp
+    src/wholth/c/entity/recipe_step.cpp
+    src/wholth/c/entity/ingredient.cpp
+    src/wholth/c/entity/nutrient.cpp
+    src/wholth/c/entity/consumption_log.cpp
+    src/wholth/c/entity_manager/ingredient.cpp
+    src/wholth/c/entity_manager/recipe_step.cpp
+    src/wholth/c/entity_manager/food.cpp
+    src/wholth/c/entity_manager/ingredient.cpp
+    src/wholth/c/entity_manager/food_nutrient.cpp
+    src/wholth/c/entity_manager/consumption_log.cpp
+    src/wholth/c/pages/food.cpp
+    src/wholth/c/pages/food_nutrient.cpp
+    src/wholth/c/pages/nutrient.cpp
+    src/wholth/c/pages/ingredient.cpp
+    src/wholth/c/pages/consumption_log.cpp
+    src/wholth/c/pages/recipe_step.cpp
+    src/wholth/c/pages/utils.cpp
+    src/wholth/c/internal.cpp
+    src/wholth/c/string_view.cpp
+    src/wholth/pages/internal.cpp
+    src/wholth/pages/food.cpp
+    # src/wholth/context.cpp
+    src/wholth/entity_manager/ingredient.cpp
+    src/wholth/entity_manager/nutrient.cpp
+    src/wholth/entity_manager/recipe_step.cpp
+    # src/wholth/entity_manager/update_important_nutrients.cpp
+    src/wholth/pagination.cpp
+    src/wholth/status.cpp
+    src/wholth/utils/length_container.cpp
+    src/wholth/utils/prepend_sql_params.cpp
 )
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -109,11 +154,43 @@ if (DEFINED WHOLTH_STANDALONE)
 
     add_executable(
         wholth_tests
+        # tests/controller/ingredients.cpp
+        # tests/controller/insert_food.cpp
+        # tests/controller/insert_ingredient.cpp
+        # tests/controller/insert_recipe_step.cpp
+        # tests/controller/update_food.cpp
+        # tests/controller/update_important_nutrients.cpp
+        # tests/db/db.cpp
+        # tests/food.cpp
+        # tests/list/food.cpp
+        # tests/list/nutrient.cpp
+        # tests/utils/time_to_seconds.cpp
+        tests/utils/convert.cpp
+        tests/utils/datetime.cpp
         tests/helpers.cpp
-        tests/db/db.cpp
-        tests/list/nutrient.cpp
-        tests/list/food.cpp
-        tests/food.cpp
+        tests/wholth/c/entity/food.cpp
+        tests/wholth/c/entity_manager/food_insert.cpp
+        tests/wholth/c/entity_manager/food_update.cpp
+        tests/wholth/c/entity_manager/ingredient_insert.cpp
+        tests/wholth/c/entity_manager/ingredient_update.cpp
+        tests/wholth/c/entity_manager/food_nutrient_upsert.cpp
+        tests/wholth/c/entity_manager/food_nutrient_update_important.cpp
+        tests/wholth/c/entity_manager/consumption_log_delete.cpp
+        tests/wholth/c/entity_manager/consumption_log_insert.cpp
+        tests/wholth/c/entity_manager/consumption_log_update.cpp
+        tests/wholth/c/entity_manager/recipe_step_insert.cpp
+        tests/wholth/c/entity_manager/recipe_step_update.cpp
+        tests/wholth/c/pages/food.cpp
+        tests/wholth/c/pages/food_nutrient.cpp
+        tests/wholth/c/pages/nutrient.cpp
+        tests/wholth/c/pages/ingredient.cpp
+        tests/wholth/c/pages/consumption_log.cpp
+        tests/wholth/c/pages/recipe_step.cpp
+        # tests/wholth/c/entity_manager/recipe_step_update.cpp
+        # tests/wholth/c/entity_manager/update_food.cpp
+        # tests/wholth/c/entity_manager/update_important_nutrients.cpp
+        # tests/wholth/c/entity_manager/update_ingredient.cpp
+        # tests/wholth/c/entity_manager/upsert_food_nutrient.cpp
     )
 
     target_link_libraries(

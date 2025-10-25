@@ -8,6 +8,7 @@ namespace wholth::app
 {
 /* template <typename... C, typename... M> */
 void setup(
+    std::string_view db_path,
     wholth::Context&
     /* std::tuple<C...> controllers, */
     /* std::tuple<M...> models */

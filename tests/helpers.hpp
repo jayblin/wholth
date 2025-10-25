@@ -4,110 +4,102 @@
 #include "db/db.hpp"
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/cmake_vars.h"
-#include "wholth/utils.hpp"
+#include "wholth/c/forward.h"
 #include <gtest/gtest.h>
 
-#define ASSERT_STREQ2(a,b) ASSERT_STREQ(a, std::string{b}.data())
-#define ASSERT_STREQ3(a,b) ASSERT_STREQ(a.data(), std::string{b}.data())
-#define ASSERT_STRNEQ2(a,b) ASSERT_STRNE(a, std::string{b}.data())
+#define ASSERT_STREQ2(a, b) ASSERT_STREQ(a, std::string{b}.data())
+#define ASSERT_STREQ3(a, b) ASSERT_STREQ(a.data(), std::string{b}.data())
+// todo rename
+#define ASSERT_STRNEQ2(a, b) ASSERT_STRNE(a, std::string{b}.data())
+#define ASSERT_STRNE2(a, b) ASSERT_STRNE(a, std::string{b}.data())
+#define ASSERT_STRNE3(a, b) ASSERT_STRNE(a.data(), std::string{b}.data())
 
-static void error_log_callback(void *pArg, int iErrCode, const char *zMsg)
-{
-	std::cout << '[' << iErrCode << "] " << zMsg << '\n';
-}
 
 class GlobalInMemoryDatabaseAwareTest : public testing::Test
 {
-protected:
-	static sqlw::Connection db_con;
+  protected:
 
-	static void SetUpTestSuite()
-	{
-		sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, nullptr);
-		db_con = {":memory:"};
-	}
+    static void SetUpTestSuite()
+    {
+        db::setup_logger();
+        db::init(":memory:");
+    }
 };
 
 class InMemoryDatabaseAwareTest : public testing::Test
 {
-protected:
-	static sqlw::Connection db_con;
+  protected:
 
-	static void SetUpTestSuite()
-	{
-		sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, nullptr);
-	}
+    static void SetUpTestSuite()
+    {
+        db::setup_logger();
+    }
 
-	void SetUp() override
-	{
-		db_con = {":memory:"};
-	}
+    void SetUp() override
+    {
+        db::init(":memory:");
+    }
 };
 
-class GlobalInMemorySavepointWrappedTest : public GlobalInMemoryDatabaseAwareTest
+class GlobalInMemorySavepointWrappedTest
+    : public GlobalInMemoryDatabaseAwareTest
 {
-protected:
-	void SetUp() override
-	{
+  protected:
+    void SetUp() override
+    {
         GlobalInMemoryDatabaseAwareTest::SetUp();
-		auto ec = sqlw::Statement{&db_con}("SAVEPOINT unittestsp");
+        auto ec = sqlw::Statement{&db::connection()}("SAVEPOINT unittestsp");
         ASSERT_TRUE(sqlw::status::Condition::OK == ec);
-	}
+    }
 
-	void TearDown() override
-	{
-		auto ec = sqlw::Statement{&db_con}("ROLLBACK TO unittestsp");
+    void TearDown() override
+    {
+        auto ec = sqlw::Statement{&db::connection()}("ROLLBACK TO unittestsp");
         ASSERT_TRUE(sqlw::status::Condition::OK == ec);
-	}
+    }
 };
 
-class MigrationAwareTest : public GlobalInMemorySavepointWrappedTest
+// class ApplicationAwareSingleton
+// {
+//     public:
+//         static auto init() -> const ApplicationAwareSingleton&
+//         {
+//            static auto g_instance = ApplicationAwareSingleton();
+//
+//            return g_instance;
+//         }
+//
+//     private:
+//        ApplicationAwareSingleton();
+// };
+
+class ApplicationAwareTest : public testing::Test
 {
-protected:
-	static void SetUpTestSuite()
-	{
-        GlobalInMemoryDatabaseAwareTest::SetUpTestSuite();
+  protected:
+    static void SetUpTestSuite();
+    // {
+    //     ApplicationAwareSingleton::init();
+    // }
 
-		// VERY IMPORTANT!
-		auto ec = sqlw::Statement{&db_con}("PRAGMA foreign_keys = ON");
-        ASSERT_TRUE(sqlw::status::Condition::OK == ec);
+    void SetUp() override;
+    // {
+    //     auto ec = sqlw::Statement{&db::connection()}("SAVEPOINT unittestsp");
+    //     ASSERT_TRUE(sqlw::status::Condition::OK == ec);
+    // }
 
-		ec = sqlw::Statement{&db_con}("PRAGMA automatic_index = OFF");
-        ASSERT_TRUE(sqlw::status::Condition::OK == ec);
-
-		sqlite3_create_function_v2(
-			db_con.handle(),
-			"seconds_to_readable_time",
-			1,
-			SQLITE_DETERMINISTIC | SQLITE_DIRECTONLY,
-			nullptr,
-			wholth::utils::sqlite::seconds_to_readable_time,
-			nullptr,
-			nullptr,
-			nullptr
-		);
-
-        ec = db::migration::make_migration_table(&db_con);
-        ASSERT_TRUE(db::status::Condition::OK == ec);
-
-        const auto initial_list = db::migration::list_sorted_migrations(MIGRATIONS_DIR);
-        std::remove_const_t<decltype(initial_list)> list;
-
-        std::copy_if(
-            initial_list.begin(),
-            initial_list.end(),
-            std::back_inserter(list),
-            [](auto i) { return std::string_view{i.path().filename().c_str()}.find("-insert-") == std::string_view::npos; }
-        );
-
-		const auto result = db::migration::migrate({
-			.con = &db_con,
-            .migrations = list,
-			.log = false,
-		});
-        ASSERT_TRUE(db::status::Condition::OK == result.error_code) << result.error_code;
-	}
+    void TearDown() override;
+    // {
+    //     auto ec = sqlw::Statement{&db::connection()}("ROLLBACK TO unittestsp");
+    //     ASSERT_TRUE(sqlw::status::Condition::OK == ec);
+    // }
 };
+
+auto wtsv(std::string_view sv) -> wholth_StringView;
+auto wfsv(wholth_StringView sv) -> std::string_view;
+
+auto astmt(
+    sqlw::Connection& connection,
+    std::string_view sql,
+    sqlw::Statement::callback_t callback = nullptr) -> void;
 
 #endif // WHOLTH_TESTS_HELPERS_H_

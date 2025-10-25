@@ -10,21 +10,25 @@
 #include <tuple>
 
 namespace wholth::status {
+    // todo move codes to respective namespaces;
     enum class Code : int8_t
     {
         OK = 0,
         /* SQL_STATEMENT_ERROR, */
-        ENTITY_NOT_FOUND,
         INVALID_LOCALE_ID,
-        INVALID_FOOD_ID,
-        EMPTY_FOOD_TITLE,
-        UNCHANGED_FOOD_TITLE,
-        UNCHANGED_FOOD_DESCRIPTION,
+        // move em 7 elsewhere
+        // INVALID_FOOD_ID,
+        // EMPTY_FOOD_TITLE,
+        // EMPTY_FOOD_DESCRIPTION,
+        // UNCHANGED_FOOD_TITLE,
+        // UNCHANGED_FOOD_DESCRIPTION,
         INVALID_DATE,
         INVALID_MASS,
-        SPAN_SIZE_TOO_BIG,
-        QUERY_PAGE_TOO_BIG,
-        QUERY_OFFSET_TOO_BIG,
+        // move em 4 elsewhere
+        // SPAN_SIZE_TOO_BIG,
+        // QUERY_PAGE_TOO_BIG,
+        // QUERY_OFFSET_TOO_BIG,
+        // ENTITY_NOT_FOUND,
     };
 
     enum class Condition : int8_t

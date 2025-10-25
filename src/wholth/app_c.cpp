@@ -1,68 +1,48 @@
 #include "wholth/app_c.h"
-#include "sqlw/forward.hpp"
+#include "db/db.hpp"
+#include "sqlw/statement.hpp"
+#include "sqlw/transaction.hpp"
 #include "wholth/app.hpp"
+#include "wholth/c/forward.h"
+#include "wholth/c/internal.hpp"
 #include "wholth/context.hpp"
-#include "wholth/controller/abstract_page.hpp"
-#include "wholth/model/expanded_food.hpp"
-#include "wholth/model/foods_page.hpp"
+#include "wholth/utils/is_valid_id.hpp"
+#include "wholth/utils/to_string_view.hpp"
 #include <exception>
-#include <gsl/string_span>
+// #include <gsl/string_span>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
 using namespace std::chrono_literals;
 
 static constexpr auto default_timeout = 300ms;
-static wholth::Context g_context{};
-static wholth::model::FoodsContainer<wholth_Food, 20> g_foods_container;
-static wholth::model::NutrientsContainer<wholth_Nutrient, 20>
-    g_nutrients_container;
-static wholth::model::FoodDetailsContainer<wholth_FoodDetails>
-    g_food_details_container;
 
-static auto& foods_page_model()
-{
-    static wholth::model::FoodsPage g_foods_page_model{
-        g_context, g_foods_container.size};
-    return g_foods_page_model;
-}
+static auto& g_context = wholth::c::internal::global_context();
 
-static auto& food_nutrients_page_model()
-{
-    static wholth::model::NutrientsPage g_food_nutrients_page_model{
-        g_context, g_nutrients_container.size};
-    return g_food_nutrients_page_model;
-}
-
-static auto& food_details_model()
-{
-    static wholth::model::FoodDetails g_food_details_model{g_context};
-    return g_food_details_model;
-}
-
-extern "C" wholth_StringView wholth_app_setup(const WholthContext ctx)
+extern "C" wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const args)
 {
     try
     {
         // todo check this
-        const auto old_ctx = std::move(g_context);
+        // const auto old_ctx = std::move(g_context);
 
-        g_context.db_path = ctx.db_path;
+        // g_context.db_path = ctx.db_path;
         /* g_context.locale_id("1"); */
-        g_context.locale_id = "1";
+        // g_context.locale_id = "1";
 
-        wholth::app::setup(g_context);
+        wholth::app::setup(std::string_view{args->db_path}, g_context);
+
+        // wholth_app_locale_id(args->locale_id);
     }
     /* catch (const std::system_error& err) */
     catch (const std::exception& excp)
     {
+        // std::cout << excp.what() << '\n';
         // todo log exception
-        std::cout << "HELLOOO!" << "\n";
         g_context.exception_message = std::move(excp.what());
-        std::cout << g_context.exception_message << "\n";
-        return {
-            g_context.exception_message.data(),
-            g_context.exception_message.size()};
+        auto buffer = wholth_buffer_ring_pool_element();
+        return wholth::c::internal::push_and_get(excp.what(), buffer);
         /* return false; */
         /* g_context.exception_message = fmt::format( */
         /*     "Caught an exception: {} [{}] {}\n", */
@@ -70,99 +50,9 @@ extern "C" wholth_StringView wholth_app_setup(const WholthContext ctx)
         /*     err.code().value(), */
         /*     err.what()); */
     }
-    std::string_view st{"bogus!"};
-    return {st.data(), st.size()};
 
-    /* return true; */
-    return {nullptr, 0};
-}
-
-extern "C" bool wholth_foods_page_advance(uint64_t by)
-{
-    return wholth::controller::advance(foods_page_model(), by);
-}
-
-extern "C" bool wholth_foods_page_retreat(uint64_t by)
-{
-    return wholth::controller::retreat(foods_page_model(), by);
-}
-
-extern "C" bool wholth_foods_page_skip_to(uint64_t page)
-{
-    return wholth::controller::skip_to(foods_page_model(), page);
-}
-
-extern "C" void wholth_foods_page_fetch()
-{
-    // todo fix warn
-    std::cout << "FETCHING!\n";
-    wholth::controller::fill_container_through_model(
-        g_foods_container, foods_page_model(), g_context.connection);
-    std::cout << "DONE FETCHING!\n";
-}
-
-extern "C" void wholth_foods_page_title(wholth_StringView search_title)
-{
-    foods_page_model().title = {search_title.data, search_title.size};
-}
-
-extern "C" const wholth_FoodArray wholth_foods_page_list()
-{
-    /* if (sqlw::status::Condition::OK != g_context.connection.status()) */
-    /* { */
-    /*     // todo show error here? */
-    /*     return {nullptr, 0}; */
-    /* } */
-
-    const auto& vector =
-        g_foods_container.swappable_buffer_views.view_current().view;
-
-    return {vector.data(), vector.size()};
-}
-
-extern "C" bool wholth_foods_page_is_fetching()
-{
-    return foods_page_model().is_fetching;
-}
-
-extern "C" wholth_Page wholth_foods_page_info()
-{
-    const auto page = foods_page_model().pagination;
-
-    return {
-        .max_page = page.max_page(), .cur_page = page.current_page(),
-        /* .pagination = { */
-        /*     .data = page.pagination().data(), */
-        /*     .size = page.pagination().size(), */
-        /* }}; */
-    };
-}
-
-extern "C" wholth_ErrorCode wholth_entity_food_insert(
-    wholth_StringView title,
-    wholth_StringView description)
-{
-    /* assert(g_context.locale_id().size() > 0); */
-    assert(g_context.locale_id.size() > 0);
-
-    std::string id;
-
-    /* auto ec = wholth::entity::food::insert( */
-    /*     { */
-    /*         .title={title.data, title.size}, */
-    /*         .description={description.data, description.size} */
-    /*     }, */
-    /*     g_context.locale_id(), */
-    /*     id, */
-    /*     g_context.connection */
-    /* ); */
-
-    /* if (wholth::status::Condition::OK != ec) { */
-    /*     g_context.exception_message = ec.message(); */
-    /*     return ec.value(); */
-    /* } */
-
-    return WHOLTH_NO_ERROR;
+    return wholth_Error_OK;
+    // return {nullptr, 0};
 }
 
 extern "C" wholth_ErrorMessage wholth_latest_error_message()
@@ -172,75 +62,41 @@ extern "C" wholth_ErrorMessage wholth_latest_error_message()
         .size = g_context.exception_message.size()};
 }
 
-extern "C" void wholth_food_nutrients_food_id(const wholth_StringView food_id)
+extern "C" void eueu(wholth_StringView sv)
 {
-    auto& model = food_nutrients_page_model();
-    // todo precondition
-    model.food_id = {food_id.data, food_id.size};
+    // std::cout << wholth::utils::to_string_view(sv) << '\n';
 }
 
-extern "C" void wholth_food_nutrients_title(const wholth_StringView title)
+extern "C" bool wholth_ok(const wholth_Error* err)
 {
-    // todo precondition
-    food_nutrients_page_model().title = {title.data, title.size};
+    // return !(err->message.size > 0);
+    return nullptr == err || wholth_Error_OK.code == err->code;
 }
 
-extern "C" const wholth_NutrientArray wholth_food_nutrients()
+// todo test!
+extern "C" void wholth_app_locale_id(const wholth_StringView locale_id)
 {
-    const auto& vector =
-        g_nutrients_container.swappable_buffer_views.view_current().view;
+    assert(nullptr != locale_id.data);
+    assert(0 < locale_id.size);
 
-    return {vector.data(), vector.size()};
+    const auto id = wholth::utils::to_string_view(locale_id);
+
+    assert(wholth::utils::is_valid_id(id));
+    // if (!wholth::utils::is_valid_id(id))
+    // {
+    //     return;
+    // }
+
+    const auto ec = (sqlw::Transaction{&db::connection()})(
+        "UPDATE app_info SET value = ?1 WHERE field = 'default_locale_id'",
+        std::array<sqlw::Statement::bindable_t, 1>{
+            {{id, sqlw::Type::SQL_INT}}});
+
+    assert("BAD locale_id assignment!" && sqlw::status::Condition::OK == ec);
 }
 
-extern "C" const wholth_Page wholth_food_nutrients_pagination()
-{
-    const auto page = food_nutrients_page_model().pagination;
-
-    return {
-        .max_page = page.max_page(),
-        .cur_page = page.current_page(),
-    };
-}
-
-extern "C" void wholth_food_nutrients_fetch()
-{
-    wholth::controller::fill_container_through_model(
-        g_nutrients_container,
-        food_nutrients_page_model(),
-        g_context.connection);
-}
-
-extern "C" bool wholth_food_nutrients_advance(uint64_t by)
-{
-    return wholth::controller::advance(food_nutrients_page_model(), by);
-}
-
-extern "C" bool wholth_food_nutrients_retreat(uint64_t by)
-{
-    return wholth::controller::retreat(food_nutrients_page_model(), by);
-}
-
-extern "C" bool wholth_food_nutrients_skip_to(uint64_t page)
-{
-    return wholth::controller::skip_to(food_nutrients_page_model(), page);
-}
-
-extern "C" const wholth_FoodDetails wholth_food_details()
-{
-    return g_food_details_container.current().view;
-}
-
-extern "C" void wholth_food_details_food_id(const wholth_StringView food_id)
-{
-    food_details_model().food_id = {food_id.data, food_id.size};
-}
-
-extern "C" void wholth_food_details_fetch()
-{
-    wholth::controller::fill_object_through_model(
-        g_food_details_container, food_details_model(), g_context.connection);
-}
+/* static_assert(std::is_same_v<std::remove_cvref_t<const std::string_view&>,
+ * std::string_view>); */
 
 /* extern "C" wholth_StringView wholth_foods_page_pagination() */
 /* { */

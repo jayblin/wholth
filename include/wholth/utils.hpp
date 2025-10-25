@@ -4,7 +4,9 @@
 #include "fmt/color.h"
 #include "sqlite3.h"
 #include "sqlw/statement.hpp"
+#include "sqlw/utils.hpp"
 #include <array>
+#include <concepts>
 #include <gsl/gsl>
 #include <iomanip>
 #include <iostream>
@@ -23,13 +25,14 @@
 #define LOG(x) std::cout << x << '\n'
 #define assertm(exp, msg) assert((void(msg), exp))
 
+// todo move to files
 namespace wholth::utils
 {
 	/* constexpr std::string_view NIL = "<NIL>"; */
 	const gsl::czstring NIL = "<NIL>";
 
 	// YYYY-MM-DDTHH:MM:SS
-	std::string current_time_and_date();
+	auto current_time_and_date() -> std::string;
 
 	template<size_t Size, size_t Offset = 0>
 	class IndexSequence
@@ -63,55 +66,6 @@ namespace wholth::utils
 
 	private:
 		std::array<size_t, Size> m_idxs;
-	};
-
-    // todo maybe remake with array insteadof vector?
-	class LengthContainer
-	{
-	public:
-		LengthContainer()
-		{
-		};
-
-		LengthContainer(size_t size)
-		{
-			m_lengths.resize(size);
-		};
-
-		void add(size_t length)
-		{
-            // todo check bounds
-			if (m_i1 < m_lengths.size())
-			{
-				m_lengths[m_i1] = length;
-				m_i1++;
-			}
-		}
-
-        template <typename T>
-		T next(const std::string& buffer)
-		{
-            // todo check bounds
-			if (m_i2 < m_lengths.size())
-			{
-				T result {
-					buffer.data() + m_offset,
-					m_lengths[m_i2]
-				};
-				m_offset += m_lengths[m_i2];
-				m_i2++;
-
-				return result;
-			}
-
-			return {NIL, strlen(NIL)};
-		}
-
-	private:
-		std::vector<size_t> m_lengths {};
-		size_t m_i1 {0};
-		size_t m_i2 {0};
-		size_t m_offset {0};
 	};
 
 	class BufferSwapper
