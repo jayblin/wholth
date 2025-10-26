@@ -10,7 +10,7 @@
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_string_view.hpp"
 
-using wholth::c::internal::push_and_get;
+using wholth::c::internal::ec_to_error;
 using wholth::entity_manager::ingredient::Code;
 using wholth::utils::is_valid_id;
 using wholth::utils::to_string_view;
@@ -24,14 +24,14 @@ extern "C" auto wholth_em_ingredient_insert(
 {
     if (nullptr == step)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL,
             buffer);
     }
 
     if (nullptr == ing)
     {
-        return push_and_get(Code::INGREDIENT_IS_NULL, buffer);
+        return ec_to_error(Code::INGREDIENT_IS_NULL, buffer);
     }
 
     if (nullptr == buffer)
@@ -43,21 +43,21 @@ extern "C" auto wholth_em_ingredient_insert(
 
     if (!is_valid_id(food_id))
     {
-        return push_and_get(Code::INGREDIENT_INVALID_FOOD_ID, buffer);
+        return ec_to_error(Code::INGREDIENT_INVALID_FOOD_ID, buffer);
     }
 
     const auto mass = to_string_view(ing->canonical_mass_g);
 
     if (mass.size() == 0 || !sqlw::utils::is_numeric(mass))
     {
-        return push_and_get(Code::INGREDIENT_INVALID_MASS, buffer);
+        return ec_to_error(Code::INGREDIENT_INVALID_MASS, buffer);
     }
 
     const auto step_id = to_string_view(step->id);
 
     if (!is_valid_id(step_id))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_INVALID_ID,
             buffer);
     }
@@ -87,12 +87,12 @@ extern "C" auto wholth_em_ingredient_insert(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     if (result_id.size() == 0 || !is_valid_id(result_id))
     {
-        return push_and_get(Code::INGREDIENT_POSTCONDITION_FAILED, buffer);
+        return ec_to_error(Code::INGREDIENT_POSTCONDITION_FAILED, buffer);
     }
 
     wholth_buffer_move_data_to(buffer, &result_id);
@@ -114,12 +114,12 @@ extern "C" auto wholth_em_ingredient_update(
 
     if (nullptr == ing)
     {
-        return push_and_get(Code::INGREDIENT_IS_NULL, buffer);
+        return ec_to_error(Code::INGREDIENT_IS_NULL, buffer);
     }
 
     if (nullptr == step)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL,
             buffer);
     }
@@ -128,14 +128,14 @@ extern "C" auto wholth_em_ingredient_update(
 
     if (mass.size() == 0 || !sqlw::utils::is_numeric(mass))
     {
-        return push_and_get(Code::INGREDIENT_INVALID_MASS, buffer);
+        return ec_to_error(Code::INGREDIENT_INVALID_MASS, buffer);
     }
 
     const auto id = to_string_view(ing->id);
 
     if (!is_valid_id(id))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::ingredient::Code::INGREDIENT_INVALID_ID,
             buffer);
     }
@@ -154,7 +154,7 @@ extern "C" auto wholth_em_ingredient_update(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;

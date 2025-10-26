@@ -15,7 +15,7 @@
 static_assert(nullptr == (void*)NULL);
 
 using ::utils::time_to_seconds;
-using wholth::c::internal::push_and_get;
+using wholth::c::internal::ec_to_error;
 using wholth::entity_manager::recipe_step::Code;
 using wholth::utils::is_valid_id;
 using wholth::utils::to_string_view;
@@ -52,14 +52,14 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (nullptr == step)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL,
             buffer);
     }
 
     if (nullptr == recipe)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_NULL, buffer);
     }
 
@@ -67,13 +67,13 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (!is_valid_id(food_id))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_INVALID_ID, buffer);
     }
 
     if (nullptr == step->time.data)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL_TIME,
             buffer);
     }
@@ -85,12 +85,12 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (::utils::time_to_seconds_Code::OK != seconds_err)
     {
-        return push_and_get(seconds_err, buffer);
+        return ec_to_error(seconds_err, buffer);
     }
 
     if (nullptr == step->description.data)
     {
-        return push_and_get(Code::RECIPE_STEP_NULL_DESCRIPTION, buffer);
+        return ec_to_error(Code::RECIPE_STEP_NULL_DESCRIPTION, buffer);
     }
 
     std::error_code ec;
@@ -122,7 +122,7 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     auto& step_id = std::get<0>(rs_id_and_rsl_id);
@@ -130,7 +130,7 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (!step_id.empty() && !locale_id.empty())
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::
                 RECIPE_STEP_ALREADY_EXISTS,
             buffer);
@@ -153,7 +153,7 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(Code::RECIPE_STEP_INSERT_FAILURE, buffer);
+        return ec_to_error(Code::RECIPE_STEP_INSERT_FAILURE, buffer);
     }
 
     wholth_buffer_move_data_to(buffer, &step_id);
@@ -163,7 +163,7 @@ extern "C" auto wholth_em_recipe_step_insert(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(
+        return ec_to_error(
             Code::RECIPE_STEP_LOCALISATION_UPDATE_FAILURE, buffer);
     }
 
@@ -181,7 +181,7 @@ extern "C" wholth_Error wholth_em_recipe_step_update(
 
     if (nullptr == step)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL,
             buffer);
     }
@@ -189,7 +189,7 @@ extern "C" wholth_Error wholth_em_recipe_step_update(
     const auto provided_step_id = to_string_view(step->id);
     if (!is_valid_id(provided_step_id))
     {
-        return push_and_get(Code::RECIPE_STEP_INVALID_ID, buffer);
+        return ec_to_error(Code::RECIPE_STEP_INVALID_ID, buffer);
     }
 
     std::string seconds;
@@ -200,7 +200,7 @@ extern "C" wholth_Error wholth_em_recipe_step_update(
 
         if (::utils::time_to_seconds_Code::OK != seconds_err)
         {
-            return push_and_get(seconds_err, buffer);
+            return ec_to_error(seconds_err, buffer);
         }
     }
 
@@ -222,7 +222,7 @@ extern "C" wholth_Error wholth_em_recipe_step_update(
         if (sqlw::status::Condition::OK != ec)
         {
             // push_and_get(ec, buffer);
-            return push_and_get(Code::RECIPE_STEP_UPDATE_FAILURE, buffer);
+            return ec_to_error(Code::RECIPE_STEP_UPDATE_FAILURE, buffer);
         }
     }
 
@@ -233,7 +233,7 @@ extern "C" wholth_Error wholth_em_recipe_step_update(
         if (sqlw::status::Condition::OK != ec)
         {
             // push_and_get(ec, buffer);
-            return push_and_get(
+            return ec_to_error(
                 Code::RECIPE_STEP_LOCALISATION_UPDATE_FAILURE, buffer);
         }
     }

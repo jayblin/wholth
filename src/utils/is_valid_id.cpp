@@ -3,7 +3,7 @@
 
 bool wholth::utils::is_valid_id(std::string_view id)
 {
-    if (id.size() <= 0)
+    if (id.size() <= 0 || id.empty())
     {
         return false;
     }

@@ -15,7 +15,7 @@
 #include "wholth/utils/to_string_view.hpp"
 #include <sstream>
 
-using wholth::c::internal::push_and_get;
+using wholth::c::internal::ec_to_error;
 using wholth::entity_manager::food::Code;
 using wholth::utils::current_time_and_date;
 using wholth::utils::is_valid_id;
@@ -78,12 +78,12 @@ extern "C" auto wholth_em_food_insert(
 
     if (nullptr == food)
     {
-        return push_and_get(Code::FOOD_NULL, buffer);
+        return ec_to_error(Code::FOOD_NULL, buffer);
     }
 
     if (nullptr == food->title.data || 0 == food->title.size)
     {
-        return push_and_get(Code::FOOD_NULL_TITLE, buffer);
+        return ec_to_error(Code::FOOD_NULL_TITLE, buffer);
     }
 
     // if (nullptr == food->description.data || 0 == food->description.size)
@@ -118,7 +118,7 @@ extern "C" auto wholth_em_food_insert(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     wholth_buffer_move_data_to(buffer, &result_id);
@@ -141,7 +141,7 @@ extern "C" auto wholth_em_food_update(
 
     if (nullptr == food)
     {
-        return push_and_get(Code::FOOD_NULL, buffer);
+        return ec_to_error(Code::FOOD_NULL, buffer);
     }
 
     // if (nullptr == deets)
@@ -154,7 +154,7 @@ extern "C" auto wholth_em_food_update(
 
     if (!is_valid_id(id))
     {
-        return wholth::c::internal::push_and_get(Code::FOOD_INVALID_ID, buffer);
+        return wholth::c::internal::ec_to_error(Code::FOOD_INVALID_ID, buffer);
         // return wholth::c::internal::push_and_get(
         //     wholth::entity_manager::food::Code::INVALID_FOOD_ID);
     }
@@ -185,7 +185,7 @@ extern "C" auto wholth_em_food_update(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;
@@ -202,14 +202,14 @@ extern "C" auto wholth_em_food_delete(
 
     if (nullptr == food)
     {
-        return push_and_get(Code::FOOD_NULL, buffer);
+        return ec_to_error(Code::FOOD_NULL, buffer);
     }
 
     const auto id = to_string_view(food->id);
 
     if (!is_valid_id(id))
     {
-        return wholth::c::internal::push_and_get(Code::FOOD_INVALID_ID, buffer);
+        return wholth::c::internal::ec_to_error(Code::FOOD_INVALID_ID, buffer);
     }
 
     const auto ec = sqlw::Transaction{&db::connection()}(
@@ -219,7 +219,7 @@ extern "C" auto wholth_em_food_delete(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;

@@ -13,9 +13,9 @@ extern "C"
         wholth_StringView id;
         wholth_StringView name;
         wholth_StringView locale_id;
-    } wholth_RecipeStep;
+    } wholth_User;
 
-    wholth_RecipeStep wholth_entity_user_init();
+    wholth_User wholth_entity_user_init();
 
 #ifdef __cplusplus
 }

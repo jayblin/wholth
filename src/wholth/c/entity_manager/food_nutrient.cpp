@@ -12,7 +12,7 @@
 #include "wholth/utils/to_string_view.hpp"
 #include "wholth/c/entity_manager/food_nutrient.h"
 
-using wholth::c::internal::push_and_get;
+using wholth::c::internal::ec_to_error;
 using wholth::utils::is_valid_id;
 using wholth::utils::to_string_view;
 
@@ -30,13 +30,13 @@ extern "C" wholth_Error wholth_em_food_nutrient_upsert(
 
     if (nullptr == food)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_NULL, buffer);
     }
 
     if (nullptr == nutrient)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::nutrient::Code::NUTRIENT_NULL, buffer);
     }
 
@@ -44,7 +44,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_upsert(
 
     if (!is_valid_id(food_id))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_INVALID_ID, buffer);
     }
 
@@ -52,7 +52,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_upsert(
 
     if (!is_valid_id(n_id))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::nutrient::Code::NUTRIENT_INVALID_ID,
             buffer);
     }
@@ -61,7 +61,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_upsert(
 
     if (value.empty() || !sqlw::utils::is_numeric(value))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::nutrient::Code::NUTRIENT_INVALID_VALUE,
             buffer);
     }
@@ -78,7 +78,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_upsert(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;
@@ -95,13 +95,13 @@ extern "C" wholth_Error wholth_em_food_nutrient_update_important(
 
     if (nullptr == food)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_NULL, buffer);
     }
 
     if (nullptr == food->id.data || food->id.size <= 0)
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_INVALID_ID, buffer);
     }
 
@@ -109,7 +109,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_update_important(
 
     if (!wholth::utils::is_valid_id(food_id))
     {
-        return push_and_get(
+        return ec_to_error(
             wholth::entity_manager::food::Code::FOOD_INVALID_ID, buffer);
     }
 
@@ -204,7 +204,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_update_important(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;

@@ -10,6 +10,13 @@ extern "C"
 {
 #endif
 
+    enum wholth_em_user_Code
+    {
+        USER_NULL = 601,
+        USER_INVALID_ID,
+        USER_INVALID_LOCALE_ID,
+    };
+
     wholth_Error wholth_em_user_authenticate(
         const wholth_User* const,
         const wholth_StringView password,

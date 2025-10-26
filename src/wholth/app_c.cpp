@@ -43,7 +43,7 @@ extern "C" wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const args)
         // todo log exception
         g_context.exception_message = std::move(excp.what());
         auto buffer = wholth_buffer_ring_pool_element();
-        return wholth::c::internal::push_and_get(excp.what(), buffer);
+        return wholth::c::internal::str_to_error(excp.what(), buffer);
         /* return false; */
         /* g_context.exception_message = fmt::format( */
         /*     "Caught an exception: {} [{}] {}\n", */

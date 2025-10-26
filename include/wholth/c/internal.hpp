@@ -12,8 +12,8 @@ namespace wholth::c::internal
 {
 
 auto global_context() -> wholth::Context&;
-auto push_and_get(std::error_code, wholth_Buffer* const) -> wholth_Error;
-auto push_and_get(std::string, wholth_Buffer* const) -> wholth_Error;
+auto ec_to_error(std::error_code, wholth_Buffer* const) -> wholth_Error;
+auto str_to_error(std::string, wholth_Buffer* const) -> wholth_Error;
 auto bad_buffer_error() -> wholth_Error;
 
 } // namespace wholth::c::internal

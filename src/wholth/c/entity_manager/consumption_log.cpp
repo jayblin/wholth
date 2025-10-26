@@ -7,19 +7,21 @@
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/consumption_log.h"
 #include "wholth/c/entity_manager/consumption_log.h"
-#include "wholth/c/forward.h"
 #include "wholth/c/internal.hpp"
 #include "wholth/entity_manager/consumption_log.hpp"
+#include "wholth/entity_manager/user.hpp"
+#include "wholth/entity_manager/user.hpp"
 #include "wholth/utils.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/prepend_sql_params.hpp"
 #include "wholth/utils/to_string_view.hpp"
 
-using fmt::detail::to_string_view;
-using wholth::c::internal::push_and_get;
+using ::utils::datetime::is_valid_sqlite_datetime;
+using wholth::c::internal::ec_to_error;
 using wholth::entity_manager::consumption_log::Code;
 using wholth::utils::current_time_and_date;
 using wholth::utils::is_valid_id;
+using wholth::utils::to_string_view;
 
 // todo: move erro_code stuff to wholth/entity/manager/consumption_log.cpp
 namespace wholth::entity_manager::consumption_log
@@ -34,12 +36,8 @@ struct ErrorCategory : std::error_category
 
     std::string message(int ev) const override final
     {
-        using Code = wholth::entity_manager::consumption_log::Code;
-
         switch (static_cast<Code>(ev))
         {
-        case Code::OK:
-            return "no error";
         case Code::CONSUMPTION_LOG_NULL:
             return "CONSUMPTION_LOG_NULL";
         case Code::CONSUMPTION_LOG_INVALID_ID:
@@ -59,8 +57,7 @@ struct ErrorCategory : std::error_category
 const ErrorCategory error_category{};
 } // namespace wholth::entity_manager::consumption_log
 
-std::error_code wholth::entity_manager::consumption_log::make_error_code(
-    wholth::entity_manager::consumption_log::Code e)
+std::error_code make_error_code(wholth::entity_manager::consumption_log::Code e)
 {
     return {
         static_cast<int>(e),
@@ -69,6 +66,7 @@ std::error_code wholth::entity_manager::consumption_log::make_error_code(
 
 extern "C" wholth_Error wholth_em_consumption_log_insert(
     wholth_ConsumptionLog* const log,
+    wholth_User* const user,
     wholth_Buffer* const buffer)
 {
     if (nullptr == buffer)
@@ -76,60 +74,65 @@ extern "C" wholth_Error wholth_em_consumption_log_insert(
         return wholth::c::internal::bad_buffer_error();
     }
 
+    std::error_code err;
+    std::string_view user_id;
+    std::string_view food_id;
+    std::string_view mass;
+    std::string_view datetime;
+
     if (nullptr == log)
     {
-        return push_and_get(Code::CONSUMPTION_LOG_NULL, buffer);
+        err = Code::CONSUMPTION_LOG_NULL;
+    }
+    else if (nullptr == user)
+    {
+        err = wholth::entity_manager::user::Code::USER_NULL;
+    }
+    else if (user_id = to_string_view(user->id); !is_valid_id(user_id))
+    {
+        err = wholth::entity_manager::user::Code::USER_INVALID_ID;
+    }
+    else if (food_id = to_string_view(log->food_id); !is_valid_id(food_id))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_FOOD_ID;
+    }
+    else if (mass = to_string_view(log->mass);
+             mass.empty() || !sqlw::utils::is_numeric(mass))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_MASS;
+    }
+    else if (datetime = to_string_view(log->consumed_at);
+             datetime.empty() ||
+             !::utils::datetime::is_valid_sqlite_datetime(datetime))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_DATE;
     }
 
-    const auto food_id = wholth::utils::to_string_view(log->food_id);
-    if (food_id.empty() || !is_valid_id(food_id))
+    if (err)
     {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_FOOD_ID, buffer);
-    }
-
-    if (nullptr == log->mass.data || 0 == log->mass.size)
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_MASS, buffer);
-    }
-
-    const auto mass = wholth::utils::to_string_view(log->mass);
-
-    if (!sqlw::utils::is_numeric(mass))
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_MASS, buffer);
-    }
-
-    if (nullptr == log->consumed_at.data || 0 == log->consumed_at.size)
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_DATE, buffer);
-    }
-
-    const auto datetime = wholth::utils::to_string_view(log->consumed_at);
-
-    if (!::utils::datetime::is_valid_sqlite_datetime(datetime))
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_DATE, buffer);
+        return ec_to_error(err, buffer);
     }
 
     std::string id;
     const std::error_code ec = sqlw::Transaction{&db::connection()}(
-        "INSERT INTO consumption_log (food_id, mass, consumed_at) "
-        "VALUES (?1, ?2, ?3) RETURNING id",
+        "INSERT INTO consumption_log (food_id, user_id, mass, consumed_at) "
+        "VALUES (?1, ?2, ?3, ?4) RETURNING id",
         [&id](sqlw::Statement::ExecArgs e) { id = e.column_value; },
-        std::array<sqlw::Statement::bindable_t, 3>{{
+        std::array<sqlw::Statement::bindable_t, 4>{{
             {food_id, sqlw::Type::SQL_INT},
+            {user_id, sqlw::Type::SQL_INT},
             {mass, sqlw::Type::SQL_DOUBLE},
             {datetime, sqlw::Type::SQL_TEXT},
         }});
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     if (id.empty())
     {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_ID, buffer);
+        return ec_to_error(Code::CONSUMPTION_LOG_INVALID_ID, buffer);
     }
 
     wholth_buffer_move_data_to(buffer, &id);
@@ -140,6 +143,7 @@ extern "C" wholth_Error wholth_em_consumption_log_insert(
 
 extern "C" wholth_Error wholth_em_consumption_log_update(
     const wholth_ConsumptionLog* const log,
+    wholth_User* const user,
     wholth_Buffer* const buffer)
 {
     if (nullptr == buffer)
@@ -147,34 +151,47 @@ extern "C" wholth_Error wholth_em_consumption_log_update(
         return wholth::c::internal::bad_buffer_error();
     }
 
+    std::error_code err;
+    std::string_view id;
+    std::string_view user_id;
+    std::string_view food_id;
+
     if (nullptr == log)
     {
-        return push_and_get(Code::CONSUMPTION_LOG_NULL, buffer);
+        err = Code::CONSUMPTION_LOG_NULL;
+    }
+    else if (nullptr == user)
+    {
+        err = wholth::entity_manager::user::Code::USER_NULL;
+    }
+    else if (id = to_string_view(log->id); !is_valid_id(id))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_ID;
+    }
+    else if (user_id = to_string_view(user->id); !is_valid_id(user_id))
+    {
+        err = wholth::entity_manager::user::Code::USER_INVALID_ID;
+    }
+    else if (food_id = to_string_view(log->food_id); !is_valid_id(food_id))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_FOOD_ID;
+    }
+    else if (
+        (nullptr != log->consumed_at.data && log->consumed_at.size > 0) &&
+        !is_valid_sqlite_datetime(to_string_view(log->consumed_at)))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_DATE;
+    }
+    else if (
+        nullptr != log->mass.data && log->mass.size > 0 &&
+        !sqlw::utils::is_numeric(to_string_view(log->mass)))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_MASS;
     }
 
-    const auto id = wholth::utils::to_string_view(log->id);
-    if (id.empty() || !is_valid_id(id))
+    if (err)
     {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_ID, buffer);
-    }
-
-    const auto food_id = wholth::utils::to_string_view(log->food_id);
-    if (food_id.empty() || !is_valid_id(food_id))
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_FOOD_ID, buffer);
-    }
-
-    if ((nullptr != log->consumed_at.data && log->consumed_at.size > 0) &&
-        !::utils::datetime::is_valid_sqlite_datetime(
-            wholth::utils::to_string_view(log->consumed_at)))
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_DATE, buffer);
-    }
-
-    if (nullptr != log->mass.data && log->mass.size > 0 &&
-        !sqlw::utils::is_numeric(wholth::utils::to_string_view(log->mass)))
-    {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_MASS, buffer);
+        return ec_to_error(err, buffer);
     }
 
     std::array<wholth::utils::extended_param_t, 2> param_map{{
@@ -184,13 +201,16 @@ extern "C" wholth_Error wholth_em_consumption_log_update(
 
     std::stringstream ss;
     std::vector<sqlw::Statement::bindable_t> params{};
-    params.reserve(3);
+    params.reserve(4);
     ss << "UPDATE consumption_log SET ";
     wholth::utils::prepend_sql_params(param_map, params, ss);
-    params.emplace_back(food_id, sqlw::Type::SQL_INT);
     params.emplace_back(id, sqlw::Type::SQL_INT);
+    params.emplace_back(user_id, sqlw::Type::SQL_INT);
 
-    ss << fmt::format(" WHERE id = ?{0} ", params.size());
+    ss << fmt::format(
+        " WHERE id = ?{0} AND user_id = ?{1}",
+        params.size() - 1,
+        params.size());
 
     const auto sql = ss.str();
     const std::error_code ec =
@@ -198,7 +218,7 @@ extern "C" wholth_Error wholth_em_consumption_log_update(
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;
@@ -206,6 +226,7 @@ extern "C" wholth_Error wholth_em_consumption_log_update(
 
 wholth_Error wholth_em_consumption_log_delete(
     const wholth_ConsumptionLog* const log,
+    wholth_User* const user,
     wholth_Buffer* const buffer)
 {
     if (nullptr == buffer)
@@ -213,26 +234,43 @@ wholth_Error wholth_em_consumption_log_delete(
         return wholth::c::internal::bad_buffer_error();
     }
 
+    std::error_code err;
+
+    std::string_view id;
+    std::string_view user_id;
+
     if (nullptr == log)
     {
-        return push_and_get(Code::CONSUMPTION_LOG_NULL, buffer);
+        err = Code::CONSUMPTION_LOG_NULL;
+    }
+    else if (nullptr == user)
+    {
+        err = wholth::entity_manager::user::Code::USER_NULL;
+    }
+    else if (user_id = to_string_view(user->id); !is_valid_id(user_id))
+    {
+        err = wholth::entity_manager::user::Code::USER_INVALID_ID;
+    }
+    else if (id = to_string_view(log->id); !is_valid_id(id))
+    {
+        err = Code::CONSUMPTION_LOG_INVALID_ID;
     }
 
-    const auto id = wholth::utils::to_string_view(log->id);
-    if (id.empty() || !is_valid_id(id))
+    if (err)
     {
-        return push_and_get(Code::CONSUMPTION_LOG_INVALID_ID, buffer);
+        return ec_to_error(err, buffer);
     }
 
     const std::error_code ec = sqlw::Transaction{&db::connection()}(
-        "DELETE FROM consumption_log WHERE id = ?1",
-        std::array<sqlw::Statement::bindable_t, 1>{{
+        "DELETE FROM consumption_log WHERE id = ?1 AND user_id = ?2",
+        std::array<sqlw::Statement::bindable_t, 2>{{
             {id, sqlw::Type::SQL_INT},
+            {user_id, sqlw::Type::SQL_INT},
         }});
 
     if (sqlw::status::Condition::OK != ec)
     {
-        return push_and_get(ec, buffer);
+        return ec_to_error(ec, buffer);
     }
 
     return wholth_Error_OK;
