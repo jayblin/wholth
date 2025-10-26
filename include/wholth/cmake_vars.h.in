@@ -5,6 +5,7 @@
 
 #define MIGRATIONS_DIR "@CMAKE_CURRENT_SOURCE_DIR@/migrations"
 
+// todo remove
 #define DEFAULT_FONT_PATH "@DEFAULT_FONT_PATH@"
 
 /* #define DATABASE_DIR "@CMAKE_INSTALL_PREFIX@" */
@@ -13,6 +14,8 @@
 #define WHOLTH_APP_VERSION "0.0.1"
 
 #define DATABASE_NAME "wholth.db"
+
+#define DEPLOYMENT_MODE @DEPLOYMENT_MODE@
 
 #endif // WHOLTH_CMAKE_VARS_H_
 

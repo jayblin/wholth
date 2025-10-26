@@ -3,6 +3,7 @@
 #include "sqlw/statement.hpp"
 #include "sqlw/transaction.hpp"
 #include "wholth/app.hpp"
+#include "wholth/c/error.h"
 #include "wholth/c/forward.h"
 #include "wholth/c/internal.hpp"
 #include "wholth/context.hpp"
@@ -55,26 +56,26 @@ extern "C" wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const args)
     // return {nullptr, 0};
 }
 
-extern "C" wholth_ErrorMessage wholth_latest_error_message()
-{
-    return {
-        .data = g_context.exception_message.data(),
-        .size = g_context.exception_message.size()};
-}
+// extern "C" wholth_StringView wholth_latest_error_message()
+// {
+//     return {
+//         .data = g_context.exception_message.data(),
+//         .size = g_context.exception_message.size()};
+// }
 
 extern "C" void eueu(wholth_StringView sv)
 {
     // std::cout << wholth::utils::to_string_view(sv) << '\n';
 }
 
-extern "C" bool wholth_ok(const wholth_Error* err)
+extern "C" bool wholth_error_ok(const wholth_Error* err)
 {
     // return !(err->message.size > 0);
     return nullptr == err || wholth_Error_OK.code == err->code;
 }
 
 // todo test!
-extern "C" void wholth_app_locale_id(const wholth_StringView locale_id)
+extern "C" void wholth_user_locale_id(const wholth_StringView locale_id)
 {
     assert(nullptr != locale_id.data);
     assert(0 < locale_id.size);

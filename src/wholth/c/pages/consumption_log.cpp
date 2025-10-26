@@ -1,18 +1,20 @@
 #include "wholth/pages/consumption_log.hpp"
-#include "wholth/c/forward.h"
 #include "wholth/c/pages/consumption_log.h"
 #include "sqlw/statement.hpp"
 #include "utils/datetime.hpp"
 #include "wholth/entity_manager/consumption_log.hpp"
 #include "wholth/pages/internal.hpp"
 #include "wholth/utils.hpp"
+#include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/length_container.hpp"
+#include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
 
 constexpr auto field_count = 5;
 using ::utils::datetime::is_valid_sqlite_datetime;
 using wholth::entity_manager::consumption_log::Code;
 using wholth::pages::internal::PageType;
+using wholth::utils::to_error;
 
 static wholth_Error check_from(std::string_view _from)
 {
@@ -70,23 +72,28 @@ auto wholth::pages::prepare_consumption_log_stmt(
             cl.consumed_at,
             COALESCE(fl.title, '[N/A]') AS food_title
         FROM consumption_log cl
+        INNER JOIN user u
+            ON u.id = cl.user_id
         LEFT JOIN food_localisation fl
             ON fl.food_id = cl.food_id
-                AND fl.locale_id = (SELECT value FROM app_info WHERE field = 'default_locale_id')
-        WHERE cl.consumed_at BETWEEN ?1 AND ?2
+                AND fl.locale_id = u.locale_id
+        WHERE
+            u.id = ?1
+            AND cl.consumed_at BETWEEN ?2 AND ?3
         ORDER BY cl.consumed_at ASC
     )
     SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL FROM the_list
     UNION ALL
-    SELECT * FROM (SELECT * FROM the_list LIMIT ?3 OFFSET ?4)
+    SELECT * FROM (SELECT * FROM the_list LIMIT ?4 OFFSET ?5)
     )sql";
 
     ok(stmt.prepare(sql)) &&
-        ok(stmt.bind(1, query.created_from, sqlw::Type::SQL_TEXT)) &&
-        ok(stmt.bind(2, query.created_to, sqlw::Type::SQL_TEXT)) &&
-        ok(stmt.bind(3, static_cast<int>(pagination.per_page()))) &&
+        ok(stmt.bind(1, query.user_id, sqlw::Type::SQL_INT)) &&
+        ok(stmt.bind(2, query.created_from, sqlw::Type::SQL_TEXT)) &&
+        ok(stmt.bind(3, query.created_to, sqlw::Type::SQL_TEXT)) &&
+        ok(stmt.bind(4, static_cast<int>(pagination.per_page()))) &&
         ok(stmt.bind(
-            4,
+            5,
             static_cast<int>(
                 pagination.per_page() * pagination.current_page())));
 
@@ -151,7 +158,7 @@ const wholth_ConsumptionLogArray wholth_pages_consumption_log_array(
     return {vector.data(), page->pagination.span_size()};
 }
 
-wholth_Error wholth_pages_consumption_log_period(
+extern "C" wholth_Error wholth_pages_consumption_log_period(
     wholth_Page* const page,
     wholth_StringView from,
     wholth_StringView to)
@@ -182,4 +189,27 @@ wholth_Error wholth_pages_consumption_log_period(
     std::get<PageType::CONSUMPTION_LOG>(page->data).query.created_to = _to;
 
     return err;
+}
+
+extern "C" wholth_Error wholth_pages_consumption_log_user_id(
+    wholth_Page* const page,
+    wholth_StringView user_id)
+{
+    if (!check_page(page))
+    {
+        return wholth_Error_OK;
+    }
+
+    const auto uid = wholth::utils::to_string_view(user_id);
+
+    if (!wholth::utils::is_valid_id(uid))
+    {
+        static constexpr std::string_view msg =
+            "Invalid user id provided for consumption log query!";
+        return to_error(610, msg);
+    }
+
+    std::get<PageType::CONSUMPTION_LOG>(page->data).query.user_id = uid;
+
+    return wholth_Error_OK;
 }

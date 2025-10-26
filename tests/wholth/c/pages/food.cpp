@@ -169,7 +169,7 @@ class Test_wholth_pages_food : public ApplicationAwareTest
 
 TEST_F(Test_wholth_pages_food, fetch_when_first_page)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food(1, 8);
     const wholth_Error err = wholth_pages_fetch(page);
@@ -230,7 +230,7 @@ TEST_F(Test_wholth_pages_food, fetch_when_first_page)
 
 TEST_F(Test_wholth_pages_food, fetch_when_second_page)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food(2, 8);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
@@ -263,7 +263,7 @@ TEST_F(Test_wholth_pages_food, fetch_when_second_page)
 
 TEST_F(Test_wholth_pages_food, fetch_when_first_page_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
     wholth_Page* page = wholth_pages_food(1, 8);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     const wholth_Error err = wholth_pages_fetch(page);
@@ -315,7 +315,7 @@ TEST_F(Test_wholth_pages_food, fetch_when_first_page_diff_locale)
 
 TEST_F(Test_wholth_pages_food, fetch_should_clamp_on_last_page)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
     wholth_Page* page = wholth_pages_food(3, 8);
     ASSERT_TRUE(wholth_pages_skip_to(page, 99999));
     const wholth_Error err = wholth_pages_fetch(page);
@@ -339,7 +339,7 @@ TEST_F(Test_wholth_pages_food, fetch_should_clamp_on_last_page)
 
 TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food(1, 8);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
@@ -373,7 +373,7 @@ TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title)
 
 TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title_and_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     wholth_Page* page = wholth_pages_food(99, 8);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
@@ -454,7 +454,7 @@ TEST_F(Test_wholth_pages_food, fetch_should_filter_by_ingredients)
     //         e.column_value);
     // });
 
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food(1, 8);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));

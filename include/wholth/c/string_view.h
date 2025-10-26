@@ -8,8 +8,15 @@ extern "C"
 {
 #endif
 
-// todo remove wholth_StringView_default from  "wholth/c/forward.h"
-wholth_StringView wholth_default_string_view();
+    struct wholth_StringView_t
+    {
+        const char* data;
+        unsigned long size;
+    } const wholth_StringView_default = {NULL, 0};
+    typedef struct wholth_StringView_t wholth_StringView;
+
+    // todo remove wholth_StringView_default from  "wholth/c/forward.h"
+    wholth_StringView wholth_default_string_view();
 
 #ifdef __cplusplus
 }

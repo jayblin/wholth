@@ -37,7 +37,7 @@ class Test_wholth_pages_recipe_step : public ApplicationAwareTest
 
 TEST_F(Test_wholth_pages_recipe_step, when_basic_case)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_recipe_step(true);
 
@@ -61,7 +61,7 @@ TEST_F(Test_wholth_pages_recipe_step, when_basic_case)
 
 TEST_F(Test_wholth_pages_recipe_step, when_basic_case_and_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     wholth_Page* page = wholth_pages_recipe_step(true);
 
@@ -88,14 +88,14 @@ TEST_F(Test_wholth_pages_recipe_step, when_not_found)
     {
         wholth_Page* page = wholth_pages_recipe_step(true);
 
-        wholth_app_locale_id(wtsv("2"));
+        wholth_user_locale_id(wtsv("2"));
         wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
-        wholth_app_locale_id(wtsv("1"));
+        wholth_user_locale_id(wtsv("1"));
         wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
     }
 
     {
-        wholth_app_locale_id(wtsv("1"));
+        wholth_user_locale_id(wtsv("1"));
 
         wholth_Page* page = wholth_pages_recipe_step(false);
 

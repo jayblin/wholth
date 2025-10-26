@@ -41,7 +41,8 @@ extern "C"
 
     wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const);
 
-    void wholth_app_locale_id(const wholth_StringView);
+    // todo move to em
+    void wholth_user_locale_id(const wholth_StringView);
 
     void eueu(wholth_StringView sv);
 

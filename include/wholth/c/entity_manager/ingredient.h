@@ -4,6 +4,7 @@
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/ingredient.h"
 #include "wholth/c/entity/recipe_step.h"
+#include "wholth/c/error.h"
 
 #ifdef __cplusplus
 extern "C"

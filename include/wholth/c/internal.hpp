@@ -3,7 +3,7 @@
 
 #include "wholth/buffer_view.hpp"
 #include "wholth/c/buffer.h"
-#include "wholth/c/forward.h"
+#include "wholth/c/error.h"
 #include "wholth/context.hpp"
 #include <system_error>
 #include <vector>

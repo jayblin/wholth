@@ -1,8 +1,8 @@
 #ifndef WHOLTH_C_PAGES_CONSUMPTION_LOG_H_
 #define WHOLTH_C_PAGES_CONSUMPTION_LOG_H_
 
+#include "wholth/c/array.h"
 #include "wholth/c/entity/consumption_log.h"
-#include "wholth/c/forward.h"
 #include "wholth/c/pages/utils.h"
 
 #ifdef __cplusplus
@@ -18,6 +18,9 @@ extern "C"
         wholth_Page* const,
         wholth_StringView from,
         wholth_StringView to);
+    wholth_Error wholth_pages_consumption_log_user_id(
+        wholth_Page* const,
+        wholth_StringView user_id);
 
 #ifdef __cplusplus
 }

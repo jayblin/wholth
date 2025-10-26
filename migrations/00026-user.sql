@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS user (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	name TEXT NOT NULL,
 	password_hashed TEXT NOT NULL,
-    locale_id INTEGER DEFAULT 1
-	FOREIGN KEY (locale_id) REFERENCES locale(id)
+    locale_id INTEGER DEFAULT 1,
+	FOREIGN KEY (locale_id) REFERENCES locale(id),
+    UNIQUE (name COLLATE NOCASE)
 ) STRICT

@@ -19,7 +19,7 @@ class Test_wholth_em_food_insert : public ApplicationAwareTest
 TEST_F(Test_wholth_em_food_insert, when_good_case)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     // wholth_Food food{
     //     .id = wtsv("22"),
@@ -79,7 +79,7 @@ TEST_F(Test_wholth_em_food_insert, when_good_case)
 
 TEST_F(Test_wholth_em_food_insert, when_duplicate)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     auto& con = db::connection();
 
@@ -134,7 +134,7 @@ TEST_F(Test_wholth_em_food_insert, when_duplicate)
 
 TEST_F(Test_wholth_em_food_insert, when_food_is_nullptr)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     auto& con = db::connection();
 
@@ -232,7 +232,7 @@ TEST_F(Test_wholth_em_food_insert, when_food_is_nullptr)
 
 TEST_F(Test_wholth_em_food_insert, when_title_is_null)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     auto& con = db::connection();
 
@@ -289,7 +289,7 @@ TEST_F(Test_wholth_em_food_insert, when_title_is_null)
 
 TEST_F(Test_wholth_em_food_insert, when_description_is_null)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     auto& con = db::connection();
 
@@ -368,7 +368,7 @@ TEST_F(Test_wholth_em_food_insert, when_description_is_null)
 
 TEST_F(Test_wholth_em_food_insert, when_null_buffer)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     auto& con = db::connection();
 

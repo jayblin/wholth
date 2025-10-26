@@ -1,7 +1,7 @@
 #ifndef WHOLTH_C_ENTITY_INGREDIENTS_H_
 #define WHOLTH_C_ENTITY_INGREDIENTS_H_
 
-#include "wholth/c/forward.h"
+#include "wholth/c/string_view.h"
 
 #ifdef __cplusplus
 extern "C"

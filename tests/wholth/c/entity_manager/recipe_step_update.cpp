@@ -80,7 +80,7 @@ TEST_F(Test_wholth_em_recipe_step_update, when_time_is_null)
     step.description = wtsv("other thing!");
     ASSERT_EQ(NULL, step.time.data);
 
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     const auto err = wholth_em_recipe_step_update(&step, scratch);
 
@@ -129,7 +129,7 @@ TEST_F(Test_wholth_em_recipe_step_update, when_description_is_null)
     step.time = wtsv("1m");
     ASSERT_EQ(NULL, step.description.data);
 
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     const auto err = wholth_em_recipe_step_update(&step, scratch);
 
@@ -289,7 +289,7 @@ TEST_F(Test_wholth_em_recipe_step_update, when_basic_case)
         step.time = wtsv("15m");
         step.description = wtsv("another thing!");
 
-        wholth_app_locale_id(wtsv("1"));
+        wholth_user_locale_id(wtsv("1"));
 
         const auto err = wholth_em_recipe_step_update(&step, scratch);
 
@@ -331,7 +331,7 @@ TEST_F(Test_wholth_em_recipe_step_update, when_basic_case)
         step.time = wtsv("10m");
         step.description = wtsv("another locale thing!");
 
-        wholth_app_locale_id(wtsv("2"));
+        wholth_user_locale_id(wtsv("2"));
 
         const auto err = wholth_em_recipe_step_update(&step, scratch);
 

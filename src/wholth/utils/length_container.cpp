@@ -1,5 +1,5 @@
+#include "wholth/c/string_view.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/c/forward.h"
 #include "wholth/utils/length_container.hpp"
 
 wholth::entity::LengthContainer::LengthContainer(size_t initial_vector_size)
@@ -12,7 +12,8 @@ wholth::entity::LengthContainer::LengthContainer(LengthContainer&& other)
     *this = std::move(other);
 }
 
-wholth::entity::LengthContainer& wholth::entity::LengthContainer::operator=(LengthContainer&& other)
+wholth::entity::LengthContainer& wholth::entity::LengthContainer::operator=(
+    LengthContainer&& other)
 {
     this->lengths = std::move(other.lengths);
     this->i1 = other.i1;

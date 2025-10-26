@@ -1,13 +1,9 @@
 #ifndef WHOLTH_UTILS_PREPEND_SQL_PARAMS_H_
 #define WHOLTH_UTILS_PREPEND_SQL_PARAMS_H_
 
-#include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/c/forward.h"
-#include <span>
+#include "wholth/c/string_view.h"
 #include <sstream>
-#include <string_view>
-#include <tuple>
 #include <vector>
 
 namespace wholth::utils

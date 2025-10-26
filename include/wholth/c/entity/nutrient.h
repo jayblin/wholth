@@ -1,7 +1,7 @@
 #ifndef WHOLTH_C_NUTRIENT_H_
 #define WHOLTH_C_NUTRIENT_H_
 
-#include "wholth/c/forward.h"
+#include "wholth/c/string_view.h"
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 extern "C"

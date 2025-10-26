@@ -19,7 +19,7 @@ using bind_t = sqlw::Statement::bindable_t;
 TEST_F(Test_wholth_em_food_update, good_case)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     std::string diff_locale_title{"bogus"};
     std::string diff_locale_description{"bogus"};
@@ -112,7 +112,7 @@ TEST_F(Test_wholth_em_food_update, good_case)
 TEST_F(Test_wholth_em_food_update, when_food_is_nullptr)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     std::string title_old{"bogus"};
     std::string description_old{"bogus"};
@@ -178,7 +178,7 @@ TEST_F(Test_wholth_em_food_update, when_food_is_nullptr)
 TEST_F(Test_wholth_em_food_update, when_buffer_is_nullptr)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     std::string title_old{"bogus"};
     std::string description_old{"bogus"};
@@ -313,7 +313,7 @@ TEST_F(Test_wholth_em_food_update, when_buffer_is_nullptr)
 TEST_F(Test_wholth_em_food_update, when_bad_food_id)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     std::string diff_locale_title{"bogus"};
     std::string diff_locale_description{"bogus"};
@@ -436,7 +436,7 @@ TEST_F(Test_wholth_em_food_update, when_bad_food_id)
 TEST_F(Test_wholth_em_food_update, when_title_is_nullptr)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     std::string title_old{"bogus"};
     std::string description_old{"bogus"};
@@ -506,7 +506,7 @@ TEST_F(Test_wholth_em_food_update, when_title_is_nullptr)
 TEST_F(Test_wholth_em_food_update, when_description_is_nullptr)
 {
     auto& con = db::connection();
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     std::string title_old{"bogus"};
     std::string description_old{"bogus"};

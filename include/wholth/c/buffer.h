@@ -1,7 +1,7 @@
 #ifndef WHOLTH_C_BUFFER_H_
 #define WHOLTH_C_BUFFER_H_
 
-#include "wholth/c/forward.h"
+#include "wholth/c/string_view.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus

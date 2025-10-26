@@ -53,7 +53,7 @@ class Test_wholth_pages_nutrient : public ApplicationAwareTest
 
 TEST_F(Test_wholth_pages_nutrient, when_basic_case)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
     const wholth_Error err = wholth_pages_fetch(page);
@@ -98,7 +98,7 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case)
 
 TEST_F(Test_wholth_pages_nutrient, when_basic_case_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
     const wholth_Error err = wholth_pages_fetch(page);
@@ -143,7 +143,7 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case_diff_locale)
 
 TEST_F(Test_wholth_pages_nutrient, when_basic_case_with_title)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
     wholth_pages_nutrient_title(page, wtsv("C1"));
@@ -183,7 +183,7 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case_with_title)
 
 TEST_F(Test_wholth_pages_nutrient, when_basic_case_with_title_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
     wholth_pages_nutrient_title(page, wtsv("C2"));
@@ -223,7 +223,7 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case_with_title_diff_locale)
 
 TEST_F(Test_wholth_pages_nutrient, when_not_found)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
     wholth_pages_nutrient_title(page, wtsv("AAA2"));
@@ -250,7 +250,7 @@ TEST_F(Test_wholth_pages_nutrient, when_not_found)
 
 TEST_F(Test_wholth_pages_nutrient, when_requested_page_number_is_to_big)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
 
@@ -281,7 +281,7 @@ TEST_F(Test_wholth_pages_nutrient, when_requested_page_number_is_to_big)
 // Requested offset (page_num*per_page) is too big for int.
 TEST_F(Test_wholth_pages_nutrient, when_rquested_offset_is_to_big)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_nutrient(8, true);
 
@@ -311,7 +311,7 @@ TEST_F(Test_wholth_pages_nutrient, when_rquested_offset_is_to_big)
 
 TEST_F(Test_wholth_pages_nutrient, when_second_page)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_nutrient(4, true);
     wholth_pages_skip_to(page, 1);

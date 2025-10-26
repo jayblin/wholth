@@ -3,6 +3,7 @@
 
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/food.h"
+#include "wholth/c/error.h"
 
 #ifdef __cplusplus
 extern "C"

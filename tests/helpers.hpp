@@ -4,7 +4,7 @@
 #include "db/db.hpp"
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/c/forward.h"
+#include "wholth/c/string_view.h"
 #include <gtest/gtest.h>
 
 #define ASSERT_STREQ2(a, b) ASSERT_STREQ(a, std::string{b}.data())

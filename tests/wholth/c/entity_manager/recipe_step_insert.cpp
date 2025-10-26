@@ -258,7 +258,7 @@ TEST_F(Test_wholth_em_recipe_step_insert, when_basic_case)
     ASSERT_FALSE(recipe_id.empty());
 
     {
-        wholth_app_locale_id(wtsv("1"));
+        wholth_user_locale_id(wtsv("1"));
 
         wholth_Food food{.id = wtsv(recipe_id)};
         wholth_RecipeStep step{
@@ -309,7 +309,7 @@ TEST_F(Test_wholth_em_recipe_step_insert, when_basic_case)
 
     // different locale
     {
-        wholth_app_locale_id(wtsv("2"));
+        wholth_user_locale_id(wtsv("2"));
 
         wholth_Food food{.id = wtsv(recipe_id)};
         wholth_RecipeStep step{
@@ -363,7 +363,7 @@ TEST_F(Test_wholth_em_recipe_step_insert, when_basic_case)
 
     // different locale and duplicate
     {
-        wholth_app_locale_id(wtsv("2"));
+        wholth_user_locale_id(wtsv("2"));
 
         wholth_Food food{.id = wtsv(recipe_id)};
         wholth_RecipeStep step{

@@ -1,7 +1,8 @@
 #ifndef WHOLTH_C_PAGES_UTILS_H_
 #define WHOLTH_C_PAGES_UTILS_H_
 
-#include "wholth/c/forward.h"
+#include "wholth/c/error.h"
+#include <cstdint>
 
 #ifdef __cplusplus
 extern "C"

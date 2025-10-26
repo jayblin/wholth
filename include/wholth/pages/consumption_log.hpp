@@ -12,6 +12,7 @@ namespace wholth::pages
 
 struct ConsumptionLogQuery
 {
+    std::string user_id{""};
     std::string created_from{""};
     std::string created_to{""};
 };

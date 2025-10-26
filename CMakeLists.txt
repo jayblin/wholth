@@ -43,12 +43,14 @@ add_library(
     src/wholth/c/entity/ingredient.cpp
     src/wholth/c/entity/nutrient.cpp
     src/wholth/c/entity/consumption_log.cpp
+    src/wholth/c/entity/user.cpp
     src/wholth/c/entity_manager/ingredient.cpp
     src/wholth/c/entity_manager/recipe_step.cpp
     src/wholth/c/entity_manager/food.cpp
     src/wholth/c/entity_manager/ingredient.cpp
     src/wholth/c/entity_manager/food_nutrient.cpp
     src/wholth/c/entity_manager/consumption_log.cpp
+    src/wholth/c/entity_manager/user.cpp
     src/wholth/c/pages/food.cpp
     src/wholth/c/pages/food_nutrient.cpp
     src/wholth/c/pages/nutrient.cpp

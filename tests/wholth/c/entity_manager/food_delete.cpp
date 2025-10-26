@@ -71,7 +71,7 @@ TEST_F(Test_wholth_em_food_delete, when_good_case)
 
 TEST_F(Test_wholth_em_food_delete, when_food_is_nullptr)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     auto& con = db::connection();
 
@@ -120,7 +120,7 @@ TEST_F(Test_wholth_em_food_delete, when_food_is_nullptr)
 
 TEST_F(Test_wholth_em_food_delete, when_null_buffer)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     auto& con = db::connection();
 

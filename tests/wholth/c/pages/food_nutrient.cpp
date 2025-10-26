@@ -61,7 +61,7 @@ class Test_wholth_pages_food_nutrient : public ApplicationAwareTest
 // should be executed first
 TEST_F(Test_wholth_pages_food_nutrient, when_empty_food_id)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     const wholth_Error err = wholth_pages_fetch(page);
@@ -87,7 +87,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_empty_food_id)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_invalid_food_id)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     std::vector<std::string_view> ids{{
@@ -127,7 +127,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_invalid_food_id)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_basic_case)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -174,7 +174,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_basic_case)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_basic_case_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -221,7 +221,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_basic_case_diff_locale)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_basic_case_with_title)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -263,7 +263,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_basic_case_with_title)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_basic_case_with_title_diff_locale)
 {
-    wholth_app_locale_id(wtsv("2"));
+    wholth_user_locale_id(wtsv("2"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -305,7 +305,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_basic_case_with_title_diff_locale)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_not_found)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -333,7 +333,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_not_found)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_requested_page_number_is_to_big)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -365,7 +365,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_requested_page_number_is_to_big)
 // Requested offset (page_num*per_page) is too big for int.
 TEST_F(Test_wholth_pages_food_nutrient, when_rquested_offset_is_to_big)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(8, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));
@@ -396,7 +396,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_rquested_offset_is_to_big)
 
 TEST_F(Test_wholth_pages_food_nutrient, when_second_page)
 {
-    wholth_app_locale_id(wtsv("1"));
+    wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food_nutrient(4, true);
     wholth_pages_food_nutrient_food_id(page, wtsv("1"));

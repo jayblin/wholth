@@ -21,7 +21,10 @@ constexpr std::string_view to_string_view(const T& sv)
     {
         return {sv.data(), sv.size()};
     }
-    else return {sv.data, sv.size};
+    else
+    {
+        return {sv.data, sv.size};
+    }
 }
 
 } // namespace wholth::utils

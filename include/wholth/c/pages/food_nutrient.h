@@ -1,7 +1,7 @@
 #ifndef WHOLTH_C_PAGES_FOOD_NUTRIENT_H_
 #define WHOLTH_C_PAGES_FOOD_NUTRIENT_H_
 
-#include "wholth/c/forward.h"
+#include "wholth/c/array.h"
 #include "wholth/c/pages/utils.h"
 
 #ifdef __cplusplus

@@ -1,8 +1,8 @@
 #ifndef WHOTLH_C_PAGES_RECIPE_STEP_H_
 #define WHOTLH_C_PAGES_RECIPE_STEP_H_
 
+#include "wholth/c/array.h"
 #include "wholth/c/entity/recipe_step.h"
-#include "wholth/c/forward.h"
 #include "wholth/c/pages/utils.h"
 
 #ifdef __cplusplus
