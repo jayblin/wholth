@@ -13,6 +13,7 @@ struct FoodQuery
 {
     std::string title{""};
     std::string ingredients{""};
+    std::string locale_id{""};
 };
 
 struct Food
@@ -42,6 +43,6 @@ auto hydrate(
 //     return 4;
 // }
 
-} // namespace wholth::pages::food
+} // namespace wholth::pages
 
 #endif // WHOLTH_PAGES_FOOD_H_

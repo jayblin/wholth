@@ -1,12 +1,11 @@
 #include "db/db.hpp"
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity_manager/food.h"
 #include "wholth/c/entity/food.h"
 #include "wholth/entity_manager/food.hpp"
-#include "wholth/status.hpp"
 
 static_assert(nullptr == (void*)NULL);
 

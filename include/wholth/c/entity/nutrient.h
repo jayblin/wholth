@@ -1,6 +1,7 @@
 #ifndef WHOLTH_C_NUTRIENT_H_
 #define WHOLTH_C_NUTRIENT_H_
 
+#include "wholth/c/entity/utils.h"
 #include "wholth/c/string_view.h"
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
@@ -21,9 +22,13 @@ extern "C"
 
     wholth_Nutrient wholth_entity_nutrient_init();
 
+    const wholth_StringView wholth_entity_nutrient_id(wholth_Entity*);
+    const wholth_StringView wholth_entity_nutrient_title(wholth_Entity*);
+    const wholth_StringView wholth_entity_nutrient_value(wholth_Entity*);
+    const wholth_StringView wholth_entity_nutrient_unit(wholth_Entity*);
+
 #ifdef __cplusplus /* If this is a C++ compiler, end C linkage */
 }
 #endif
 
 #endif // WHOLTH_C_NUTRIENT_H_
-

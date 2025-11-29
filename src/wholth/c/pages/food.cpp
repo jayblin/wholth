@@ -85,6 +85,20 @@ extern "C" const wholth_FoodArray wholth_pages_food_array(
     return {vector.data(), p->pagination.span_size()};
 }
 
+extern "C" const wholth_Food* wholth_pages_food_array_at(
+    const wholth_Page* const p,
+    unsigned long long idx)
+{
+    if (!check_ptr(p) || idx >= p->pagination.span_size())
+    {
+        return nullptr;
+    }
+
+    return &std::get<PageType::FOOD>(p->data)
+                .container.swappable_buffer_views.view_current()
+                .view[idx];
+}
+
 // std::mutex g_wholth_pages_food_mutex;
 // std::atomic<uint8_t> g_cur_page_idx;
 extern "C" wholth_Page* wholth_pages_food(

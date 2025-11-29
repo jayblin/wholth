@@ -3,12 +3,11 @@
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
 #include "utils/time_to_seconds.hpp"
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/food.h"
 #include "wholth/c/entity/recipe_step.h"
 #include "wholth/c/entity_manager/recipe_step.h"
-#include "wholth/c/forward.h"
 #include "wholth/entity_manager/recipe_step.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include <gtest/gtest.h>

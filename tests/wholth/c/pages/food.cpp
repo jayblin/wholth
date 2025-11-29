@@ -8,9 +8,8 @@
 #include "fmt/core.h"
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 #include "wholth/c/entity/food.h"
-#include "wholth/c/forward.h"
 #include "wholth/c/pages/food.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/pages/internal.hpp"
@@ -408,6 +407,7 @@ TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title_and_diff_locale)
     ASSERT_EQ(wholth_pages_span_size(page), foods.size);
 }
 
+// todo this works not as intended???? check and fix!
 TEST_F(Test_wholth_pages_food, fetch_should_filter_by_ingredients)
 {
     auto& con = db::connection();
@@ -457,30 +457,62 @@ TEST_F(Test_wholth_pages_food, fetch_should_filter_by_ingredients)
     wholth_user_locale_id(wtsv("1"));
 
     wholth_Page* page = wholth_pages_food(1, 8);
-    ASSERT_TRUE(wholth_pages_skip_to(page, 0));
-    wholth_pages_food_title(page, wholth_StringView_default);
-    wholth_pages_food_ingredients(page, wtsv("bacon,Saliagr"));
-    const wholth_Error err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    {
+        ASSERT_TRUE(wholth_pages_skip_to(page, 0));
+        wholth_pages_food_title(page, wholth_StringView_default);
+        wholth_pages_food_ingredients(page, wtsv("bacon,Saliagr"));
+        const wholth_Error err = wholth_pages_fetch(page);
 
-    const auto foods = wholth_pages_food_array(page);
+        ASSERT_EQ(wholth_Error_OK.code, err.code)
+            << err.code << wfsv(err.message);
+        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
+            << err.code << wfsv(err.message);
 
-    ASSERT_GE(foods.size, 8);
-    ASSERT_NE(nullptr, foods.data);
+        const auto foods = wholth_pages_food_array(page);
 
-    ASSERT_STREQ2("2", wfsv(foods.data[0].id));
+        ASSERT_GE(foods.size, 8);
+        ASSERT_NE(nullptr, foods.data);
 
-    ASSERT_STREQ2("3", wfsv(foods.data[1].id));
+        ASSERT_STREQ2("2", wfsv(foods.data[0].id));
 
-    ASSERT_STREQ2("4", wfsv(foods.data[2].id));
+        ASSERT_STREQ2("3", wfsv(foods.data[1].id));
 
-    ASSERT_GT(wholth_pages_max(page), 0);
-    ASSERT_EQ(wholth_pages_current_page_num(page), 0);
-    ASSERT_GT(wholth_pages_count(page), 3);
-    ASSERT_EQ(wholth_pages_span_size(page), 8);
+        ASSERT_STREQ2("4", wfsv(foods.data[2].id));
+
+        ASSERT_GT(wholth_pages_max(page), 0);
+        ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+        ASSERT_GT(wholth_pages_count(page), 3);
+        ASSERT_EQ(wholth_pages_span_size(page), 8);
+    }
+
+    {
+        ASSERT_TRUE(wholth_pages_skip_to(page, 0));
+        wholth_pages_food_title(page, wholth_StringView_default);
+        wholth_pages_food_ingredients(page, wtsv("bacon"));
+        const wholth_Error err = wholth_pages_fetch(page);
+
+        ASSERT_EQ(wholth_Error_OK.code, err.code)
+            << err.code << wfsv(err.message);
+        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
+            << err.code << wfsv(err.message);
+
+        const auto foods = wholth_pages_food_array(page);
+
+        ASSERT_GE(foods.size, 8);
+        ASSERT_NE(nullptr, foods.data);
+
+        ASSERT_STREQ2("2", wfsv(foods.data[0].id));
+
+        ASSERT_STREQ2("3", wfsv(foods.data[1].id));
+
+        ASSERT_STREQ2("4", wfsv(foods.data[2].id));
+
+        ASSERT_GT(wholth_pages_max(page), 0);
+        ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+        ASSERT_GT(wholth_pages_count(page), 3);
+        ASSERT_EQ(wholth_pages_span_size(page), 8);
+    }
 }
 
 // todo move to other file and remove inclue of internal.hpp from here.

@@ -12,9 +12,12 @@ extern "C"
 
     ARRAY_T(wholth_Nutrient, wholth_NutrientArray);
 
-    wholth_Page* wholth_pages_nutrient(uint64_t per_page, bool reset);
+    wholth_Page* wholth_pages_nutrient(unsigned long long per_page, bool reset);
     const wholth_NutrientArray wholth_pages_nutrient_array(
         const wholth_Page* const);
+    const wholth_Nutrient* wholth_pages_nutrient_array_at(
+        const wholth_Page* const,
+        unsigned long long idx);
     void wholth_pages_nutrient_title(
         wholth_Page* const,
         wholth_StringView title);

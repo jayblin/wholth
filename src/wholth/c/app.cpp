@@ -1,16 +1,14 @@
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 #include "db/db.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/transaction.hpp"
 #include "wholth/app.hpp"
 #include "wholth/c/error.h"
-#include "wholth/c/forward.h"
 #include "wholth/c/internal.hpp"
 #include "wholth/context.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <exception>
-// #include <gsl/string_span>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -63,9 +61,12 @@ extern "C" wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const args)
 //         .size = g_context.exception_message.size()};
 // }
 
-extern "C" void eueu(wholth_StringView sv)
+extern "C" void wholth_app_password_encryption_secret(wholth_StringView secret)
 {
-    // std::cout << wholth::utils::to_string_view(sv) << '\n';
+    if (nullptr != secret.data && secret.size > 0)
+    {
+        g_context.password_encryption_secret = {secret.data, secret.size};
+    }
 }
 
 extern "C" bool wholth_error_ok(const wholth_Error* err)

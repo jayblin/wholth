@@ -1,9 +1,6 @@
-#ifndef WHOLTH_APP_C_H_
-#define WHOLTH_APP_C_H_
+#ifndef WHOLTH_C_H
+#define WHOLTH_C_H
 
-// THIS FILE IS DEPRECATED. USE `wholth/wholth.h`.
-
-#include <stdbool.h>
 #include "wholth/c/app.h"
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/consumption_log.h"
@@ -30,4 +27,4 @@
 #include "wholth/c/pages/utils.h"
 #include "wholth/c/string_view.h"
 
-#endif // WHOLTH_APP_C_H_
+#endif // WHOLTH_C_H

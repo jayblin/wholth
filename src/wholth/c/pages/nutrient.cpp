@@ -10,6 +10,8 @@
 #include "wholth/utils/to_string_view.hpp"
 #include <memory>
 
+using wholth::pages::internal::PageType;
+
 auto wholth::pages::hydrate(
     wholth::pages::Nutrient& data,
     size_t index,
@@ -105,16 +107,29 @@ extern "C" const wholth_NutrientArray wholth_pages_nutrient_array(
         return {nullptr, 0};
     }
 
-    const auto& vector =
-        std::get<wholth::pages::internal::PageType::NUTRIENT>(page->data)
-            .container.swappable_buffer_views.view_current()
-            .view;
+    const auto& vector = std::get<PageType::NUTRIENT>(page->data)
+                             .container.swappable_buffer_views.view_current()
+                             .view;
 
     assertm(
         vector.size() >= page->pagination.span_size(),
         "You done goofed here wholth_pages_nutrient() [1]!");
 
     return {vector.data(), page->pagination.span_size()};
+}
+
+extern "C" const wholth_Nutrient* wholth_pages_nutrient_array_at(
+    const wholth_Page* const p,
+    unsigned long long idx)
+{
+    if (!check_page(p) || idx >= p->pagination.span_size())
+    {
+        return nullptr;
+    }
+
+    return &std::get<PageType::NUTRIENT>(p->data)
+                .container.swappable_buffer_views.view_current()
+                .view[idx];
 }
 
 extern "C" void wholth_pages_nutrient_title(

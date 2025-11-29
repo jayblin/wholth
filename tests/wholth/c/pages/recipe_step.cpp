@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include <type_traits>
 #include "helpers.hpp"
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 #include "wholth/c/entity/recipe_step.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/c/pages/recipe_step.h"

@@ -13,6 +13,13 @@ extern "C"
         const unsigned long size;\
     } name
 
+#define ARRAY_MUTABLE_T(type, name) \
+    typedef struct name\
+    {\
+        struct type* data;\
+        unsigned long size;\
+    } name
+
 #ifdef __cplusplus
 }
 #endif

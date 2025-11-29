@@ -7,6 +7,7 @@
 #include "wholth/pages/code.hpp"
 #include "wholth/pages/food.hpp"
 #include "wholth/pagination.hpp"
+#include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/length_container.hpp"
 #include <sstream>
 
@@ -337,12 +338,15 @@ static auto prepare_ingredient_data(
         }
     }
 
-    std::string where = "1";
+    std::string where = where_stream.str();
 
-    if (where_stream.rdbuf()->in_avail() > 4)
+    if (where.size() > 4)
     {
-        where = where_stream.str();
         where = where.substr(0, where.size() - 4);
+    }
+    else
+    {
+        where = "1";
     }
 
     return {
@@ -386,7 +390,7 @@ auto wholth::pages::prepare_food_stmt(
                 ON rs.recipe_id = f.id
             LEFT JOIN food_localisation fl
                  ON fl.food_id = f.id
-                    AND fl.locale_id = (SELECT value FROM app_info WHERE field = 'default_locale_id')
+                    AND fl.locale_id = {4} 
             WHERE {0}
             UNION
             SELECT
@@ -400,7 +404,8 @@ auto wholth::pages::prepare_food_stmt(
             INNER JOIN recipe_tree_node node
                 ON node.ingredient_id = rt.recipe_id
             LEFT JOIN food_localisation fl
-                ON fl.food_id = node.recipe_id AND fl.locale_id = (SELECT value FROM app_info WHERE field = 'default_locale_id')
+                ON fl.food_id = node.recipe_id
+                    AND fl.locale_id = {4} 
             ORDER BY 1 DESC
         ),
         top_nutrient AS NOT MATERIALIZED (
@@ -474,14 +479,22 @@ auto wholth::pages::prepare_food_stmt(
 
     const auto where = create_where(query, ingredient_data.parameter_count + 1);
 
+    // todo this is bad. validate locale_id and bind it.
+    const std::string_view locale_id_query =
+        query.locale_id.empty() && utils::is_valid_id(query.locale_id)
+            ? std::string_view{query.locale_id.data(), query.locale_id.size()}
+            : "(SELECT value FROM app_info WHERE field = 'default_locale_id')";
+
     list_foods_prepare_stmt(
         stmt,
         fmt::format(
             sql,
-            ingredient_data.where,
-            where,
-            pagination.per_page(),
-            pagination.per_page() * pagination.current_page()),
+            ingredient_data.where,                             // 0
+            where,                                             // 1
+            pagination.per_page(),                             // 2
+            pagination.per_page() * pagination.current_page(), // 3
+            locale_id_query                                    // 4
+            ),
         query,
         ingredient_data);
 

@@ -35,7 +35,7 @@ add_library(
     src/utils/is_valid_id.cpp
     src/utils/time_to_seconds.cpp
     src/wholth/app.cpp
-    src/wholth/app_c.cpp
+    src/wholth/c/app.cpp
     # src/wholth/pages/internal.cpp
     src/wholth/c/buffer.cpp
     src/wholth/c/entity/food.cpp
@@ -127,6 +127,7 @@ FetchContent_GetProperties(
 	POPULATED POPULATED_GSL
 )
 
+find_package(OpenSSL 3.5.0 COMPONENTS Crypto)
 
 target_include_directories(
 	wholth
@@ -135,10 +136,9 @@ target_include_directories(
 )
 
 target_link_libraries(
-	wholth
-	sqlw
-	Microsoft.GSL::GSL
-    fmt
+    wholth
+    PUBLIC sqlw Microsoft.GSL::GSL fmt
+    PRIVATE OpenSSL::Crypto
 )
 
 # TESTS
@@ -182,6 +182,8 @@ if (DEFINED WHOLTH_STANDALONE)
         tests/wholth/c/entity_manager/consumption_log_update.cpp
         tests/wholth/c/entity_manager/recipe_step_insert.cpp
         tests/wholth/c/entity_manager/recipe_step_update.cpp
+        tests/wholth/c/entity_manager/user_insert.cpp
+        tests/wholth/c/entity_manager/user_authenticate.cpp
         tests/wholth/c/pages/food.cpp
         tests/wholth/c/pages/food_nutrient.cpp
         tests/wholth/c/pages/nutrient.cpp

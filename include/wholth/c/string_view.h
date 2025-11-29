@@ -1,6 +1,7 @@
 #ifndef WHOLTH_C_STRING_VIEW_H_
 #define WHOLTH_C_STRING_VIEW_H_
 
+#include "wholth/c/array.h"
 #include "wholth/c/forward.h"
 
 #ifdef __cplusplus
@@ -17,6 +18,8 @@ extern "C"
 
     // todo remove wholth_StringView_default from  "wholth/c/forward.h"
     wholth_StringView wholth_default_string_view();
+
+    ARRAY_MUTABLE_T(wholth_StringView_t, wholth_StringViewArrayMutable);
 
 #ifdef __cplusplus
 }

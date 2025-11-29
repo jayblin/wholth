@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS user (
 	password_hashed TEXT NOT NULL,
     locale_id INTEGER DEFAULT 1,
 	FOREIGN KEY (locale_id) REFERENCES locale(id),
-    UNIQUE (name COLLATE NOCASE)
+    UNIQUE (name)
 ) STRICT

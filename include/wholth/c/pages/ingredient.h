@@ -12,7 +12,7 @@ extern "C"
 
     ARRAY_T(wholth_Ingredient, wholth_IngredientArray);
 
-    wholth_Page* wholth_pages_ingredient(uint64_t per_page, bool reset);
+    wholth_Page* wholth_pages_ingredient(unsigned long long per_page, bool reset);
     const wholth_IngredientArray wholth_pages_ingredient_array(
         const wholth_Page* const);
     void wholth_pages_ingredient_food_id(

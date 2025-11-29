@@ -15,7 +15,7 @@ auto wholth::c::internal::ec_to_error(
     auto msg = ec.message();
     wholth_buffer_move_data_to(buffer, &msg);
     return {
-        .code = ec.value(),
+        .code = static_cast<wholth_ErrorCode>(ec.value()), // uh oh
         // .message = push_error(ec.message()),
         .message = wholth_buffer_view(buffer),
     };

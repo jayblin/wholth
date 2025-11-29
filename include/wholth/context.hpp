@@ -38,6 +38,7 @@ class Context
     // todo move this outside of context
     std::vector<std::string> sql_errors;
     std::string exception_message;
+    std::string password_encryption_secret {""};
 };
 
 } // namespace wholth

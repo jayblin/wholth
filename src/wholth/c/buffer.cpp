@@ -1,5 +1,4 @@
 #include "wholth/c/buffer.h"
-#include "wholth/c/forward.h"
 #include <atomic>
 #include <vector>
 #include <string>
@@ -35,12 +34,23 @@ auto wholth_buffer_ring_pool_element() -> wholth_Buffer*
 
 auto wholth_buffer_move_data_to(wholth_Buffer* const handle, void* data) -> void
 {
-    handle->data = std::move(*static_cast<std::string*>(data));
+    if (nullptr != handle && nullptr != data)
+    {
+        handle->data = std::move(*static_cast<std::string*>(data));
+    }
 }
 
 auto wholth_buffer_view(const wholth_Buffer* const handle)
     -> const wholth_StringView
 {
+    if (nullptr == handle)
+    {
+        return {
+            .data = nullptr,
+            .size = 0,
+        };
+    }
+
     return {
         .data = handle->data.data(),
         .size = handle->data.size(),

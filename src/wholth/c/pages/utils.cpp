@@ -1,5 +1,4 @@
 #include "db/db.hpp"
-#include "wholth/c/forward.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/entity/length_container.hpp"
 #include "wholth/pages/code.hpp"
@@ -12,6 +11,7 @@
 #include "wholth/status.hpp"
 #include "wholth/utils/length_container.hpp"
 #include <charconv>
+#include <cstdint>
 #include <sstream>
 #include <tuple>
 #include <type_traits>
@@ -334,7 +334,7 @@ extern "C" wholth_Error wholth_pages_fetch(wholth_Page* const page)
         buffer = ec.message();
 
         return {
-            .code = ec.value(),
+            .code = static_cast<wholth_ErrorCode>(ec.value()), // uh oh
             // .message = push_error(ec.message()),
             .message =
                 {
@@ -387,7 +387,7 @@ extern "C" uint64_t wholth_pages_current_page_num(const wholth_Page* const p)
     return p->pagination.current_page();
 }
 
-uint64_t wholth_pages_max(const wholth_Page* const p)
+extern "C" uint64_t wholth_pages_max(const wholth_Page* const p)
 {
     if (nullptr == p)
     {
@@ -397,7 +397,7 @@ uint64_t wholth_pages_max(const wholth_Page* const p)
     return p->pagination.max_page();
 }
 
-uint64_t wholth_pages_count(const wholth_Page* const p)
+extern "C" uint64_t wholth_pages_count(const wholth_Page* const p)
 {
     if (nullptr == p)
     {
@@ -407,7 +407,7 @@ uint64_t wholth_pages_count(const wholth_Page* const p)
     return p->pagination.count();
 }
 
-uint64_t wholth_pages_span_size(const wholth_Page* const p)
+extern "C" uint64_t wholth_pages_span_size(const wholth_Page* const p)
 {
     if (nullptr == p)
     {
@@ -415,4 +415,19 @@ uint64_t wholth_pages_span_size(const wholth_Page* const p)
     }
 
     return p->pagination.span_size();
+}
+
+extern "C" bool wholth_pages_is_fetching(const wholth_Page* const p)
+{
+    if (nullptr == p)
+    {
+        return false;
+    }
+
+    return p->is_fetching;
+}
+
+extern "C" uint64_t wholth_pages_array_size(const wholth_Page* const p)
+{
+    return nullptr == p ? 0 : p->pagination.span_size();
 }

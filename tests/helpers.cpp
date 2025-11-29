@@ -1,6 +1,6 @@
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 
 // sqlw::Connection InMemoryDatabaseAwareTest::db_con {};
 //

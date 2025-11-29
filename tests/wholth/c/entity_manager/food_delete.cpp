@@ -2,7 +2,7 @@
 #include "fmt/core.h"
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/app_c.h"
+#include "wholth/c/app.h"
 #include "wholth/c/entity_manager/food.h"
 #include "wholth/c/entity/food.h"
 #include "wholth/entity_manager/food.hpp"
