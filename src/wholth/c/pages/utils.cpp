@@ -1,5 +1,6 @@
 #include "db/db.hpp"
 #include "wholth/c/pages/utils.h"
+#include "wholth/c/error.h"
 #include "wholth/entity/length_container.hpp"
 #include "wholth/pages/code.hpp"
 #include "wholth/pages/consumption_log.hpp"
@@ -10,6 +11,7 @@
 #include "wholth/pagination.hpp"
 #include "wholth/status.hpp"
 #include "wholth/utils/length_container.hpp"
+#include <atomic>
 #include <charconv>
 #include <cstdint>
 #include <sstream>
@@ -19,7 +21,7 @@
 
 using wholth::pages::internal::PageType;
 
-static constexpr auto page_data_next_buffer(wholth_Page& p) -> std::string&
+static constexpr auto page_data_buffer(wholth_Page& p) -> std::string&
 {
     return std::visit(
         [](auto&& data) -> std::string& {
@@ -27,7 +29,7 @@ static constexpr auto page_data_next_buffer(wholth_Page& p) -> std::string&
 
             if constexpr (not std::is_same_v<T, std::monostate>)
             {
-                return data.container.swappable_buffer_views.next().buffer;
+                return data.container.buffer;
             }
 
             assert(false);
@@ -43,7 +45,7 @@ static constexpr auto page_data_container_size(const wholth_Page& p) -> size_t
 
             if constexpr (not std::is_same_v<T, std::monostate>)
             {
-                return data.container.size();
+                return data.container.view.size();
             }
 
             assert(false);
@@ -51,43 +53,17 @@ static constexpr auto page_data_container_size(const wholth_Page& p) -> size_t
         p.data);
 }
 
-constexpr auto wholth_pages_container_current_buffer(wholth_Page& p)
-    -> std::string&
-{
-    return std::visit(
-        [](auto&& data) -> std::string& {
-            using T = std::remove_cvref_t<decltype(data)>;
-
-            if constexpr (not std::is_same_v<T, std::monostate>)
-            {
-                return data.container.swappable_buffer_views.current().buffer;
-            }
-
-            assert(false);
-        },
-        p.data);
-}
-
-constexpr auto wholth_pages_container_swap(wholth_Page& p) -> void
-{
-    std::visit(
-        [](auto&& data) {
-            using T = std::remove_cvref_t<decltype(data)>;
-
-            if constexpr (not std::is_same_v<T, std::monostate>)
-            {
-                return data.container.swappable_buffer_views.swap();
-            }
-
-            assert(false);
-        },
-        p.data);
-}
+// get from abstract_page.hpp
+// template <typename T>
+// concept has_container = requires(T t) { t.container; };
+//
+// template <typename T>
+// concept has_swappable_container =
+//     requires(T t) { t.container.swappable_buffer_views; };
 
 auto fill_pages_data_prepare_stmt(sqlw::Statement& stmt, wholth_Page& page)
     -> std::tuple<wholth::entity::LengthContainer, std::error_code>
 {
-
     switch (static_cast<PageType>(page.data.index()))
     {
     case PageType::FOOD:
@@ -265,7 +241,7 @@ static std::error_code wholth_pages_fetch_impl(wholth_Page& page)
             return std::get<1>(lc_and_ec);
         }
 
-        std::string& buffer = page_data_next_buffer(page);
+        std::string& buffer = page_data_buffer(page);
 
         ec = wholth_pages_fetch_exec_stmt(
             stmt,
@@ -301,13 +277,6 @@ static std::error_code wholth_pages_fetch_impl(wholth_Page& page)
             page.data);
     }
 
-    wholth_pages_container_swap(page);
-
-    // for (auto& item : container.swappable_buffer_views.next().view)
-    // {
-    //     item = {};
-    // }
-
     return ec;
 }
 
@@ -321,16 +290,16 @@ extern "C" wholth_Error wholth_pages_fetch(wholth_Page* const page)
         return wholth_Error_OK;
     }
 
-    page->is_fetching.store(true, std::memory_order_seq_cst);
+    page->state.store(wholth_Page::State::FETCHING, std::memory_order_seq_cst);
 
     const auto ec = wholth_pages_fetch_impl(*page);
 
     // @todo learn about memeory order
-    page->is_fetching.store(false, std::memory_order_seq_cst);
+    page->state.store(wholth_Page::State::OCCUPIED, std::memory_order_seq_cst);
 
     if (wholth::status::Condition::OK != ec)
     {
-        auto& buffer = wholth_pages_container_current_buffer(*page);
+        auto& buffer = page_data_buffer(*page);
         buffer = ec.message();
 
         return {
@@ -354,7 +323,8 @@ extern "C" bool wholth_pages_advance(wholth_Page* const p, uint64_t by)
         return false;
     }
 
-    return !p->is_fetching && p->pagination.advance(by);
+    return wholth_Page::State::FETCHING != p->state &&
+           p->pagination.advance(by);
 }
 
 extern "C" bool wholth_pages_retreat(wholth_Page* const p, uint64_t by)
@@ -364,7 +334,8 @@ extern "C" bool wholth_pages_retreat(wholth_Page* const p, uint64_t by)
         return false;
     }
 
-    return !p->is_fetching && p->pagination.retreat(by);
+    return wholth_Page::State::FETCHING != p->state &&
+           p->pagination.retreat(by);
 }
 
 extern "C" bool wholth_pages_skip_to(wholth_Page* const p, uint64_t page_number)
@@ -374,7 +345,8 @@ extern "C" bool wholth_pages_skip_to(wholth_Page* const p, uint64_t page_number)
         return false;
     }
 
-    return !p->is_fetching && p->pagination.skip_to(page_number);
+    return wholth_Page::State::FETCHING != p->state &&
+           p->pagination.skip_to(page_number);
 }
 
 extern "C" uint64_t wholth_pages_current_page_num(const wholth_Page* const p)
@@ -424,10 +396,110 @@ extern "C" bool wholth_pages_is_fetching(const wholth_Page* const p)
         return false;
     }
 
-    return p->is_fetching;
+    return wholth_Page::State::FETCHING == p->state;
 }
 
 extern "C" uint64_t wholth_pages_array_size(const wholth_Page* const p)
 {
     return nullptr == p ? 0 : p->pagination.span_size();
+}
+
+extern "C" wholth_Error wholth_pages_at(
+    const wholth_Page* const page,
+    void* entity,
+    uint64_t at)
+{
+    assert(nullptr != page && "wholth_pages_at - null page");
+    // assert(
+    //     nullptr != entity &&
+    //     "wholth_pages_at - null pointer to pointer of entity");
+    // assert(nullptr == *entity && "wholth_pages_at - unresponsible!");
+    assert(
+        at < page->pagination.span_size() &&
+        "wholth_pages_at - overbound access");
+
+    std::visit(
+        [at, &entity](auto&& data) -> void {
+            using T = std::remove_cvref_t<decltype(data)>;
+
+            if constexpr (not std::is_same_v<T, std::monostate>)
+            {
+                auto& ent = data.container.view[at];
+                *(reinterpret_cast<typename decltype(data.container.view)::value_type*>(
+                    entity)) = ent;
+                return;
+            }
+
+            assert(false);
+        },
+        page->data);
+
+    // assert(nullptr != *entity && "wholth_pages_at entity sho);
+    // if (nullptr == *entity)
+    // {
+    //     constexpr std::string_view msg =
+    //         "wholth_pages_at could not fill entity pointer!";
+    //     return wholth_Error{.code = 942, .message{msg.data(), msg.size()}};
+    // }
+
+    return wholth_Error_OK;
+}
+
+typedef uint8_t ring_pool_idx_t;
+static std::atomic<ring_pool_idx_t> g_idx = 0;
+static constexpr auto g_size = std::numeric_limits<ring_pool_idx_t>::max();
+// static wholth_Page a[g_size];
+// constexpr auto s = sizeof(a);
+
+static auto ring_pool() -> std::vector<wholth_Page>&
+{
+    static std::vector<wholth_Page> g_buffer_pool(g_size);
+    return g_buffer_pool;
+}
+
+extern "C" auto wholth_pages_new(wholth_Page** page) -> wholth_Error
+{
+    assert(nullptr != page && "wholth_pages_new - pointer to pointer is null!");
+    assert(nullptr == *page && "wholth_pages_new - unresponsible!");
+
+    *page = &ring_pool()[g_idx];
+
+    const auto state = (*page)->state.load(std::memory_order_seq_cst);
+    if (wholth_Page::State::FREE != state)
+    {
+        std::string_view msg =
+            "wholth_pages_new - page is not free! use it at your own risk.";
+        return wholth_Error{
+            // todo enum
+            .code = 58,
+            .message = {
+                .data = msg.data(),
+                .size = msg.size(),
+            }};
+    }
+
+    // (*page)->state.wait(wholth_Page::State::FREE, std::memory_order_seq_cst);
+    (*page)->state.store(
+        wholth_Page::State::OCCUPIED, std::memory_order_seq_cst);
+    (*page)->pagination.reset();
+
+    g_idx = (g_idx + 1) % g_size;
+
+    return wholth_Error_OK;
+}
+
+extern "C" auto wholth_pages_del(wholth_Page* page) -> wholth_Error
+{
+    if (nullptr == page)
+    {
+        constexpr std::string_view msg = "Buffer is null!";
+        // todo add code enum
+        return {.code = 1, .message = {.data = msg.data(), .size = msg.size()}};
+    }
+
+    page->state.store(wholth_Page::State::FREE, std::memory_order_seq_cst);
+    page->state.notify_all();
+    page = nullptr;
+
+    return wholth_Error_OK;
 }

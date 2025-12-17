@@ -97,6 +97,11 @@ extern "C" void wholth_user_locale_id(const wholth_StringView locale_id)
     assert("BAD locale_id assignment!" && sqlw::status::Condition::OK == ec);
 }
 
+extern "C" void wholth_app_locale_id(const wholth_StringView id)
+{
+    wholth_user_locale_id(id);
+}
+
 /* static_assert(std::is_same_v<std::remove_cvref_t<const std::string_view&>,
  * std::string_view>); */
 

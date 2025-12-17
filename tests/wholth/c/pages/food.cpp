@@ -170,8 +170,14 @@ TEST_F(Test_wholth_pages_food, fetch_when_first_page)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_food(1, 8);
-    const wholth_Error err = wholth_pages_fetch(page);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+
+    auto wrap = PageWrap{page};
+
+    ASSERT_WHOLTH_OK(err);
+
+    err = wholth_pages_fetch(page);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
@@ -231,10 +237,12 @@ TEST_F(Test_wholth_pages_food, fetch_when_second_page)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_food(2, 8);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+    auto wrap = PageWrap{page};
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     ASSERT_TRUE(wholth_pages_advance(page, 1));
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
@@ -263,13 +271,17 @@ TEST_F(Test_wholth_pages_food, fetch_when_second_page)
 TEST_F(Test_wholth_pages_food, fetch_when_first_page_diff_locale)
 {
     wholth_user_locale_id(wtsv("2"));
-    wholth_Page* page = wholth_pages_food(1, 8);
-    ASSERT_TRUE(wholth_pages_skip_to(page, 0));
-    const wholth_Error err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+
+    ASSERT_TRUE(wholth_pages_skip_to(page, 0));
+    err = wholth_pages_fetch(page);
+
+    ASSERT_WHOLTH_OK(err);
 
     const auto foods = wholth_pages_food_array(page);
 
@@ -315,13 +327,17 @@ TEST_F(Test_wholth_pages_food, fetch_when_first_page_diff_locale)
 TEST_F(Test_wholth_pages_food, fetch_should_clamp_on_last_page)
 {
     wholth_user_locale_id(wtsv("1"));
-    wholth_Page* page = wholth_pages_food(3, 8);
-    ASSERT_TRUE(wholth_pages_skip_to(page, 99999));
-    const wholth_Error err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+
+    ASSERT_TRUE(wholth_pages_skip_to(page, 99999));
+    err = wholth_pages_fetch(page);
+
+    ASSERT_WHOLTH_OK(err);
 
     const auto foods = wholth_pages_food_array(page);
 
@@ -340,14 +356,15 @@ TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_food(1, 8);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     wholth_pages_food_title(page, wtsv("Sal"));
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const auto foods = wholth_pages_food_array(page);
 
@@ -374,14 +391,15 @@ TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title_and_diff_locale)
 {
     wholth_user_locale_id(wtsv("2"));
 
-    wholth_Page* page = wholth_pages_food(99, 8);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+    auto wrap = PageWrap{};
+    ASSERT_WHOLTH_OK(err);
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     wholth_pages_food_title(page, wtsv("Sal"));
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const auto foods = wholth_pages_food_array(page);
 
@@ -456,13 +474,16 @@ TEST_F(Test_wholth_pages_food, fetch_should_filter_by_ingredients)
 
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_food(1, 8);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+    auto wrap = PageWrap{};
+    ASSERT_WHOLTH_OK(err);
 
     {
         ASSERT_TRUE(wholth_pages_skip_to(page, 0));
         wholth_pages_food_title(page, wholth_StringView_default);
         wholth_pages_food_ingredients(page, wtsv("bacon,Saliagr"));
-        const wholth_Error err = wholth_pages_fetch(page);
+        err = wholth_pages_fetch(page);
 
         ASSERT_EQ(wholth_Error_OK.code, err.code)
             << err.code << wfsv(err.message);
@@ -490,7 +511,7 @@ TEST_F(Test_wholth_pages_food, fetch_should_filter_by_ingredients)
         ASSERT_TRUE(wholth_pages_skip_to(page, 0));
         wholth_pages_food_title(page, wholth_StringView_default);
         wholth_pages_food_ingredients(page, wtsv("bacon"));
-        const wholth_Error err = wholth_pages_fetch(page);
+        err = wholth_pages_fetch(page);
 
         ASSERT_EQ(wholth_Error_OK.code, err.code)
             << err.code << wfsv(err.message);
@@ -518,26 +539,30 @@ TEST_F(Test_wholth_pages_food, fetch_should_filter_by_ingredients)
 // todo move to other file and remove inclue of internal.hpp from here.
 TEST_F(Test_wholth_pages_food, prefered_slot_checks)
 {
-    std::thread t1{[]() {
-        wholth_Page* page0 = wholth_pages_food(44, 8);
-        wholth_Page* page0_ref = wholth_pages_food(44, 30);
-        ASSERT_EQ(page0, page0_ref);
-        ASSERT_EQ(
-            std::get<wholth::pages::internal::PageType::FOOD>(page0->data).slot,
-            44);
-        ASSERT_EQ(page0->pagination.per_page(), 8);
-    }};
-
-    std::thread t2{[] {
-        wholth_Page* page1 = wholth_pages_food(45, 7);
-        wholth_Page* page1_ref = wholth_pages_food(45, 40);
-        ASSERT_EQ(page1, page1_ref);
-        ASSERT_EQ(
-            std::get<wholth::pages::internal::PageType::FOOD>(page1->data).slot,
-            45);
-        ASSERT_EQ(page1->pagination.per_page(), 7);
-    }};
-
-    t2.join();
-    t1.join();
+    // std::thread t1{[]() {
+    //     auto wrap = PageWrap{wholth_pages_food(44, 8)};
+    //     wholth_Page* page0 = wrap.handle;
+    //     auto wrap = PageWrap{wholth_pages_food(44, 30)};
+    //     wholth_Page* page0_ref = wrap.handle;
+    //     ASSERT_EQ(page0, page0_ref);
+    //     ASSERT_EQ(
+    //         std::get<wholth::pages::internal::PageType::FOOD>(page0->data).slot,
+    //         44);
+    //     ASSERT_EQ(page0->pagination.per_page(), 8);
+    // }};
+    //
+    // std::thread t2{[] {
+    //     auto wrap = PageWrap{wholth_pages_food(45, 7)};
+    //     wholth_Page* page1 = wrap.handle;
+    //     auto wrap = PageWrap{wholth_pages_food(45, 40)};
+    //     wholth_Page* page1_ref = wrap.handle;
+    //     ASSERT_EQ(page1, page1_ref);
+    //     ASSERT_EQ(
+    //         std::get<wholth::pages::internal::PageType::FOOD>(page1->data).slot,
+    //         45);
+    //     ASSERT_EQ(page1->pagination.per_page(), 7);
+    // }};
+    //
+    // t2.join();
+    // t1.join();
 }

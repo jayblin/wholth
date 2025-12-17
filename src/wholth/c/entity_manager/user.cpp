@@ -179,7 +179,8 @@ static std::pair<std::string, std::error_code> hash_password(
     std::string_view password)
 {
     // const char* salt = std::getenv("WHOLTH_PASSWORD_SALT");
-    const auto salt = wholth::c::internal::global_context().password_encryption_secret;
+    const auto salt =
+        wholth::c::internal::global_context().password_encryption_secret;
 
     // if (nullptr == salt)
     if (salt.empty())
@@ -242,7 +243,8 @@ struct ErrorCategory : std::error_category
             return "USER_AUTHENTICATION_FAILED_PREEM";
         case USER_AUTHENTICATION_FAILED_KLEPPED:
             return "USER_AUTHENTICATION_FAILED_KLEPPED";
-            break;
+        case USER_DOES_NOT_EXIST:
+            return "USER_DOES_NOT_EXIST";
         }
 
         return "(unrecognized error)";
@@ -357,13 +359,14 @@ extern "C" wholth_Error wholth_em_user_insert(
 
     std::stringstream ss{};
     const auto ec = (sqlw::Statement{&db::connection()})(
-        "INSERT INTO user (name, password_hashed) "
-        "VALUES (trim(?1), ?2) "
+        "INSERT INTO user (name, password_hashed, locale_id) "
+        "VALUES (trim(?1), ?2, ?3) "
         "RETURNING id",
         [&ss](sqlw::Statement::ExecArgs e) { ss << e.column_value; },
-        std::array<sqlw::Statement::bindable_t, 2>{
+        std::array<sqlw::Statement::bindable_t, 3>{
             {{name, sqlw::Type::SQL_TEXT},
-             {password_hashed, sqlw::Type::SQL_TEXT}}});
+             {password_hashed, sqlw::Type::SQL_TEXT},
+             {to_string_view(user->locale_id), sqlw::Type::SQL_INT}}});
 
     // todo add wait 500ms for security
 
@@ -379,8 +382,52 @@ extern "C" wholth_Error wholth_em_user_insert(
     return wholth_Error_OK;
 }
 
+extern "C" wholth_Error wholth_em_user_exists(
+    const wholth_StringView name,
+    wholth_StringView* const id,
+    wholth_Buffer* const buffer)
+{
+    if (nullptr == buffer)
+    {
+        return wholth::c::internal::bad_buffer_error();
+    }
+
+    if (nullptr == id)
+    {
+        return wholth::c::internal::bad_buffer_error();
+    }
+
+    std::error_code err;
+
+    std::string _id{};
+    err = (sqlw::Statement{&db::connection()})(
+        "SELECT id "
+        "FROM user "
+        "WHERE name = ?1",
+        [&_id](sqlw::Statement::ExecArgs e) { _id = e.column_value; },
+        std::array<sqlw::Statement::bindable_t, 1>{{
+            {to_string_view(name), sqlw::Type::SQL_TEXT},
+        }});
+
+    if (sqlw::status::Condition::OK != err)
+    {
+        return ec_to_error(err, buffer);
+    }
+
+    if (_id.empty())
+    {
+        return ec_to_error(Code::USER_DOES_NOT_EXIST, buffer);
+    }
+
+    wholth_buffer_move_data_to(buffer, &_id);
+
+    *id = wholth_buffer_view(buffer);
+
+    return wholth_Error_OK;
+}
+
 extern "C" wholth_Error wholth_em_user_authenticate(
-    const wholth_User* const user,
+    wholth_User* const user,
     const wholth_StringView password,
     wholth_Buffer* const buffer)
 {
@@ -419,12 +466,12 @@ extern "C" wholth_Error wholth_em_user_authenticate(
 
     // todo add wait 500ms for security
 
-    std::string name = "";
+    std::string id{};
     err = (sqlw::Statement{&db::connection()})(
-        "SELECT name "
+        "SELECT id "
         "FROM user "
         "WHERE name = ?1 AND password_hashed = ?2",
-        [&name](sqlw::Statement::ExecArgs e) { name = e.column_value; },
+        [&id](sqlw::Statement::ExecArgs e) { id = e.column_value; },
         std::array<sqlw::Statement::bindable_t, 2>{
             {{to_string_view(user->name), sqlw::Type::SQL_TEXT},
              {password_hashed, sqlw::Type::SQL_TEXT}}});
@@ -434,6 +481,13 @@ extern "C" wholth_Error wholth_em_user_authenticate(
         return ec_to_error(err, buffer);
     }
 
-    return name.empty() ? ec_to_error(Code::USER_AUTHENTICATION_FAILED, buffer)
-                        : wholth_Error_OK;
+    if (id.empty())
+    {
+        return ec_to_error(Code::USER_AUTHENTICATION_FAILED, buffer);
+    }
+
+    wholth_buffer_move_data_to(buffer, &id);
+    user->id = wholth_buffer_view(buffer);
+
+    return wholth_Error_OK;
 }

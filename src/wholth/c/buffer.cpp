@@ -1,15 +1,24 @@
 #include "wholth/c/buffer.h"
+#include "wholth/c/error.h"
 #include <atomic>
 #include <vector>
 #include <string>
 
 struct wholth_Buffer_t
 {
+    enum class State : int
+    {
+        FREE = 0,
+        OCCUPIED,
+    };
+
+    std::atomic<State> state{State::FREE};
     std::string data{};
 };
 
-static std::atomic<int64_t> g_idx = -1;
-constexpr auto g_size = 100;
+typedef uint8_t ring_pool_idx_t;
+static std::atomic<ring_pool_idx_t> g_idx = 0;
+static constexpr auto g_size = std::numeric_limits<ring_pool_idx_t>::max();
 
 static auto ring_pool() -> std::vector<wholth_Buffer>&
 {
@@ -17,22 +26,57 @@ static auto ring_pool() -> std::vector<wholth_Buffer>&
     return g_buffer_pool;
 }
 
-// wholth_Error wholth_buffer_create(wholth_Buffer* handle)
-// {
-//     g_idx = (g_idx + 1) % g_size;
-//
-//     handle = &pool()[g_idx];
-//
-//     return wholth_Error_OK;
-// }
-
-auto wholth_buffer_ring_pool_element() -> wholth_Buffer*
+extern "C" auto wholth_buffer_ring_pool_element() -> wholth_Buffer*
 {
-    g_idx = (g_idx + 1) % g_size;
-    return &ring_pool()[g_idx];
+    wholth_Buffer* buf = nullptr;
+    wholth_buffer_new(&buf);
+    return buf;
 }
 
-auto wholth_buffer_move_data_to(wholth_Buffer* const handle, void* data) -> void
+extern "C" auto wholth_buffer_new(wholth_Buffer** buf) -> wholth_Error
+{
+    assert(
+        nullptr != buf &&
+        nullptr == *buf &&
+        "wholth_buffer_new - unresponsible!");
+
+    *buf = &ring_pool()[g_idx];
+    auto err = wholth_Error_OK;
+
+    if (wholth_Buffer::State::FREE != (*buf)->state)
+    {
+        constexpr std::string_view msg = "Buffer is not free!";
+        // todo add code enum
+        err = {.code = 1, .message = {.data = msg.data(), .size = msg.size()}};
+    }
+    else
+    {
+        (*buf)->state.store(
+            wholth_Buffer::State::OCCUPIED, std::memory_order_seq_cst);
+    }
+
+    g_idx = (g_idx + 1) % g_size;
+
+    return err;
+}
+
+extern "C" wholth_Error wholth_buffer_del(wholth_Buffer* buf)
+{
+    if (nullptr == buf)
+    {
+        constexpr std::string_view msg = "Buffer is null!";
+        // todo add code enum
+        return {.code = 1, .message = {.data = msg.data(), .size = msg.size()}};
+    }
+
+    buf->state.store(wholth_Buffer::State::FREE, std::memory_order_seq_cst);
+
+    return wholth_Error_OK;
+}
+
+extern "C" auto wholth_buffer_move_data_to(
+    wholth_Buffer* const handle,
+    void* data) -> void
 {
     if (nullptr != handle && nullptr != data)
     {
@@ -40,7 +84,7 @@ auto wholth_buffer_move_data_to(wholth_Buffer* const handle, void* data) -> void
     }
 }
 
-auto wholth_buffer_view(const wholth_Buffer* const handle)
+extern "C" auto wholth_buffer_view(const wholth_Buffer* const handle)
     -> const wholth_StringView
 {
     if (nullptr == handle)

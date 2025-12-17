@@ -1,8 +1,6 @@
-#include "fmt/core.h"
 #include "sqlw/statement.hpp"
 #include "wholth/c/pages/recipe_step.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pages/internal.hpp"
 #include "wholth/pages/recipe_step.hpp"
 #include "wholth/utils.hpp"
@@ -17,8 +15,8 @@ auto wholth::pages::hydrate(
     size_t index,
     wholth::entity::LengthContainer& lc) -> void
 {
-    auto& buffer = data.container.swappable_buffer_views.next().buffer;
-    auto& vec = data.container.swappable_buffer_views.next().view;
+    auto& buffer = data.container.buffer;
+    auto& vec = data.container.view;
 
     assert(vec.size() > index);
 
@@ -60,16 +58,22 @@ auto wholth::pages::prepare_recipe_step_stmt(
     return {LengthContainer{field_count}, stmt.status()};
 }
 
-extern "C" wholth_Page* wholth_pages_recipe_step(bool reset = false)
+extern "C" wholth_Error wholth_pages_recipe_step(wholth_Page** page)
 {
-    static std::unique_ptr<wholth_Page> ptr;
+    auto err = wholth_pages_new(page);
 
-    if (nullptr == ptr.get() || reset)
+    if (!wholth_error_ok(&err))
     {
-        ptr = std::make_unique<wholth_Page>(1, wholth::pages::RecipeStep{});
+        return err;
     }
 
-    return ptr.get();
+    constexpr auto per_page = 1;
+    wholth::pages::RecipeStep page_data{.query = {}, .container = {}};
+    page_data.container.view.resize(per_page);
+
+    **page = {per_page, page_data};
+
+    return wholth_Error_OK;
 }
 
 static bool check_page(const wholth_Page* const page)
@@ -88,10 +92,10 @@ extern "C" const wholth_RecipeStep* wholth_pages_recipe_step_first(
 
     const auto& vector =
         std::get<wholth::pages::internal::PageType::RECIPE_STEP>(page->data)
-            .container.swappable_buffer_views.view_current()
-            .view;
+            .container.view;
 
-    if (0 == vector[0].id.size) {
+    if (0 == vector[0].id.size)
+    {
         return nullptr;
     }
 

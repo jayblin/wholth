@@ -46,14 +46,14 @@ std::error_code wholth::pages::make_error_code(wholth::pages::Code e)
 }
 
 wholth_Page::wholth_Page_t()
-    : pagination(0), is_fetching(false), data(std::monostate{})
+    : pagination(0), state(State::FREE), data(std::monostate{})
 {
 }
 
 wholth_Page::wholth_Page_t(
     wholth::Pagination::per_page_t _per_page,
     wholth::pages::internal::PageData _data)
-    : pagination(_per_page), is_fetching(false), data(_data)
+    : pagination(_per_page), state(State::FREE), data(_data)
 {
 }
 
@@ -61,8 +61,8 @@ wholth_Page& wholth_Page::operator=(wholth_Page&& other)
 {
     if (this != &other)
     {
-        this->is_fetching = false;
         this->pagination = std::move(other.pagination);
+        this->state = State::FREE;
         this->data = std::move(other.data);
 
         other.data = std::monostate{};

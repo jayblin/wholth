@@ -21,8 +21,8 @@ auto wholth::pages::hydrate(
     size_t index,
     wholth::entity::LengthContainer& lc) -> void
 {
-    auto& buffer = food.container.swappable_buffer_views.next().buffer;
-    auto& vec = food.container.swappable_buffer_views.next().view;
+    auto& buffer = food.container.buffer;
+    auto& vec = food.container.view;
 
     assert(vec.size() > index);
 
@@ -130,6 +130,12 @@ static void bind_params(
         std::string _title = fmt::format("%{0}%", q.title);
 
         stmt.bind(idx, _title, sqlw::Type::SQL_TEXT);
+        idx++;
+    }
+
+    if (q.id.size() > 0)
+    {
+        stmt.bind(idx, q.id, sqlw::Type::SQL_INT);
         idx++;
     }
 }
@@ -277,10 +283,18 @@ std::string create_where(
     /* 		} */
     /* 	} */
     /* } */
+    tpl_stream << " WHERE 1=1 ";
 
     if (q.title.size() > 0)
     {
-        tpl_stream << " WHERE  rt.recipe_title LIKE ?" << sql_param_idx;
+        tpl_stream << " AND rt.recipe_title LIKE ?" << sql_param_idx;
+
+        sql_param_idx++;
+    }
+
+    if (q.id.size() > 0)
+    {
+        tpl_stream << " AND rt.recipe_id = ?" << sql_param_idx;
 
         sql_param_idx++;
     }

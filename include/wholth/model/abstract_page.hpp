@@ -32,7 +32,6 @@ concept has_pagination = requires(T t) {
 template <typename T>
 concept has_container = requires(T t) {
     t.container;
-    requires has_swappable_buffer_views<decltype(t.container)>;
 };
 
 } // namespace wholth::concepts

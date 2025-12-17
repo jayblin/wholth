@@ -9,8 +9,8 @@ namespace wholth::concepts
     concept is_swappable = requires (T t)
     {
         /* T::value_t; */
-        t.next();
-        t.swap();
+        // t.next();
+        // t.swap();
         t.current();
         t.view_current();
         t.next();

@@ -2,9 +2,9 @@
 #define WHOLTH_PAGES_INGREDIENT_H_
 
 #include "sqlw/statement.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/c/entity/ingredient.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pagination.hpp"
 
 namespace wholth::pages
@@ -19,8 +19,7 @@ struct IngredientQuery
 struct Ingredient
 {
     IngredientQuery query{};
-    wholth::model::SwappableBufferViewsAwareContainer<wholth_Ingredient>
-        container{};
+    wholth::BufferView<std::vector<wholth_Ingredient>> container{};
 };
 
 auto prepare_ingredient_stmt(

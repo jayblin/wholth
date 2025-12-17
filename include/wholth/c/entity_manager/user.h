@@ -26,11 +26,16 @@ extern "C"
         USER_PASSWORD_TOO_LONG,
         USER_NO_NAME,
         USER_AUTHENTICATION_FAILED_GONKED,
+        USER_DOES_NOT_EXIST,
         _COUNT_,
     };
 
+    wholth_Error wholth_em_user_exists(
+        const wholth_StringView name,
+        wholth_StringView* const id,
+        wholth_Buffer* const);
     wholth_Error wholth_em_user_authenticate(
-        const wholth_User* const,
+        wholth_User* const,
         const wholth_StringView password,
         wholth_Buffer* const);
     wholth_Error wholth_em_user_insert(

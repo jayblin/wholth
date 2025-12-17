@@ -4,6 +4,7 @@
 #include "db/db.hpp"
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
+#include "wholth/c/pages/utils.h"
 #include "wholth/c/string_view.h"
 #include <gtest/gtest.h>
 
@@ -13,6 +14,16 @@
 #define ASSERT_STRNEQ2(a, b) ASSERT_STRNE(a, std::string{b}.data())
 #define ASSERT_STRNE2(a, b) ASSERT_STRNE(a, std::string{b}.data())
 #define ASSERT_STRNE3(a, b) ASSERT_STRNE(a.data(), std::string{b}.data())
+
+#define ASSERT_WHOLTH_OK(err) \
+    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message); \
+    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size) \
+        << err.code << wfsv(err.message);
+
+#define ASSERT_WHOLTH_NOK(err) \
+    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message); \
+    ASSERT_NE(wholth_Error_OK.message.size, err.message.size) \
+        << err.code << wfsv(err.message);
 
 
 class GlobalInMemoryDatabaseAwareTest : public testing::Test
@@ -101,5 +112,13 @@ auto astmt(
     sqlw::Connection& connection,
     std::string_view sql,
     sqlw::Statement::callback_t callback = nullptr) -> void;
+
+struct PageWrap {
+    wholth_Page* handle = nullptr;
+
+    ~PageWrap() {
+        wholth_pages_del(handle);
+    }
+};
 
 #endif // WHOLTH_TESTS_HELPERS_H_

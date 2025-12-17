@@ -2,7 +2,6 @@
 #include "sqlw/statement.hpp"
 #include "wholth/c/pages/nutrient.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pages/internal.hpp"
 #include "wholth/pages/nutrient.hpp"
 #include "wholth/utils.hpp"
@@ -17,8 +16,8 @@ auto wholth::pages::hydrate(
     size_t index,
     wholth::entity::LengthContainer& lc) -> void
 {
-    auto& buffer = data.container.swappable_buffer_views.next().buffer;
-    auto& vec = data.container.swappable_buffer_views.next().view;
+    auto& buffer = data.container.buffer;
+    auto& vec = data.container.view;
 
     assert(vec.size() > index);
 
@@ -77,20 +76,23 @@ auto wholth::pages::prepare_nutrient_stmt(
     return {LengthContainer{pagination.per_page() * 4}, stmt.status()};
 }
 
-extern "C" wholth_Page* wholth_pages_nutrient(
-    uint64_t per_page,
-    bool reset = false)
+extern "C" wholth_Error wholth_pages_nutrient(
+    wholth_Page** page,
+    uint64_t per_page)
 {
-    static std::unique_ptr<wholth_Page> ptr;
+    auto err = wholth_pages_new(page);
 
-    if (nullptr == ptr.get() || reset)
+    if (!wholth_error_ok(&err))
     {
-        ptr = std::make_unique<wholth_Page>(
-            per_page,
-            wholth::pages::Nutrient{.query = {}, .container = {per_page}});
+        return err;
     }
 
-    return ptr.get();
+    wholth::pages::Nutrient page_data{.query = {}, .container = {}};
+    page_data.container.view.resize(per_page);
+
+    **page = {per_page, page_data};
+
+    return wholth_Error_OK;
 }
 
 static bool check_page(const wholth_Page* const page)
@@ -107,29 +109,14 @@ extern "C" const wholth_NutrientArray wholth_pages_nutrient_array(
         return {nullptr, 0};
     }
 
-    const auto& vector = std::get<PageType::NUTRIENT>(page->data)
-                             .container.swappable_buffer_views.view_current()
-                             .view;
+    const auto& vector =
+        std::get<PageType::NUTRIENT>(page->data).container.view;
 
     assertm(
         vector.size() >= page->pagination.span_size(),
         "You done goofed here wholth_pages_nutrient() [1]!");
 
     return {vector.data(), page->pagination.span_size()};
-}
-
-extern "C" const wholth_Nutrient* wholth_pages_nutrient_array_at(
-    const wholth_Page* const p,
-    unsigned long long idx)
-{
-    if (!check_page(p) || idx >= p->pagination.span_size())
-    {
-        return nullptr;
-    }
-
-    return &std::get<PageType::NUTRIENT>(p->data)
-                .container.swappable_buffer_views.view_current()
-                .view[idx];
 }
 
 extern "C" void wholth_pages_nutrient_title(

@@ -2,9 +2,9 @@
 #define WHOLTH_PAGES_FOOD_NUTRIENT_H_
 
 #include "sqlw/statement.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/c/entity/nutrient.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pagination.hpp"
 
 namespace wholth::pages
@@ -19,8 +19,7 @@ struct FoodNutrientQuery
 struct FoodNutrient
 {
     FoodNutrientQuery query{};
-    wholth::model::SwappableBufferViewsAwareContainer<wholth_Nutrient>
-        container{};
+    wholth::BufferView<std::vector<wholth_Nutrient>> container{};
 };
 
 auto prepare_food_nutrient_stmt(

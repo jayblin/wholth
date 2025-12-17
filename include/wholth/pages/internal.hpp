@@ -9,6 +9,7 @@
 #include "wholth/pages/ingredient.hpp"
 #include "wholth/pages/recipe_step.hpp"
 #include "wholth/pagination.hpp"
+#include <cstdint>
 #include <memory>
 #include <variant>
 
@@ -43,9 +44,16 @@ static_assert(std::variant_size_v<PageData> == PageType::_COUNT_);
 
 struct wholth_Page_t
 {
+    enum class State : int
+    {
+        FREE = 0,
+        FETCHING,
+        OCCUPIED,
+    };
+
     wholth::Pagination pagination{0};
-    std::atomic<bool> is_fetching{false};
-    wholth::pages::internal::PageData data {std::monostate{}};
+    std::atomic<State> state{State::FREE};
+    wholth::pages::internal::PageData data{std::monostate{}};
 
     wholth_Page_t();
     wholth_Page_t(

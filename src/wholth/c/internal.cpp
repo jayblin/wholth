@@ -27,6 +27,7 @@ auto wholth::c::internal::str_to_error(
 {
     wholth_buffer_move_data_to(buffer, &str);
     return {
+        // todo add enum
         .code = 0,
         // .message = push_error(std::move(str)),
         .message = wholth_buffer_view(buffer),
@@ -37,6 +38,7 @@ auto wholth::c::internal::bad_buffer_error() -> wholth_Error
 {
     constexpr std::string_view msg = "BUFFER_BAD";
     return {
+        // todo add enum
         .code = 1,
         .message = {
             .data = msg.data(),

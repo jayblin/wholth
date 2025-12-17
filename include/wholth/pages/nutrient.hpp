@@ -2,9 +2,9 @@
 #define WHOLTH_PAGES_NUTRIENT_H_
 
 #include "sqlw/statement.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/c/entity/nutrient.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pagination.hpp"
 
 namespace wholth::pages
@@ -18,8 +18,7 @@ struct NutrientQuery
 struct Nutrient
 {
     NutrientQuery query{};
-    wholth::model::SwappableBufferViewsAwareContainer<wholth_Nutrient>
-        container{};
+    wholth::BufferView<std::vector<wholth_Nutrient>> container{};
 };
 
 auto prepare_nutrient_stmt(
@@ -28,10 +27,8 @@ auto prepare_nutrient_stmt(
     const wholth::Pagination& pagination)
     -> std::tuple<wholth::entity::LengthContainer, std::error_code>;
 
-auto hydrate(
-    Nutrient&,
-    size_t index,
-    wholth::entity::LengthContainer& lc) -> void;
+auto hydrate(Nutrient&, size_t index, wholth::entity::LengthContainer& lc)
+    -> void;
 
 } // namespace wholth::pages
 

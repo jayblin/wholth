@@ -76,12 +76,12 @@ TEST_F(Test_wholth_pages_consumption_log, when_bad_dates)
 
     // At this point query object should be empty
     {
-        wholth_Page* page = wholth_pages_consumption_log(8, true);
-        wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_consumption_log(&page, 8);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
+        err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+        ASSERT_WHOLTH_OK(err);
 
         err = wholth_pages_fetch(page);
 
@@ -106,12 +106,12 @@ TEST_F(Test_wholth_pages_consumption_log, when_bad_dates)
     }
 
     {
-        wholth_Page* page = wholth_pages_consumption_log(8, true);
-        wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_consumption_log(&page, 8);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
+        err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+        ASSERT_WHOLTH_OK(err);
 
         err =
             wholth_pages_consumption_log_period(page, wtsv("from"), wtsv("to"));
@@ -151,13 +151,13 @@ TEST_F(Test_wholth_pages_consumption_log, when_bad_dates)
     }
 
     {
-        wholth_Page* page = wholth_pages_consumption_log(8, false);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_consumption_log(&page, 8);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
 
-        wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+        ASSERT_WHOLTH_OK(err);
 
         err = wholth_pages_consumption_log_period(
             page, wtsv("2022-02-02T22:22:22"), wtsv("to"));
@@ -202,13 +202,13 @@ TEST_F(Test_wholth_pages_consumption_log, when_not_found_by_period)
     auto buf = wholth_buffer_ring_pool_element();
     wholth_em_user_locale_id(wtsv("1"), wtsv("1"), buf);
 
-    wholth_Page* page = wholth_pages_consumption_log(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_consumption_log(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
-    wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-    ASSERT_EQ(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_consumption_log_period(
         page, wtsv("1999-02-02T22:22:22"), wtsv("2000-02-02T22:22:22"));
@@ -234,22 +234,20 @@ TEST_F(Test_wholth_pages_consumption_log, when_requested_page_number_is_too_big)
     auto buf = wholth_buffer_ring_pool_element();
     wholth_em_user_locale_id(wtsv("1"), wtsv("1"), buf);
 
-    wholth_Page* page = wholth_pages_consumption_log(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_consumption_log(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     ASSERT_TRUE(
         wholth_pages_skip_to(page, std::numeric_limits<uint64_t>::max()));
 
-    wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-    ASSERT_EQ(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+    ASSERT_WHOLTH_OK(err);
 
     err = wholth_pages_fetch(page);
 
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_NOK(err);
 
     std::error_code ec = wholth::pages::Code(err.code);
     ASSERT_EQ(wholth::pages::Code::QUERY_PAGE_TOO_BIG, ec)
@@ -274,22 +272,20 @@ TEST_F(Test_wholth_pages_consumption_log, when_rquested_offset_is_to_big)
     auto buf = wholth_buffer_ring_pool_element();
     wholth_em_user_locale_id(wtsv("1"), wtsv("1"), buf);
 
-    wholth_Page* page = wholth_pages_consumption_log(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_consumption_log(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     ASSERT_TRUE(
         wholth_pages_skip_to(page, std::numeric_limits<int>::max() / 2));
 
-    wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-    ASSERT_EQ(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+    ASSERT_WHOLTH_OK(err);
 
     err = wholth_pages_fetch(page);
 
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_NOK(err);
 
     std::error_code ec = wholth::pages::Code(err.code);
     ASSERT_EQ(wholth::pages::Code::QUERY_OFFSET_TOO_BIG, ec)
@@ -313,24 +309,22 @@ TEST_F(Test_wholth_pages_consumption_log, when_basic_case)
     auto buf = wholth_buffer_ring_pool_element();
     wholth_em_user_locale_id(wtsv("1"), wtsv("1"), buf);
 
-    wholth_Page* page = wholth_pages_consumption_log(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_consumption_log(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_consumption_log_period(
         page, wtsv("1999-02-02T22:22:22"), wtsv("3000-02-02T22:22:22"));
 
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
 
-    wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-    ASSERT_EQ(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+    ASSERT_WHOLTH_OK(err);
 
     err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const wholth_ConsumptionLogArray logs =
         wholth_pages_consumption_log_array(page);
@@ -370,24 +364,22 @@ TEST_F(Test_wholth_pages_consumption_log, when_basic_case_and_diff_locale)
     auto buf = wholth_buffer_ring_pool_element();
     wholth_em_user_locale_id(wtsv("1"), wtsv("2"), buf);
 
-    wholth_Page* page = wholth_pages_consumption_log(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_consumption_log(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_consumption_log_period(
         page, wtsv("1999-02-02T22:22:22"), wtsv("3000-02-02T22:22:22"));
 
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
 
-    wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-    ASSERT_EQ(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+    ASSERT_WHOLTH_OK(err);
 
     err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const wholth_ConsumptionLogArray logs =
         wholth_pages_consumption_log_array(page);
@@ -427,24 +419,22 @@ TEST_F(Test_wholth_pages_consumption_log, when_small_period)
     auto buf = wholth_buffer_ring_pool_element();
     wholth_em_user_locale_id(wtsv("1"), wtsv("1"), buf);
 
-    wholth_Page* page = wholth_pages_consumption_log(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_consumption_log(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_consumption_log_period(
         page, wtsv("2025-08-30T12:00:00"), wtsv("2025-08-30T19:00:00"));
 
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
 
-    wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-    ASSERT_EQ(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+    ASSERT_WHOLTH_OK(err);
 
     err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const wholth_ConsumptionLogArray logs =
         wholth_pages_consumption_log_array(page);
@@ -479,25 +469,22 @@ TEST_F(Test_wholth_pages_consumption_log, when_multiple_pages)
     wholth_em_user_locale_id(wtsv("1"), wtsv("1"), buf);
 
     {
-        wholth_Page* page = wholth_pages_consumption_log(6, true);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_consumption_log(&page, 6);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
 
         wholth_pages_consumption_log_period(
             page, wtsv("1999-02-02T22:22:22"), wtsv("3000-02-02T22:22:22"));
 
         ASSERT_TRUE(wholth_pages_skip_to(page, 0));
 
-        wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+        ASSERT_WHOLTH_OK(err);
 
         err = wholth_pages_fetch(page);
 
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        ASSERT_WHOLTH_OK(err);
 
         const wholth_ConsumptionLogArray logs =
             wholth_pages_consumption_log_array(page);
@@ -531,25 +518,22 @@ TEST_F(Test_wholth_pages_consumption_log, when_multiple_pages)
     }
 
     {
-        wholth_Page* page = wholth_pages_consumption_log(0, false);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_consumption_log(&page, 6);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
 
         wholth_pages_consumption_log_period(
             page, wtsv("1999-02-02T22:22:22"), wtsv("3000-02-02T22:22:22"));
 
         ASSERT_TRUE(wholth_pages_skip_to(page, 1));
 
-        wholth_Error err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        err = wholth_pages_consumption_log_user_id(page, wtsv("1"));
+        ASSERT_WHOLTH_OK(err);
 
         err = wholth_pages_fetch(page);
 
-        ASSERT_EQ(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        ASSERT_WHOLTH_OK(err);
 
         const wholth_ConsumptionLogArray logs =
             wholth_pages_consumption_log_array(page);

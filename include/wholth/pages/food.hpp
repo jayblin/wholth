@@ -2,9 +2,10 @@
 #define WHOLTH_PAGES_FOOD_H_
 
 #include "sqlw/statement.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/c/entity/food.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
+#include "wholth/pagination.hpp"
 
 namespace wholth::pages
 {
@@ -14,13 +15,13 @@ struct FoodQuery
     std::string title{""};
     std::string ingredients{""};
     std::string locale_id{""};
+    std::string id{""};
 };
 
 struct Food
 {
-    int64_t slot{-1};
     FoodQuery query{};
-    wholth::model::SwappableBufferViewsAwareContainer<wholth_Food> container{};
+    wholth::BufferView<std::vector<wholth_Food>> container{};
 };
 
 auto prepare_food_stmt(

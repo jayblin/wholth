@@ -55,12 +55,13 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
-    const wholth_Error err = wholth_pages_fetch(page);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     std::error_code ec = wholth::entity_manager::food::Code(err.code);
     ASSERT_EQ(wholth::entity_manager::food::Code::OK, ec) << ec << ec.message();
@@ -100,12 +101,13 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case_diff_locale)
 {
     wholth_user_locale_id(wtsv("2"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
-    const wholth_Error err = wholth_pages_fetch(page);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     std::error_code ec = wholth::entity_manager::food::Code(err.code);
     ASSERT_EQ(wholth::entity_manager::food::Code::OK, ec) << ec << ec.message();
@@ -145,14 +147,15 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case_with_title)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
     wholth_pages_nutrient_title(page, wtsv("C1"));
 
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     std::error_code ec = wholth::entity_manager::food::Code(err.code);
     ASSERT_EQ(wholth::entity_manager::food::Code::OK, ec) << ec << ec.message();
@@ -185,14 +188,15 @@ TEST_F(Test_wholth_pages_nutrient, when_basic_case_with_title_diff_locale)
 {
     wholth_user_locale_id(wtsv("2"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
     wholth_pages_nutrient_title(page, wtsv("C2"));
 
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     std::error_code ec = wholth::entity_manager::food::Code(err.code);
     ASSERT_EQ(wholth::entity_manager::food::Code::OK, ec) << ec << ec.message();
@@ -225,14 +229,15 @@ TEST_F(Test_wholth_pages_nutrient, when_not_found)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
     wholth_pages_nutrient_title(page, wtsv("AAA2"));
 
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_NOK(err);
 
     std::error_code ec = wholth::pages::Code(err.code);
     ASSERT_EQ(wholth::pages::Code::NOT_FOUND, ec) << ec << ec.message();
@@ -252,15 +257,16 @@ TEST_F(Test_wholth_pages_nutrient, when_requested_page_number_is_to_big)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_skip_to(page, std::numeric_limits<uint64_t>::max());
 
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_NOK(err);
 
     std::error_code ec = wholth::pages::Code(err.code);
     ASSERT_EQ(wholth::pages::Code::QUERY_PAGE_TOO_BIG, ec)
@@ -283,15 +289,16 @@ TEST_F(Test_wholth_pages_nutrient, when_rquested_offset_is_to_big)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_nutrient(8, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_skip_to(page, std::numeric_limits<int>::max() / 2);
 
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_NOK(err);
 
     std::error_code ec = wholth::pages::Code(err.code);
     ASSERT_EQ(wholth::pages::Code::QUERY_OFFSET_TOO_BIG, ec)
@@ -313,14 +320,15 @@ TEST_F(Test_wholth_pages_nutrient, when_second_page)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_nutrient(4, true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 4);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
     wholth_pages_skip_to(page, 1);
 
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     std::error_code ec = wholth::entity_manager::food::Code(err.code);
     ASSERT_EQ(wholth::entity_manager::food::Code::OK, ec) << ec << ec.message();

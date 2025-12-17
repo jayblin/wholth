@@ -11,7 +11,7 @@ extern "C"
 #endif
     ARRAY_T(wholth_ConsumptionLog_t, wholth_ConsumptionLogArray);
 
-    wholth_Page* wholth_pages_consumption_log(unsigned long long per_page, bool reset);
+    wholth_Error wholth_pages_consumption_log(wholth_Page**, uint64_t per_page);
     const wholth_ConsumptionLogArray wholth_pages_consumption_log_array(
         const wholth_Page* const);
     wholth_Error wholth_pages_consumption_log_period(

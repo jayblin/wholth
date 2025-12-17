@@ -2,9 +2,9 @@
 #define WHOLTH_PAGES_RECIPE_STEP_H_
 
 #include "sqlw/statement.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/c/entity/recipe_step.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pagination.hpp"
 
 namespace wholth::pages
@@ -18,8 +18,7 @@ struct RecipeStepQuery
 struct RecipeStep
 {
     RecipeStepQuery query{};
-    wholth::model::SwappableBufferViewsAwareContainer<wholth_RecipeStep>
-        container{1};
+    wholth::BufferView<std::vector<wholth_RecipeStep>> container{};
 };
 
 auto prepare_recipe_step_stmt(

@@ -9,17 +9,15 @@
 extern "C"
 {
 #endif
-    typedef unsigned char wholth_Slot;
     ARRAY_T(wholth_Food, wholth_FoodArray);
     typedef void* wholth_PageArray;
 
-    wholth_Page* wholth_pages_food(
-        wholth_Slot slot,
-        unsigned long long per_page);
+    wholth_Error wholth_pages_food(wholth_Page**, uint64_t per_page);
+    // todo remove
     const wholth_FoodArray wholth_pages_food_array(const wholth_Page* const);
-    const wholth_Food* wholth_pages_food_array_at(
-        const wholth_Page* const,
-        unsigned long long idx);
+    void wholth_pages_food_id(
+        wholth_Page* const,
+        wholth_StringView search_id);
     void wholth_pages_food_title(
         wholth_Page* const,
         wholth_StringView search_title);

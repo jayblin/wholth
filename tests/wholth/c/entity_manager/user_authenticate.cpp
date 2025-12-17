@@ -135,8 +135,8 @@ TEST_F(Test_wholth_em_user_authenticate, when_no_salt_env)
 {
     astmt(
         db::connection(),
-        "INSERT INTO user (id, name, password_hashed) "
-        "VALUES (1, 'Test User', 'asd')");
+        "INSERT INTO user (id, name, password_hashed, locale_id) "
+        "VALUES (1, 'Test User', 'asd', 1)");
 
     std::string old_count = "bogus";
     astmt(db::connection(), count_users_sql, [&](auto e) {
@@ -169,9 +169,9 @@ TEST_F(Test_wholth_em_user_authenticate, when_bad_case)
 
     astmt(
         db::connection(),
-        "INSERT INTO user (id, name, password_hashed) "
+        "INSERT INTO user (id, name, password_hashed, locale_id) "
         "VALUES (1, 'Test User', "
-        "'nah_bruda_wrong_hash')");
+        "'nah_bruda_wrong_hash', 1)");
 
     wholth_Buffer* scratch = wholth_buffer_ring_pool_element();
     wholth_User user = wholth_entity_user_init();
@@ -191,12 +191,11 @@ TEST_F(Test_wholth_em_user_authenticate, when_bad_case)
 
 TEST_F(Test_wholth_em_user_authenticate, when_good_case)
 {
-    static char* salt = "WHOLTH_PASSWORD_SALT=THE_SALT";
-    putenv(salt);
+    wholth_app_password_encryption_secret(wtsv("THE_SALT"));
 
     astmt(
         db::connection(),
-        "INSERT INTO user (id, name, password_hashed) "
+        "INSERT INTO user (id, name, password_hashed, locale_id) "
         "VALUES (1, 'Test User', "
         // "CACF2E22E136A38F05D199AEA8B2C80C2FF55431853E4AEA0A67D21C1C6FF6C6;"
         // <-- this was sha256 version
@@ -211,7 +210,7 @@ TEST_F(Test_wholth_em_user_authenticate, when_good_case)
         "62593D0AE6AFF78FC29D9A14A5E61E9D9AFFFD8F0123B3"
         "96F79D7E5487192A0F398E1BCBB47DCA26CB84ABF0DE6D"
         "3E16582380490CDAF09B465B57DB3B85EC8A46464FA9AA"
-        "263F41')");
+        "263F41', 1)");
 
     wholth_Buffer* scratch = wholth_buffer_ring_pool_element();
     wholth_User user = wholth_entity_user_init();
@@ -222,4 +221,6 @@ TEST_F(Test_wholth_em_user_authenticate, when_good_case)
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message);
+
+    ASSERT_STREQ3(wfsv(user.id), "1");
 }

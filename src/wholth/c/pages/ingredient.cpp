@@ -19,8 +19,8 @@ auto wholth::pages::hydrate(
     size_t index,
     wholth::entity::LengthContainer& lc) -> void
 {
-    auto& buffer = data.container.swappable_buffer_views.next().buffer;
-    auto& vec = data.container.swappable_buffer_views.next().view;
+    auto& buffer = data.container.buffer;
+    auto& vec = data.container.view;
 
     assert(vec.size() > index);
 
@@ -100,20 +100,23 @@ static bool check_page(const wholth_Page* const page)
     return nullptr != page && PageType::INGREDIENT == page->data.index();
 }
 
-extern "C" wholth_Page* wholth_pages_ingredient(
-    uint64_t per_page,
-    bool reset = false)
+extern "C" wholth_Error wholth_pages_ingredient(
+    wholth_Page** page,
+    uint64_t per_page)
 {
-    static std::unique_ptr<wholth_Page> ptr;
+    auto err = wholth_pages_new(page);
 
-    if (nullptr == ptr.get() || reset)
+    if (!wholth_error_ok(&err))
     {
-        ptr = std::make_unique<wholth_Page>(
-            per_page,
-            wholth::pages::Ingredient{.query = {}, .container = {per_page}});
+        return err;
     }
 
-    return ptr.get();
+    wholth::pages::Ingredient page_data{.query = {}, .container = {}};
+    page_data.container.view.resize(per_page);
+
+    **page = {per_page, page_data};
+
+    return wholth_Error_OK;
 }
 
 extern "C" const wholth_IngredientArray wholth_pages_ingredient_array(
@@ -124,9 +127,8 @@ extern "C" const wholth_IngredientArray wholth_pages_ingredient_array(
         return {nullptr, 0};
     }
 
-    const auto& vector = std::get<PageType::INGREDIENT>(page->data)
-                             .container.swappable_buffer_views.view_current()
-                             .view;
+    const auto& vector =
+        std::get<PageType::INGREDIENT>(page->data).container.view;
 
     assertm(
         vector.size() >= page->pagination.span_size(),

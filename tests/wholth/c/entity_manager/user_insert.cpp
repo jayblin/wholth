@@ -210,8 +210,8 @@ TEST_F(Test_wholth_em_user_insert, when_name_not_unique)
 {
     astmt(
         db::connection(),
-        "INSERT INTO user (id, name, password_hashed) "
-        "VALUES (1, 'Test User', 'asd')");
+        "INSERT INTO user (id, name, password_hashed, locale_id) "
+        "VALUES (1, 'Test User', 'asd', 1)");
 
     std::string old_count = "bogus";
     astmt(db::connection(), count_users_sql, [&](auto e) {
@@ -252,8 +252,8 @@ TEST_F(Test_wholth_em_user_insert, when_no_salt_env)
 {
     astmt(
         db::connection(),
-        "INSERT INTO user (id, name, password_hashed) "
-        "VALUES (1, 'Test User', 'asd')");
+        "INSERT INTO user (id, name, password_hashed, locale_id) "
+        "VALUES (1, 'Test User', 'asd', 1)");
 
     std::string old_count = "bogus";
     astmt(db::connection(), count_users_sql, [&](auto e) {
@@ -290,6 +290,7 @@ TEST_F(Test_wholth_em_user_insert, when_good_case)
     wholth_Buffer* scratch = wholth_buffer_ring_pool_element();
     wholth_User user = wholth_entity_user_init();
     user.name = wtsv("  Test User   ");
+    user.locale_id = wtsv("2");
     const auto err = wholth_em_user_insert(
         &user, wtsv("12345678901234567890123456789"), scratch);
 
@@ -332,6 +333,6 @@ TEST_F(Test_wholth_em_user_insert, when_good_case)
         "96F79D7E5487192A0F398E1BCBB47DCA26CB84ABF0DE6D"
         "3E16582380490CDAF09B465B57DB3B85EC8A46464FA9AA"
         "263F41;"
-        "locale_id:1;",
+        "locale_id:2;",
         check_data_post);
 }

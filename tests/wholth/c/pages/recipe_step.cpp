@@ -39,16 +39,17 @@ TEST_F(Test_wholth_pages_recipe_step, when_basic_case)
 {
     wholth_user_locale_id(wtsv("1"));
 
-    wholth_Page* page = wholth_pages_recipe_step(true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_recipe_step(&page);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
 
     // ASSERT_TRUE(wholth_pages_skip_to(page, 0));
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const wholth_RecipeStep* step = wholth_pages_recipe_step_first(page);
 
@@ -63,16 +64,17 @@ TEST_F(Test_wholth_pages_recipe_step, when_basic_case_and_diff_locale)
 {
     wholth_user_locale_id(wtsv("2"));
 
-    wholth_Page* page = wholth_pages_recipe_step(true);
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_recipe_step(&page);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
 
     wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
 
     // ASSERT_TRUE(wholth_pages_skip_to(page, 0));
-    const wholth_Error err = wholth_pages_fetch(page);
+    err = wholth_pages_fetch(page);
 
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
-        << err.code << wfsv(err.message);
+    ASSERT_WHOLTH_OK(err);
 
     const wholth_RecipeStep* step = wholth_pages_recipe_step_first(page);
 
@@ -86,7 +88,10 @@ TEST_F(Test_wholth_pages_recipe_step, when_basic_case_and_diff_locale)
 TEST_F(Test_wholth_pages_recipe_step, when_not_found)
 {
     {
-        wholth_Page* page = wholth_pages_recipe_step(true);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_recipe_step(&page);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
 
         wholth_user_locale_id(wtsv("2"));
         wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
@@ -97,17 +102,17 @@ TEST_F(Test_wholth_pages_recipe_step, when_not_found)
     {
         wholth_user_locale_id(wtsv("1"));
 
-        wholth_Page* page = wholth_pages_recipe_step(false);
+        wholth_Page* page = nullptr;
+        auto err = wholth_pages_recipe_step(&page);
+        auto wrap = PageWrap{page};
+        ASSERT_WHOLTH_OK(err);
 
         wholth_pages_recipe_step_recipe_id(page, wtsv("1"));
 
         // ASSERT_TRUE(wholth_pages_skip_to(page, 0));
-        const wholth_Error err = wholth_pages_fetch(page);
+        err = wholth_pages_fetch(page);
 
-        ASSERT_NE(wholth_Error_OK.code, err.code)
-            << err.code << wfsv(err.message);
-        ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
-            << err.code << wfsv(err.message);
+        ASSERT_WHOLTH_NOK(err);
 
         const std::error_code ec = wholth::pages::Code(err.code);
         ASSERT_EQ(wholth::pages::Code::NOT_FOUND, ec) << ec << ec.message();

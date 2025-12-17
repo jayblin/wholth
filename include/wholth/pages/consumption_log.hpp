@@ -2,9 +2,9 @@
 #define WHOLTH_PAGES_CONSUMPTION_LOG_H_
 
 #include "sqlw/statement.hpp"
+#include "wholth/buffer_view.hpp"
 #include "wholth/c/entity/consumption_log.h"
 #include "wholth/entity/length_container.hpp"
-#include "wholth/model/abstract_page.hpp"
 #include "wholth/pagination.hpp"
 
 namespace wholth::pages
@@ -20,8 +20,7 @@ struct ConsumptionLogQuery
 struct ConsumptionLog
 {
     ConsumptionLogQuery query{};
-    wholth::model::SwappableBufferViewsAwareContainer<wholth_ConsumptionLog>
-        container{};
+    wholth::BufferView<std::vector<wholth_ConsumptionLog>> container{};
 };
 
 auto prepare_consumption_log_stmt(
