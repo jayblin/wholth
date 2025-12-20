@@ -9,6 +9,7 @@
 #include "wholth/utils/length_container.hpp"
 #include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
+#include <cassert>
 
 constexpr auto field_count = 5;
 using ::utils::datetime::is_valid_sqlite_datetime;

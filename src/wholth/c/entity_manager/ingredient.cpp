@@ -9,6 +9,7 @@
 #include "wholth/entity_manager/recipe_step.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_string_view.hpp"
+#include <cassert>
 
 using wholth::c::internal::ec_to_error;
 using wholth::entity_manager::ingredient::Code;

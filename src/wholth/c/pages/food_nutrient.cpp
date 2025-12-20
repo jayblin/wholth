@@ -12,6 +12,7 @@
 #include "wholth/utils/length_container.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <memory>
+#include <cassert>
 
 static_assert(wholth::entity::is_nutrient<wholth_Nutrient>);
 static_assert(wholth::entity::count_fields<wholth_Nutrient>() == 5);

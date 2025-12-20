@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <memory>
 #include <variant>
+#include <atomic>
 
 namespace wholth::pages::internal
 {

@@ -18,6 +18,7 @@
 #include "wholth/utils.hpp"
 
 #include "wholth/app.hpp"
+#include "cassert"
 
 using namespace std::chrono_literals;
 

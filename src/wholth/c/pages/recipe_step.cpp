@@ -7,6 +7,7 @@
 #include "wholth/utils/length_container.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <memory>
+#include <cassert>
 
 constexpr auto field_count = 3;
 

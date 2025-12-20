@@ -8,6 +8,7 @@
 #include "wholth/utils/length_container.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <memory>
+#include <cassert>
 
 using wholth::pages::internal::PageType;
 
