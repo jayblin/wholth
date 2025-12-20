@@ -1,5 +1,6 @@
 #include "utils/datetime.hpp"
 #include "utils/convert.hpp"
+#include <chrono>
 
 auto utils::datetime::is_valid_sqlite_datetime(std::string_view sv) -> bool
 {

@@ -3,6 +3,8 @@
 #include <atomic>
 #include <vector>
 #include <string>
+#include <cassert>
+#include <limits>
 
 struct wholth_Buffer_t
 {

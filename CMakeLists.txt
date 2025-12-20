@@ -103,7 +103,7 @@ endif()
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        93f91846ead377aca6c2dfa46044bf895a160695
+  GIT_TAG        86da5145f3e34eb0c8ae7dc947c515c3232bef3d
 )
 
 FetchContent_Declare(
@@ -127,7 +127,7 @@ FetchContent_GetProperties(
 	POPULATED POPULATED_GSL
 )
 
-find_package(OpenSSL 3.5.0 COMPONENTS Crypto)
+find_package(OpenSSL 3.5.4 COMPONENTS Crypto)
 
 target_include_directories(
 	wholth
@@ -137,8 +137,7 @@ target_include_directories(
 
 target_link_libraries(
     wholth
-    PUBLIC sqlw Microsoft.GSL::GSL fmt
-    PRIVATE OpenSSL::Crypto
+    PRIVATE sqlw Microsoft.GSL::GSL fmt OpenSSL::Crypto
 )
 
 # TESTS

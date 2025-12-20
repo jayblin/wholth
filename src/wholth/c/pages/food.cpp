@@ -10,6 +10,7 @@
 #include <memory>
 #include <type_traits>
 #include <variant>
+#include <cassert>
 
 using wholth::pages::internal::PageType;
 

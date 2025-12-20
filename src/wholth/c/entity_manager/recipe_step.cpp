@@ -11,6 +11,7 @@
 #include "wholth/entity_manager/food.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_string_view.hpp"
+#include <cassert>
 
 static_assert(nullptr == (void*)NULL);
 

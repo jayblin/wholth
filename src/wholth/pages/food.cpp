@@ -10,6 +10,7 @@
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/length_container.hpp"
 #include <sstream>
+#include <cassert>
 
 static_assert(wholth::entity::is_food<wholth_Food>);
 static_assert(wholth::entity::count_fields<wholth_Food>() == 4);

@@ -11,6 +11,7 @@
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include "wholth/c/entity_manager/food_nutrient.h"
+#include <cassert>
 
 using wholth::c::internal::ec_to_error;
 using wholth::utils::is_valid_id;

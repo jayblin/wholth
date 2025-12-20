@@ -10,6 +10,7 @@
 #include "wholth/utils/length_container.hpp"
 #include <cstddef>
 #include <memory>
+#include <cassert>
 
 constexpr auto field_count = 5;
 using wholth::pages::internal::PageType;
