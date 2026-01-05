@@ -9,6 +9,7 @@ namespace wholth::entity
 
 struct LengthContainer
 {
+    LengthContainer() {};
     LengthContainer(size_t initial_vector_size);
 
     LengthContainer(const LengthContainer&) = delete;

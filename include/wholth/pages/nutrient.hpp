@@ -13,6 +13,7 @@ namespace wholth::pages
 struct NutrientQuery
 {
     std::string title{""};
+    std::string locale_id{""};
 };
 
 struct Nutrient

@@ -12,7 +12,8 @@ extern "C"
 
     enum wholth_em_user_Code
     {
-        USER_NULL = 601,
+        _USER_FIRST_ = 200,
+        USER_NULL,
         USER_INVALID_ID,
         USER_INVALID_LOCALE_ID,
         USER_AUTHENTICATION_FAILED,
@@ -27,7 +28,8 @@ extern "C"
         USER_NO_NAME,
         USER_AUTHENTICATION_FAILED_GONKED,
         USER_DOES_NOT_EXIST,
-        _COUNT_,
+        _USER_LAST_,
+        _USER_COUNT_ = _USER_LAST_ - _USER_FIRST_ - 1,
     };
 
     wholth_Error wholth_em_user_exists(

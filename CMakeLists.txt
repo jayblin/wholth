@@ -38,6 +38,7 @@ add_library(
     src/wholth/c/app.cpp
     # src/wholth/pages/internal.cpp
     src/wholth/c/buffer.cpp
+    src/wholth/error.cpp
     src/wholth/c/entity/food.cpp
     src/wholth/c/entity/recipe_step.cpp
     src/wholth/c/entity/ingredient.cpp
@@ -71,6 +72,7 @@ add_library(
     src/wholth/status.cpp
     src/wholth/utils/length_container.cpp
     src/wholth/utils/prepend_sql_params.cpp
+    src/wholth/utils/to_error.cpp
 )
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -127,7 +129,7 @@ FetchContent_GetProperties(
 	POPULATED POPULATED_GSL
 )
 
-find_package(OpenSSL 3.5.4 COMPONENTS Crypto)
+find_package(OpenSSL 3.5 COMPONENTS Crypto)
 
 target_include_directories(
 	wholth
@@ -161,7 +163,7 @@ if (DEFINED WHOLTH_STANDALONE)
         # tests/controller/insert_recipe_step.cpp
         # tests/controller/update_food.cpp
         # tests/controller/update_important_nutrients.cpp
-        # tests/db/db.cpp
+        # tests/db/db.cpp !!!!!!!!uncomment!!!!!!!!
         # tests/food.cpp
         # tests/list/food.cpp
         # tests/list/nutrient.cpp

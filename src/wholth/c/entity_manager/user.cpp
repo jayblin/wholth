@@ -231,7 +231,7 @@ struct ErrorCategory : std::error_category
             return "USER_NO_NAME";
         case USER_AUTHENTICATION_FAILED_GONKED:
             return "USER_NO_SALT";
-        case _COUNT_:
+        case _USER_COUNT_:
             return "not an error";
         case USER_AUTHENTICATION_FAILED_DRAGOON:
             return "USER_AUTHENTICATION_FAILED_DRAGOON";

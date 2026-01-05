@@ -49,6 +49,12 @@ static void init_application()
     //     "ApplicationAwareTest::SetUpTestSuite()\n");
     const auto err = wholth_app_setup(&args);
 
+    if (wholth_Error_OK.code != err.code) {
+        std::cout << "init application error" << '\n';
+        std::cout << '\t' << err.code << '\n';
+        std::cout << '\t' << wfsv(err.message) << '\n';
+    }
+
     assert(wholth_Error_OK.code == err.code);
     assert(wholth_Error_OK.message.size == err.message.size);
 

@@ -10,3 +10,7 @@ cmake \
 ```sh
 cmake --build build --target=wholth
 ```
+
+```sh
+cp ~/Projects/wholth/build/libwholth.dylib /usr/local/lib/.    
+```

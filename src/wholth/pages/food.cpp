@@ -381,6 +381,40 @@ auto wholth::pages::prepare_food_stmt(
     // todo check query
 
     const auto ingredient_data = prepare_ingredient_data(query);
+
+    // top_nutrient scientific notaion
+                // COALESCE(
+                //     IIF (
+                //         mvfn.value < 0.000001,
+                //         ROUND(mvfn.value * 1000000, 1) || 'e-6',
+                //         IIF(
+                //             mvfn.value < 0.00001,
+                //             ROUND(mvfn.value * 100000, 1) || 'e-5',
+                //             IIF(
+                //                 mvfn.value < 0.0001,
+                //                 ROUND(mvfn.value * 10000, 1) || 'e-4',
+                //                 IIF(
+                //                     mvfn.value < 0.001,
+                //                     ROUND(mvfn.value * 1000, 1) || 'e-3',
+                //                     IIF(
+                //                         mvfn.value < 0.01,
+                //                         ROUND(mvfn.value * 100, 1) || 'e-2',
+                //                         IIF(
+                //                             mvfn.value < 0.1,
+                //                             ROUND(mvfn.value * 10, 1) || 'e-1',
+                //                             IIF(
+                //                                 mvfn.value < 10,
+                //                                 ROUND(mvfn.value, 2),
+                //                                 ROUND(mvfn.value, 1)
+                //                             )
+                //                         )
+                //                     )
+                //                 )
+                //             )
+                //         )
+                //     ),
+                //     '[N/A]'
+                // )
     constexpr std::string_view sql = R"sql(
         WITH RECURSIVE
         recipe_tree(
@@ -425,38 +459,7 @@ auto wholth::pages::prepare_food_stmt(
         ),
         top_nutrient AS NOT MATERIALIZED (
             SELECT
-                COALESCE(
-                    IIF (
-                        mvfn.value < 0.000001,
-                        ROUND(mvfn.value * 1000000, 1) || 'e-6',
-                        IIF(
-                            mvfn.value < 0.00001,
-                            ROUND(mvfn.value * 100000, 1) || 'e-5',
-                            IIF(
-                                mvfn.value < 0.0001,
-                                ROUND(mvfn.value * 10000, 1) || 'e-4',
-                                IIF(
-                                    mvfn.value < 0.001,
-                                    ROUND(mvfn.value * 1000, 1) || 'e-3',
-                                    IIF(
-                                        mvfn.value < 0.01,
-                                        ROUND(mvfn.value * 100, 1) || 'e-2',
-                                        IIF(
-                                            mvfn.value < 0.1,
-                                            ROUND(mvfn.value * 10, 1) || 'e-1',
-                                            IIF(
-                                                mvfn.value < 10,
-                                                ROUND(mvfn.value, 2),
-                                                ROUND(mvfn.value, 1)
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    ),
-                    '[N/A]'
-                )
+                mvfn.value
                 || ' '
                 || COALESCE(mvn.unit, '') AS value,
                 mvfn.food_id AS recipe_id,

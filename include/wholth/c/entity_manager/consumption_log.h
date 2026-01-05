@@ -13,7 +13,7 @@ extern "C"
 
     enum wholth_em_consumption_log_Code
     {
-        CONSUMPTION_LOG_NULL = 501,
+        CONSUMPTION_LOG_NULL = 101,
         CONSUMPTION_LOG_INVALID_ID,
         CONSUMPTION_LOG_INVALID_FOOD_ID,
         CONSUMPTION_LOG_INVALID_MASS,

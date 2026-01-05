@@ -5,14 +5,26 @@
 #include "wholth/c/pages/food_nutrient.h"
 #include "wholth/entity/length_container.hpp"
 #include "wholth/entity_manager/food.hpp"
+#include "wholth/error.hpp"
 #include "wholth/pages/internal.hpp"
 #include "wholth/pages/food_nutrient.hpp"
 #include "wholth/utils.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/length_container.hpp"
+#include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <memory>
 #include <cassert>
+
+using wholth::utils::from_error_code;
+using wholth::utils::is_valid_id;
+using wholth::utils::to_string_view;
+
+template <>
+struct wholth::error::is_error_code_enum<wholth_pages_food_nutrient_Code>
+    : std::true_type
+{
+};
 
 static_assert(wholth::entity::is_nutrient<wholth_Nutrient>);
 static_assert(wholth::entity::count_fields<wholth_Nutrient>() == 5);
@@ -46,74 +58,128 @@ auto wholth::pages::prepare_food_nutrient_stmt(
     using wholth::entity::LengthContainer;
     using wholth::utils::ok;
 
-    if (!utils::is_valid_id(model.food_id))
+    if (!is_valid_id(model.food_id))
     {
-        return {
-            LengthContainer{0}, entity_manager::food::Code::FOOD_INVALID_ID};
+        return {LengthContainer{0}, FOOD_NUTRIENT_PAGE_BAD_FOOD_ID};
     }
 
+    if (!is_valid_id(model.locale_id))
+    {
+        return {LengthContainer{0}, FOOD_NUTRIENT_PAGE_BAD_LOCALE_ID};
+    }
+
+    // nutrient value in schientific notaion
+    // IIF(
+    //     fn.value < 0.00000001,
+    //     ROUND(fn.value * 100000000, 1) || 'e-8',
+    //     IIF(
+    //         fn.value < 0.0000001,
+    //         ROUND(fn.value * 10000000, 1) || 'e-7',
+    //         IIF(
+    //             fn.value < 0.000001,
+    //             ROUND(fn.value * 1000000, 1) || 'e-6',
+    //             IIF(
+    //                 fn.value < 0.00001,
+    //                 ROUND(fn.value * 100000, 1) || 'e-5',
+    //                 IIF(
+    //                     fn.value < 0.0001,
+    //                     ROUND(fn.value * 10000, 1) || 'e-4',
+    //                     IIF(
+    //                         fn.value < 0.001,
+    //                         ROUND(fn.value * 1000, 1) || 'e-3',
+    //                         IIF(
+    //                             fn.value < 0.01,
+    //                             ROUND(fn.value * 100, 1) || 'e-2',
+    //                             IIF(
+    //                                 fn.value < 0.1,
+    //                                 ROUND(fn.value * 10, 1) || 'e-1',
+    //                                 IIF(
+    //                                     fn.value < 10,
+    //                                     ROUND(fn.value, 2),
+    //                                     ROUND(fn.value, 1)
+    //                                 )
+    //                             )
+    //                         )
+    //                     )
+    //                 )
+    //             )
+    //         )
+    //     )
+    // )
     constexpr std::string_view sql_tpl = R"sql(
-    WITH the_list as (
+    WITH
+    text_search AS (
+        SELECT
+            rowid,
+            title
+        FROM
+        nutrient_localisation_fts5
+        WHERE {0}
+    ),
+    filtered_list AS (
         SELECT
             n.id,
-            COALESCE(nl.title, '[N/A]') AS title,
-            IIF(
-                fn.value < 0.00000001,
-                ROUND(fn.value * 100000000, 1) || 'e-8',
-                IIF(
-                    fn.value < 0.0000001,
-                    ROUND(fn.value * 10000000, 1) || 'e-7',
-                    IIF(
-                        fn.value < 0.000001,
-                        ROUND(fn.value * 1000000, 1) || 'e-6',
-                        IIF(
-                            fn.value < 0.00001,
-                            ROUND(fn.value * 100000, 1) || 'e-5',
-                            IIF(
-                                fn.value < 0.0001,
-                                ROUND(fn.value * 10000, 1) || 'e-4',
-                                IIF(
-                                    fn.value < 0.001,
-                                    ROUND(fn.value * 1000, 1) || 'e-3',
-                                    IIF(
-                                        fn.value < 0.01,
-                                        ROUND(fn.value * 100, 1) || 'e-2',
-                                        IIF(
-                                            fn.value < 0.1,
-                                            ROUND(fn.value * 10, 1) || 'e-1',
-                                            IIF(
-                                                fn.value < 10,
-                                                ROUND(fn.value, 2),
-                                                ROUND(fn.value, 1)
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            ) AS value,
+            nl_fts5.title,
+            fn.value,
             n.unit,
-            n.position
+            n.position,
+            CASE WHEN nl.locale_id <> ?4
+                THEN NULL
+                ELSE nl.locale_id
+            END AS locale_id
         FROM nutrient n
         INNER JOIN food_nutrient fn
-            ON fn.nutrient_id = n.id AND fn.food_id = ?1
-        LEFT JOIN nutrient_localisation nl
+            ON fn.nutrient_id = n.id
+                AND fn.food_id = ?1
+        INNER JOIN nutrient_localisation nl
             ON nl.nutrient_id = n.id
-                AND nl.locale_id = (SELECT value FROM app_info WHERE field = 'default_locale_id')
-        WHERE
-            1=1
-            {0}
-        ORDER BY n.position ASC, nl.title ASC
+        INNER JOIN nutrient_localisation_fts5 nl_fts5
+            ON nl_fts5.rowid = nl.nl_fts5_rowid 
+        WHERE {0} 
+    ),
+    partitioned_list AS (
+        SELECT
+            fl.*,
+            row_number() OVER (
+                PARTITION BY id
+                ORDER BY locale_id NULLS LAST
+            ) AS rn
+        FROM filtered_list AS fl 
+    ),
+    the_list as (
+        SELECT
+            id,
+            title,
+            value,
+            unit,
+            position
+        FROM partitioned_list
+        WHERE rn = 1
+        GROUP BY id
+        ORDER BY position ASC
     )
-    SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL FROM the_list
+    SELECT COUNT(id), NULL, NULL, NULL, NULL FROM the_list
     UNION ALL
     SELECT * FROM (SELECT * FROM the_list LIMIT ?2 OFFSET ?3)
     )sql";
 
-    const std::string sql = fmt::format(
-        sql_tpl, model.title.size() > 0 ? "AND nl.title LIKE ?4" : "");
+    std::string title_where = "1=1";
+
+    if (!model.title.empty())
+    {
+        title_where = R"sql(
+            n.id IN (
+                SELECT
+                    nl.nutrient_id
+                FROM nutrient_localisation_fts5 nl_fts5
+                INNER JOIN nutrient_localisation nl
+                    ON nl_fts5.rowid = nl.nl_fts5_rowid 
+                WHERE nutrient_localisation_fts5 MATCH ?5 
+            )
+        )sql";
+    }
+
+    const std::string sql = fmt::format(sql_tpl, title_where);
 
     ok(stmt.prepare(sql))                                            //
         && ok(stmt.bind(1, model.food_id, sqlw::Type::SQL_INT))      //
@@ -121,12 +187,13 @@ auto wholth::pages::prepare_food_nutrient_stmt(
         && ok(stmt.bind(
                3,
                static_cast<int>(
-                   pagination.per_page() * pagination.current_page())));
+                   pagination.per_page() * pagination.current_page()))) //
+        && ok(stmt.bind(4, model.locale_id, sqlw::Type::SQL_INT));
 
     if (ok(stmt) && model.title.size() > 0)
     {
-        std::string title_param_value = fmt::format("%{0}%", model.title);
-        stmt.bind(4, title_param_value, sqlw::Type::SQL_TEXT);
+        std::string title_param_value = "{title}:" + model.title;
+        stmt.bind(5, title_param_value, sqlw::Type::SQL_TEXT);
     }
 
     return {
@@ -182,37 +249,81 @@ extern "C" const wholth_FoodNutrientArray wholth_pages_food_nutrient_array(
     return {vector.data(), page->pagination.span_size()};
 }
 
-// todo test
-extern "C" void wholth_pages_food_nutrient_food_id(
+enum ModelField : int
+{
+    FOOD_ID,
+    TITLE,
+    LOCALE_ID,
+};
+
+static wholth_Error set_model_field(
     wholth_Page* const page,
-    wholth_StringView food_id)
+    ModelField field,
+    wholth_StringView value)
 {
     if (!check_page(page))
     {
-        return;
+        return from_error_code(FOOD_NUTRIENT_PAGE_TYPE_MISMATCH);
     }
 
-    const auto _fi = wholth::utils::to_string_view(food_id);
+    auto& _page =
+        std::get<wholth::pages::internal::PageType::FOOD_NUTRIENT>(page->data);
 
-    if (!wholth::utils::is_valid_id(_fi))
+    std::error_code ec{};
+    switch (field)
     {
-        return;
+    case TITLE:
+        _page.query.title = to_string_view(value);
+        break;
+    case LOCALE_ID: {
+        const auto id = to_string_view(value);
+        if (!is_valid_id(id))
+        {
+            ec = FOOD_NUTRIENT_PAGE_BAD_LOCALE_ID;
+        }
+        else
+        {
+            _page.query.locale_id = id;
+        }
+        break;
+    }
+    case FOOD_ID: {
+        const auto id = to_string_view(value);
+        if (!is_valid_id(id))
+        {
+            ec = FOOD_NUTRIENT_PAGE_BAD_FOOD_ID;
+        }
+        else
+        {
+            _page.query.food_id = id;
+        }
+        break;
+    }
     }
 
-    std::get<wholth::pages::internal::PageType::FOOD_NUTRIENT>(page->data)
-        .query.food_id = _fi;
+    return ec ? from_error_code(ec) : wholth_Error_OK;
 }
 
 // todo test
-extern "C" void wholth_pages_food_nutrient_title(
+extern "C" wholth_Error wholth_pages_food_nutrient_food_id(
+    wholth_Page* const page,
+    wholth_StringView food_id)
+{
+    return set_model_field(page, ModelField::FOOD_ID, food_id);
+}
+
+// todo test
+extern "C" wholth_Error wholth_pages_food_nutrient_title(
     wholth_Page* const page,
     wholth_StringView title)
 {
-    if (!check_page(page))
-    {
-        return;
-    }
+    return set_model_field(page, ModelField::TITLE, title);
+}
 
-    std::get<wholth::pages::internal::PageType::FOOD_NUTRIENT>(page->data)
-        .query.title = wholth::utils::to_string_view(title);
+// todo test
+extern "C" wholth_Error wholth_pages_food_nutrient_locale_id(
+    wholth_Page* const page,
+    wholth_StringView id)
+{
+    return set_model_field(page, ModelField::LOCALE_ID, id);
 }
