@@ -71,13 +71,15 @@ auto wholth::pages::prepare_consumption_log_stmt(
             cl.food_id,
             cl.mass,
             cl.consumed_at,
-            COALESCE(fl.title, '[N/A]') AS food_title
+            COALESCE(fl_fts5.title, '[N/A]') AS food_title
         FROM consumption_log cl
         INNER JOIN user u
             ON u.id = cl.user_id
         LEFT JOIN food_localisation fl
             ON fl.food_id = cl.food_id
                 AND fl.locale_id = u.locale_id
+        LEFT JOIN food_localisation_fts5 fl_fts5
+            ON fl.fl_fts5_rowid = fl_fts5.rowid
         WHERE
             u.id = ?1
             AND cl.consumed_at BETWEEN ?2 AND ?3

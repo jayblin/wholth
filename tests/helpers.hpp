@@ -4,9 +4,11 @@
 #include "db/db.hpp"
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
+#include "wholth/c/error.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/c/string_view.h"
 #include <gtest/gtest.h>
+#include <string_view>
 
 #define ASSERT_STREQ2(a, b) ASSERT_STREQ(a, std::string{b}.data())
 #define ASSERT_STREQ3(a, b) ASSERT_STREQ(a.data(), std::string{b}.data())
@@ -15,21 +17,12 @@
 #define ASSERT_STRNE2(a, b) ASSERT_STRNE(a, std::string{b}.data())
 #define ASSERT_STRNE3(a, b) ASSERT_STRNE(a.data(), std::string{b}.data())
 
-#define ASSERT_WHOLTH_OK(err) \
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message); \
-    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size) \
-        << err.code << wfsv(err.message);
-
-#define ASSERT_WHOLTH_NOK(err) \
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message); \
-    ASSERT_NE(wholth_Error_OK.message.size, err.message.size) \
-        << err.code << wfsv(err.message);
-
+void ASSERT_WHOLTH_OK(wholth_Error err, std::string_view msg = "");
+void ASSERT_WHOLTH_NOK(wholth_Error err, std::string_view msg = "");
 
 class GlobalInMemoryDatabaseAwareTest : public testing::Test
 {
   protected:
-
     static void SetUpTestSuite()
     {
         db::setup_logger();
@@ -40,7 +33,6 @@ class GlobalInMemoryDatabaseAwareTest : public testing::Test
 class InMemoryDatabaseAwareTest : public testing::Test
 {
   protected:
-
     static void SetUpTestSuite()
     {
         db::setup_logger();
@@ -100,8 +92,8 @@ class ApplicationAwareTest : public testing::Test
 
     void TearDown() override;
     // {
-    //     auto ec = sqlw::Statement{&db::connection()}("ROLLBACK TO unittestsp");
-    //     ASSERT_TRUE(sqlw::status::Condition::OK == ec);
+    //     auto ec = sqlw::Statement{&db::connection()}("ROLLBACK TO
+    //     unittestsp"); ASSERT_TRUE(sqlw::status::Condition::OK == ec);
     // }
 };
 
@@ -113,10 +105,12 @@ auto astmt(
     std::string_view sql,
     sqlw::Statement::callback_t callback = nullptr) -> void;
 
-struct PageWrap {
+struct PageWrap
+{
     wholth_Page* handle = nullptr;
 
-    ~PageWrap() {
+    ~PageWrap()
+    {
         wholth_pages_del(handle);
     }
 };

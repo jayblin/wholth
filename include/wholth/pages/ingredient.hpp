@@ -14,6 +14,7 @@ struct IngredientQuery
 {
     std::string food_id{""};
     std::string title{""};
+    std::string locale_id{""};
 };
 
 struct Ingredient

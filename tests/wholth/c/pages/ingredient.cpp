@@ -2,7 +2,6 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 #include "helpers.hpp"
-#include "wholth/c/app.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/entity_manager/food.hpp"
 #include "wholth/pages/code.hpp"
@@ -17,6 +16,10 @@ class Test_wholth_pages_ingredient : public ApplicationAwareTest
     {
         ApplicationAwareTest::SetUpTestSuite();
         astmt(db::connection(), "SAVEPOINT Test_wholth_pages_ingredient");
+
+        astmt(db::connection(), "DELETE FROM food_localisation_fts5 WHERE 1=1");
+        astmt(db::connection(), "DELETE FROM food_localisation WHERE 1=1");
+
         astmt(
             db::connection(),
             "INSERT OR REPLACE INTO food (id, created_at) VALUES "
@@ -24,24 +27,44 @@ class Test_wholth_pages_ingredient : public ApplicationAwareTest
             " (999992, '2025-08-30T11:11:11')");
         astmt(
             db::connection(),
+            "INSERT OR REPLACE INTO food_localisation_fts5 "
+            " (rowid, title) VALUES "
+            " (1,      'twpi-1-1'),"
+            " (2,      'twpi-1-2'),"
+            " (3,      'twpi-2-1'),"
+            " (4,      'twpi-2-2'),"
+            " (5,      'twpi-3-1'),"
+            " (6,      'twpi-3-2'),"
+            " (7,      'twpi-4-1'),"
+            " (8,      'twpi-4-2'),"
+            " (9,      'twpi-5-1'),"
+            " (10,     'twpi-5-2'),"
+            " (11,     'twpi-6-1'),"
+            " (12,     'twpi-6-2'),"
+            " (13,     'twpi-7-1'),"
+            " (14,     'twpi-7-2'),"
+            " (15,     'a reicpe yea'),"
+            " (16,     'an ingredient yea')");
+        astmt(
+            db::connection(),
             "INSERT OR REPLACE INTO food_localisation "
-            " (food_id, locale_id, title) VALUES "
-            " (1,      1, 'twpi-1-1'),"
-            " (1,      2, 'twpi-1-2'),"
-            " (2,      1, 'twpi-2-1'),"
-            " (2,      2, 'twpi-2-2'),"
-            " (3,      1, 'twpi-3-1'),"
-            " (3,      2, 'twpi-3-2'),"
-            " (4,      1, 'twpi-4-1'),"
-            " (4,      2, 'twpi-4-2'),"
-            " (5,      1, 'twpi-5-1'),"
-            " (5,      2, 'twpi-5-2'),"
-            " (6,      1, 'twpi-6-1'),"
-            " (6,      2, 'twpi-6-2'),"
-            " (7,      1, 'twpi-7-1'),"
-            " (7,      2, 'twpi-7-2'),"
-            " (999991, 1, 'a reicpe yea'),"
-            " (999992, 1, 'an ingredient yea')");
+            " (food_id, locale_id, fl_fts5_rowid) VALUES "
+            " (1,      1, 1),"
+            " (1,      2, 2),"
+            " (2,      1, 3),"
+            " (2,      2, 4),"
+            " (3,      1, 5),"
+            " (3,      2, 6),"
+            " (4,      1, 7),"
+            " (4,      2, 8),"
+            " (5,      1, 9),"
+            " (5,      2, 10),"
+            " (6,      1, 11),"
+            " (6,      2, 12),"
+            " (7,      1, 13),"
+            " (7,      2, 14),"
+            " (999991, 1, 15),"
+            " (999992, 1, 16)");
         astmt(
             db::connection(),
             "INSERT OR REPLACE INTO recipe_step "
@@ -71,8 +94,6 @@ class Test_wholth_pages_ingredient : public ApplicationAwareTest
 // should br executed first in this group
 TEST_F(Test_wholth_pages_ingredient, when_no_food_id)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
@@ -93,13 +114,12 @@ TEST_F(Test_wholth_pages_ingredient, when_no_food_id)
 
 TEST_F(Test_wholth_pages_ingredient, when_not_found_by_id)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
-    wholth_pages_ingredient_food_id(page, wtsv("9999999"));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("9999999")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
 
     err = wholth_pages_fetch(page);
 
@@ -116,18 +136,19 @@ TEST_F(Test_wholth_pages_ingredient, when_not_found_by_id)
 
 TEST_F(Test_wholth_pages_ingredient, when_not_found_by_title)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
-    wholth_pages_ingredient_food_id(page, wtsv("999991"));
-    wholth_pages_ingredient_title(page, wtsv("HI_ij19(_)((33sdf"));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+    ASSERT_WHOLTH_OK(
+        wholth_pages_ingredient_title(page, wtsv("\"HI_ij19(_)((33sdf\"")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
 
     err = wholth_pages_fetch(page);
 
     ASSERT_WHOLTH_NOK(err);
+    // ASSERT_WHOLTH_OK(err);
 
     std::error_code ec = wholth::pages::Code(err.code);
     ASSERT_EQ(wholth::pages::Code::NOT_FOUND, ec) << ec << ec.message();
@@ -140,8 +161,6 @@ TEST_F(Test_wholth_pages_ingredient, when_not_found_by_title)
 
 TEST_F(Test_wholth_pages_ingredient, when_requested_page_number_is_too_big)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
@@ -173,8 +192,6 @@ TEST_F(Test_wholth_pages_ingredient, when_requested_page_number_is_too_big)
 // Requested offset (page_num*per_page) is too big for int.
 TEST_F(Test_wholth_pages_ingredient, when_rquested_offset_is_to_big)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
@@ -205,13 +222,12 @@ TEST_F(Test_wholth_pages_ingredient, when_rquested_offset_is_to_big)
 
 TEST_F(Test_wholth_pages_ingredient, when_basic_case)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
-    wholth_pages_ingredient_food_id(page, wtsv("999991"));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     err = wholth_pages_fetch(page);
 
@@ -223,12 +239,12 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case)
     ASSERT_NE(nullptr, ings.data);
 
     std::vector<std::vector<std::string_view>> expectations{{
+        {"777775", "999992", "an ingredient yea", "900", "0"},
         {"777771", "1", "twpi-1-1", "100", "0"},
         {"777776", "2", "twpi-2-1", "200", "0"},
         {"777772", "3", "twpi-3-1", "300", "0"},
         {"777773", "4", "twpi-4-1", "400", "0"},
         {"777774", "5", "twpi-5-1", "500", "1"},
-        {"777775", "999992", "an ingredient yea", "900", "0"},
     }};
     for (size_t i = 0; i < expectations.size(); i++)
     {
@@ -249,13 +265,12 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case)
 
 TEST_F(Test_wholth_pages_ingredient, when_basic_case_and_diff_locale)
 {
-    wholth_user_locale_id(wtsv("2"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
-    wholth_pages_ingredient_food_id(page, wtsv("999991"));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("2")));
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     err = wholth_pages_fetch(page);
 
@@ -267,12 +282,12 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_and_diff_locale)
     ASSERT_NE(nullptr, ings.data);
 
     std::vector<std::vector<std::string_view>> expectations{{
+        {"777775", "999992", "an ingredient yea", "900", "0"},
         {"777771", "1", "twpi-1-2", "100", "0"},
         {"777776", "2", "twpi-2-2", "200", "0"},
         {"777772", "3", "twpi-3-2", "300", "0"},
         {"777773", "4", "twpi-4-2", "400", "0"},
         {"777774", "5", "twpi-5-2", "500", "1"},
-        {"777775", "999992", "[N/A]", "900", "0"},
     }};
     for (size_t i = 0; i < expectations.size(); i++)
     {
@@ -293,14 +308,13 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_and_diff_locale)
 
 TEST_F(Test_wholth_pages_ingredient, when_searched_by_title)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_ingredient(&page, 8);
     auto wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
-    wholth_pages_ingredient_food_id(page, wtsv("999991"));
-    wholth_pages_ingredient_title(page, wtsv("twpi"));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_title(page, wtsv("twpi")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
     ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     err = wholth_pages_fetch(page);
 
@@ -335,16 +349,58 @@ TEST_F(Test_wholth_pages_ingredient, when_searched_by_title)
     ASSERT_EQ(wholth_pages_span_size(page), 5);
 }
 
+TEST_F(Test_wholth_pages_ingredient, when_searched_by_title_but_in_diff_locale)
+{
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_ingredient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_title(page, wtsv("twpi")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("2")));
+    ASSERT_TRUE(wholth_pages_skip_to(page, 0));
+    err = wholth_pages_fetch(page);
+
+    ASSERT_WHOLTH_OK(err);
+
+    const wholth_IngredientArray ings = wholth_pages_ingredient_array(page);
+
+    ASSERT_EQ(5, ings.size);
+    ASSERT_NE(nullptr, ings.data);
+
+    std::vector<std::vector<std::string_view>> expectations{{
+        {"777771", "1", "twpi-1-2", "100", "0"},
+        {"777776", "2", "twpi-2-2", "200", "0"},
+        {"777772", "3", "twpi-3-2", "300", "0"},
+        {"777773", "4", "twpi-4-2", "400", "0"},
+        {"777774", "5", "twpi-5-2", "500", "1"},
+    }};
+    for (size_t i = 0; i < expectations.size(); i++)
+    {
+        const auto& value = expectations[i];
+
+        ASSERT_STREQ3(value[0], wfsv(ings.data[i].id));
+        ASSERT_STREQ3(value[1], wfsv(ings.data[i].food_id));
+        ASSERT_STREQ3(value[2], wfsv(ings.data[i].food_title));
+        ASSERT_STREQ3(value[3], wfsv(ings.data[i].canonical_mass_g));
+        ASSERT_STREQ3(value[4], wfsv(ings.data[i].ingredient_count));
+    }
+
+    ASSERT_EQ(wholth_pages_max(page), 0);
+    ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+    ASSERT_EQ(wholth_pages_count(page), 5);
+    ASSERT_EQ(wholth_pages_span_size(page), 5);
+}
+
 TEST_F(Test_wholth_pages_ingredient, when_basic_case_second_page)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     {
         wholth_Page* page = nullptr;
         auto err = wholth_pages_ingredient(&page, 3);
         auto wrap = PageWrap{page};
         ASSERT_WHOLTH_OK(err);
-        wholth_pages_ingredient_food_id(page, wtsv("999991"));
+        ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+        ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
         ASSERT_TRUE(wholth_pages_skip_to(page, 0));
         err = wholth_pages_fetch(page);
 
@@ -356,9 +412,9 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_second_page)
         ASSERT_NE(nullptr, ings.data);
 
         std::vector<std::vector<std::string_view>> expectations{{
+            {"999992", "an ingredient yea", "900", "0"},
             {"1", "twpi-1-1", "100", "0"},
             {"2", "twpi-2-1", "200", "0"},
-            {"3", "twpi-3-1", "300", "0"},
         }};
         for (size_t i = 0; i < expectations.size(); i++)
         {
@@ -381,7 +437,8 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_second_page)
         auto err = wholth_pages_ingredient(&page, 3);
         auto wrap = PageWrap{page};
         ASSERT_WHOLTH_OK(err);
-        wholth_pages_ingredient_food_id(page, wtsv("999991"));
+        ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+        ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
         ASSERT_TRUE(wholth_pages_advance(page, 1));
         err = wholth_pages_fetch(page);
 
@@ -393,9 +450,9 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_second_page)
         ASSERT_NE(nullptr, ings.data);
 
         std::vector<std::vector<std::string_view>> expectations{{
+            {"777772", "3", "twpi-3-1", "300", "0"},
             {"777773", "4", "twpi-4-1", "400", "0"},
             {"777774", "5", "twpi-5-1", "500", "1"},
-            {"777775", "999992", "an ingredient yea", "900", "0"},
         }};
         for (size_t i = 0; i < expectations.size(); i++)
         {
@@ -413,4 +470,45 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_second_page)
         ASSERT_EQ(wholth_pages_count(page), 6);
         ASSERT_EQ(wholth_pages_span_size(page), 3);
     }
+}
+
+TEST_F(Test_wholth_pages_ingredient, when_searched_by_titles_separated_by_comas)
+{
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_ingredient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_food_id(page, wtsv("999991")));
+    ASSERT_WHOLTH_OK(
+        wholth_pages_ingredient_title(page, wtsv("\"twpi-1\", \"twpi-2\"")));
+    ASSERT_WHOLTH_OK(wholth_pages_ingredient_locale_id(page, wtsv("1")));
+    ASSERT_TRUE(wholth_pages_skip_to(page, 0));
+    err = wholth_pages_fetch(page);
+
+    ASSERT_WHOLTH_OK(err);
+
+    const wholth_IngredientArray ings = wholth_pages_ingredient_array(page);
+
+    ASSERT_EQ(2, ings.size);
+    ASSERT_NE(nullptr, ings.data);
+
+    std::vector<std::vector<std::string_view>> expectations{{
+        {"777771", "1", "twpi-1-1", "100", "0"},
+        {"777776", "2", "twpi-2-1", "200", "0"},
+    }};
+    for (size_t i = 0; i < expectations.size(); i++)
+    {
+        const auto& value = expectations[i];
+
+        ASSERT_STREQ3(value[0], wfsv(ings.data[i].id));
+        ASSERT_STREQ3(value[1], wfsv(ings.data[i].food_id));
+        ASSERT_STREQ3(value[2], wfsv(ings.data[i].food_title));
+        ASSERT_STREQ3(value[3], wfsv(ings.data[i].canonical_mass_g));
+        ASSERT_STREQ3(value[4], wfsv(ings.data[i].ingredient_count));
+    }
+
+    ASSERT_EQ(wholth_pages_max(page), 0);
+    ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+    ASSERT_EQ(wholth_pages_count(page), 2);
+    ASSERT_EQ(wholth_pages_span_size(page), 2);
 }

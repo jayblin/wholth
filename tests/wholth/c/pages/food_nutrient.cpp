@@ -512,3 +512,47 @@ TEST_F(Test_wholth_pages_food_nutrient, when_second_page)
     ASSERT_GE(wholth_pages_count(page), 7);
     ASSERT_EQ(wholth_pages_span_size(page), 3);
 }
+
+TEST_F(
+    Test_wholth_pages_food_nutrient,
+    when_basic_case_with_titles_separated_by_coma)
+{
+    // wholth_user_locale_id(wtsv("1"));
+
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+    ASSERT_WHOLTH_OK(wholth_pages_food_nutrient_food_id(page, wtsv("1")));
+    ASSERT_WHOLTH_OK(
+        wholth_pages_food_nutrient_title(page, wtsv("C1,\" Апетитный\",H2")));
+    ASSERT_WHOLTH_OK(wholth_pages_food_nutrient_locale_id(page, wtsv("1")));
+
+    err = wholth_pages_fetch(page);
+
+    ASSERT_WHOLTH_OK(err);
+
+    const wholth_FoodNutrientArray nuts =
+        wholth_pages_food_nutrient_array(page);
+
+    ASSERT_EQ(3, nuts.size);
+    ASSERT_NE(nullptr, nuts.data);
+
+    std::vector<std::vector<std::string_view>> expectations{{
+        {"1", "Апетитный",},
+        {"3", "C1",},
+        {"8", "H1",},
+    }};
+    for (size_t i = 0; i < expectations.size(); i++)
+    {
+        const auto& value = expectations[i];
+
+        ASSERT_STREQ3(value[0], wfsv(nuts.data[i].id));
+        ASSERT_STREQ3(value[1], wfsv(nuts.data[i].title));
+    }
+
+    ASSERT_EQ(wholth_pages_max(page), 0);
+    ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+    ASSERT_GE(wholth_pages_count(page), 3);
+    ASSERT_EQ(wholth_pages_span_size(page), 3);
+}

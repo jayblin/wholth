@@ -73,6 +73,8 @@ add_library(
     src/wholth/utils/length_container.cpp
     src/wholth/utils/prepend_sql_params.cpp
     src/wholth/utils/to_error.cpp
+    src/wholth/utils/str_replace.cpp
+    src/wholth/utils/str_split.cpp
 )
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -167,7 +169,7 @@ if (DEFINED WHOLTH_STANDALONE)
         # tests/food.cpp
         # tests/list/food.cpp
         # tests/list/nutrient.cpp
-        # tests/utils/time_to_seconds.cpp
+        tests/utils/time_to_seconds.cpp
         tests/utils/convert.cpp
         tests/utils/datetime.cpp
         tests/helpers.cpp

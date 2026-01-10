@@ -17,6 +17,8 @@ class Test_wholth_pages_consumption_log : public ApplicationAwareTest
     {
         ApplicationAwareTest::SetUpTestSuite();
         astmt(db::connection(), "SAVEPOINT Test_wholth_pages_consumption_log");
+        astmt(db::connection(), "DELETE FROM food_localisation WHERE 1=1");
+        astmt(db::connection(), "DELETE FROM food_localisation_fts5 WHERE 1=1");
         astmt(
             db::connection(),
             "INSERT OR REPLACE INTO user "
@@ -39,22 +41,40 @@ class Test_wholth_pages_consumption_log : public ApplicationAwareTest
             " (99997, 1, 8, 108, '2300-09-23T00:00:00');");
         astmt(
             db::connection(),
+            "INSERT OR REPLACE INTO food_localisation_fts5 "
+            " (rowid, title) VALUES"
+            " (1, 'cl-1-1'),"
+            " (2, 'cl-1-2'),"
+            " (3, 'cl-2-1'),"
+            " (4, 'cl-3-1'),"
+            " (5, 'cl-3-2'),"
+            " (6, 'cl-4-1'),"
+            " (7, 'cl-4-2'),"
+            " (8, 'cl-5-1'),"
+            " (9, 'cl-5-2'),"
+            " (10, 'cl-6-1'),"
+            " (11, 'cl-6-2'),"
+            " (12, 'cl-7-1'),"
+            " (13, 'cl-7-2'),"
+            " (14, 'cl-8-1');");
+        astmt(
+            db::connection(),
             "INSERT OR REPLACE INTO food_localisation "
-            " (food_id, locale_id, title) VALUES "
-            " (1,      1, 'cl-1-1'),"
-            " (1,      2, 'cl-1-2'),"
-            " (2,      1, 'cl-2-1'),"
-            " (3,      1, 'cl-3-1'),"
-            " (3,      2, 'cl-3-2'),"
-            " (4,      1, 'cl-4-1'),"
-            " (4,      2, 'cl-4-2'),"
-            " (5,      1, 'cl-5-1'),"
-            " (5,      2, 'cl-5-2'),"
-            " (6,      1, 'cl-6-1'),"
-            " (6,      2, 'cl-6-2'),"
-            " (7,      1, 'cl-7-1'),"
-            " (7,      2, 'cl-7-2'),"
-            " (8,      1, 'cl-8-1');");
+            " (food_id, locale_id, fl_fts5_rowid) VALUES "
+            " (1, 1, 1),"
+            " (1, 2, 2),"
+            " (2, 1, 3),"
+            " (3, 1, 4),"
+            " (3, 2, 5),"
+            " (4, 1, 6),"
+            " (4, 2, 7),"
+            " (5, 1, 8),"
+            " (5, 2, 9),"
+            " (6, 1, 10),"
+            " (6, 2, 11),"
+            " (7, 1, 12),"
+            " (7, 2, 13),"
+            " (8, 1, 14);");
         astmt(
             db::connection(),
             "DELETE FROM food_localisation WHERE food_id IN (2,8) AND "

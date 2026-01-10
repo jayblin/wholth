@@ -43,13 +43,15 @@ static void init_application()
     }
 
     const wholth_AppSetupArgs args{
-        .db_path = ":memory:",};
+        .db_path = ":memory:",
+    };
     // fmt::print(
     //     fmt::fg(fmt::color::green_yellow),
     //     "ApplicationAwareTest::SetUpTestSuite()\n");
     const auto err = wholth_app_setup(&args);
 
-    if (wholth_Error_OK.code != err.code) {
+    if (wholth_Error_OK.code != err.code)
+    {
         std::cout << "init application error" << '\n';
         std::cout << '\t' << err.code << '\n';
         std::cout << '\t' << wfsv(err.message) << '\n';
@@ -76,4 +78,18 @@ void ApplicationAwareTest::TearDown()
 {
     auto ec = sqlw::Statement{&db::connection()}("ROLLBACK TO unittestsp");
     ASSERT_TRUE(sqlw::status::Condition::OK == ec);
+}
+
+void ASSERT_WHOLTH_OK(wholth_Error err, std::string_view msg)
+{
+    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message) << msg;
+    ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
+        << err.code << wfsv(err.message) << msg;
+}
+
+void ASSERT_WHOLTH_NOK(wholth_Error err, std::string_view msg)
+{
+    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message) << msg;
+    ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
+        << err.code << wfsv(err.message) << msg;
 }

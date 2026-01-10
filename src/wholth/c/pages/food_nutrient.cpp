@@ -11,6 +11,7 @@
 #include "wholth/utils.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/length_container.hpp"
+#include "wholth/utils/str_replace.hpp"
 #include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <memory>
@@ -192,7 +193,8 @@ auto wholth::pages::prepare_food_nutrient_stmt(
 
     if (ok(stmt) && model.title.size() > 0)
     {
-        std::string title_param_value = "{title}:" + model.title;
+        std::string title_param_value =
+            "{title}:" + wholth::utils::str_replace(model.title, ",", " OR ");
         stmt.bind(5, title_param_value, sqlw::Type::SQL_TEXT);
     }
 

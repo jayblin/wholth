@@ -4,15 +4,28 @@
 #include "wholth/c/internal.hpp"
 #include "wholth/c/pages/utils.h"
 #include "wholth/entity/food.hpp"
+#include "wholth/error.hpp"
 #include "wholth/pages/food.hpp"
 #include "wholth/pages/internal.hpp"
 #include "wholth/utils.hpp"
+#include "wholth/utils/is_valid_id.hpp"
+#include "wholth/utils/to_error.hpp"
+#include "wholth/utils/to_string_view.hpp"
 #include <memory>
 #include <type_traits>
 #include <variant>
 #include <cassert>
 
 using wholth::pages::internal::PageType;
+using wholth::utils::from_error_code;
+using wholth::utils::is_valid_id;
+using wholth::utils::to_string_view;
+
+template <>
+struct wholth::error::is_error_code_enum<wholth_pages_food_Code>
+    : std::true_type
+{
+};
 
 static_assert(wholth::entity::is_food<wholth_Food>);
 
@@ -23,66 +36,94 @@ static inline bool check_ptr(const wholth_Page* const p)
     return nullptr != p && p->data.index() == PageType::FOOD;
 }
 
-extern "C" void wholth_pages_food_id(
+enum ModelField : int
+{
+    FOOD_ID,
+    TITLE,
+    LOCALE_ID,
+    INGREDIENTS,
+};
+
+static wholth_Error set_model_field(
+    wholth_Page* const page,
+    ModelField field,
+    wholth_StringView value)
+{
+    if (!check_ptr(page))
+    {
+        return wholth::utils::from_error_code(FOOD_PAGE_TYPE_MISMATCH);
+    }
+
+    auto& query =
+        std::get<wholth::pages::internal::PageType::FOOD>(page->data).query;
+
+    std::error_code ec{};
+    switch (field)
+    {
+    case TITLE:
+        query.title = to_string_view(value);
+        break;
+    case LOCALE_ID: {
+        const auto id = to_string_view(value);
+        if (!is_valid_id(id))
+        {
+            ec = FOOD_PAGE_BAD_LOCALE_ID;
+        }
+        else
+        {
+            query.locale_id = id;
+        }
+        break;
+    }
+    case FOOD_ID: {
+        const auto id = to_string_view(value);
+        if (!is_valid_id(id))
+        {
+            ec = FOOD_PAGE_BAD_FOOD_ID;
+        }
+        else
+        {
+            query.id = id;
+        }
+        break;
+    }
+    case INGREDIENTS:
+        query.ingredients = to_string_view(value);
+        break;
+    }
+
+    return ec ? from_error_code(ec) : wholth_Error_OK;
+}
+
+extern "C" wholth_Error wholth_pages_food_id(
     wholth_Page* const p,
     wholth_StringView search_id)
 {
-    if (!check_ptr(p))
-    {
-        return;
-    }
-
-    std::string new_id{};
-
-    if (nullptr != search_id.data && search_id.size > 0)
-    {
-
-        new_id = {search_id.data, search_id.size};
-    }
-
-    std::get<PageType::FOOD>(p->data).query.id = std::move(new_id);
+    return set_model_field(p, ModelField::FOOD_ID, search_id);
 }
 
 // todo test
-extern "C" void wholth_pages_food_title(
+extern "C" wholth_Error wholth_pages_food_title(
     wholth_Page* const p,
     wholth_StringView search_title)
 {
-    if (!check_ptr(p))
-    {
-        return;
-    }
-
-    std::string new_title{};
-
-    if (nullptr != search_title.data && search_title.size > 0)
-    {
-
-        new_title = {search_title.data, search_title.size};
-    }
-
-    std::get<PageType::FOOD>(p->data).query.title = std::move(new_title);
+    return set_model_field(p, ModelField::TITLE, search_title);
 }
 
 // todo test
-extern "C" void wholth_pages_food_ingredients(
+extern "C" wholth_Error wholth_pages_food_ingredients(
     wholth_Page* const p,
     wholth_StringView search_ingredients)
 {
-    if (!check_ptr(p))
-    {
-        return;
-    }
+    return set_model_field(p, ModelField::INGREDIENTS, search_ingredients);
+}
 
-    std::string new_ingrs{};
-
-    if (nullptr != search_ingredients.data && search_ingredients.size > 0)
-    {
-
-        new_ingrs = {search_ingredients.data, search_ingredients.size};
-    }
-
-    std::get<PageType::FOOD>(p->data).query.ingredients = std::move(new_ingrs);
+// todo test
+extern "C" wholth_Error wholth_pages_food_locale_id(
+    wholth_Page* const p,
+    wholth_StringView locale_id)
+{
+    return set_model_field(p, ModelField::LOCALE_ID, locale_id);
 }
 
 // todo remove

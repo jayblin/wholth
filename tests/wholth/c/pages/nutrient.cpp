@@ -419,3 +419,46 @@ TEST_F(Test_wholth_pages_nutrient, when_second_page)
     ASSERT_GE(wholth_pages_count(page), 7);
     ASSERT_EQ(wholth_pages_span_size(page), 3);
 }
+
+TEST_F(
+    Test_wholth_pages_nutrient,
+    when_basic_case_with_titles_separated_by_coma)
+{
+    // wholth_user_locale_id(wtsv("1"));
+
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_nutrient(&page, 8);
+    auto wrap = PageWrap{page};
+    ASSERT_WHOLTH_OK(err);
+    ASSERT_WHOLTH_OK(wholth_pages_nutrient_locale_id(page, wtsv("1")));
+    wholth_pages_nutrient_title(page, wtsv("C1,\" Апетитный\",H2"));
+
+    err = wholth_pages_fetch(page);
+
+    ASSERT_WHOLTH_OK(err);
+
+    const wholth_NutrientArray nuts = wholth_pages_nutrient_array(page);
+
+    ASSERT_EQ(3, nuts.size);
+    ASSERT_NE(nullptr, nuts.data);
+
+    std::vector<std::vector<std::string_view>> expectations{{
+        {"1", "Апетитный", "mg", "0"},
+        {"3", "C1", "mg", "2"},
+        {"8", "H1", "mg", "7"},
+    }};
+    for (size_t i = 0; i < expectations.size(); i++)
+    {
+        const auto& value = expectations[i];
+
+        ASSERT_STREQ3(value[0], wfsv(nuts.data[i].id));
+        ASSERT_STREQ3(value[1], wfsv(nuts.data[i].title));
+        ASSERT_STREQ3(value[2], wfsv(nuts.data[i].unit));
+        ASSERT_STREQ3(value[3], wfsv(nuts.data[i].position));
+    }
+
+    ASSERT_EQ(wholth_pages_max(page), 0);
+    ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+    ASSERT_GE(wholth_pages_count(page), 3);
+    ASSERT_EQ(wholth_pages_span_size(page), 3);
+}

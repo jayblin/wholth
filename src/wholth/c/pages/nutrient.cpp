@@ -9,11 +9,14 @@
 #include "wholth/utils.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/length_container.hpp"
+#include "wholth/utils/str_replace.hpp"
 #include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include "wholth/error.hpp"
 #include <memory>
 #include <cassert>
+#include <sstream>
+#include <string_view>
 
 using wholth::pages::internal::PageType;
 using wholth::utils::from_error_code;
@@ -130,8 +133,12 @@ auto wholth::pages::prepare_nutrient_stmt(
 
     if (ok(stmt) && !model.title.empty())
     {
-        std::string title_param_value = "{title}:" + model.title;
-        stmt.bind(4, title_param_value, sqlw::Type::SQL_TEXT);
+        const std::string values =
+            "{title}:" + wholth::utils::str_replace(model.title, ",", " OR ");
+
+        std::cout << values << '\n';
+
+        stmt.bind(4, values, sqlw::Type::SQL_TEXT);
     }
 
     return {LengthContainer{pagination.per_page() * 4}, stmt.status()};
