@@ -274,9 +274,10 @@ extern "C" auto wholth_em_food_update(
 
     std::string_view title_trimmed{};
     auto skip_title = nullptr == food->title.data || 0 >= food->title.size;
+    std::string title_copy{};
     if (!skip_title)
     {
-        std::string title_copy{food->title.data, food->title.size};
+        title_copy = {food->title.data, food->title.size};
         title_trimmed = trim_and_replace_ws(title_copy);
 
         skip_title = title_trimmed.empty();
