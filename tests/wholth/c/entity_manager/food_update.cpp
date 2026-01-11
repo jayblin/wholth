@@ -3,11 +3,11 @@
 #include "helpers.hpp"
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/c/app.h"
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity_manager/food.h"
 #include "wholth/c/entity/food.h"
 #include "wholth/entity_manager/food.hpp"
+#include <tuple>
 
 static_assert(nullptr == (void*)NULL);
 
@@ -44,88 +44,101 @@ TEST_F(Test_wholth_em_food_update, when_food_has_localisation_in_both_locales)
 {
     auto& con = db::connection();
 
-    const auto counts_old = count_fl_and_fl_fts5(con);
+    std::vector<std::tuple<std::string_view, std::string_view>> titles{{
+        {" Tomator   ", "Tomator"},
+        {" Tomator-22   ", "Tomator-22"},
+        {"B 23 (tasty)", "B 23 (tasty)"},
+        {"\tB\n24\f(\rtasty\v)\n\t", "B 24 ( tasty )"},
+    }};
 
-    std::string diff_locale_title{"bogus"};
-    std::string diff_locale_description{"bogus"};
-    astmt(con, fmt::format(sql_check, "1"), [&](auto e) {
-        if (e.column_name == "title")
-        {
-            diff_locale_title = e.column_value;
-        }
-        else
-        {
-            diff_locale_description = e.column_value;
-        }
-    });
-    ASSERT_STRNEQ2("bogus", diff_locale_title) << "Test precondition failed!";
-    ASSERT_STRNEQ2("bogus", diff_locale_description)
-        << "Test precondition failed!";
+    for (const auto& title : titles)
+    {
+        const auto counts_old = count_fl_and_fl_fts5(con);
 
-    std::string cur_locale_title{"bogus"};
-    std::string cur_locale_description{"bogus"};
-    astmt(con, fmt::format(sql_check, "2"), [&](auto e) {
-        if (e.column_name == "title")
-        {
-            cur_locale_title = e.column_value;
-        }
-        else
-        {
-            cur_locale_description = e.column_value;
-        }
-    });
-    ASSERT_STRNEQ2("bogus", cur_locale_title) << "Test precondition failed!";
-    ASSERT_STRNEQ2("bogus", cur_locale_description)
-        << "Test precondition failed!";
+        std::string diff_locale_title{"bogus"};
+        std::string diff_locale_description{"bogus"};
+        astmt(con, fmt::format(sql_check, "1"), [&](auto e) {
+            if (e.column_name == "title")
+            {
+                diff_locale_title = e.column_value;
+            }
+            else
+            {
+                diff_locale_description = e.column_value;
+            }
+        });
+        ASSERT_STRNEQ2("bogus", diff_locale_title)
+            << "Test precondition failed!";
+        ASSERT_STRNEQ2("bogus", diff_locale_description)
+            << "Test precondition failed!";
 
-    wholth_Food food = wholth_entity_food_init();
-    food.id = wtsv("100");
-    food.title = wtsv(" Tomator   ");
-    food.description = wtsv("A red thing");
+        std::string cur_locale_title{"bogus"};
+        std::string cur_locale_description{"bogus"};
+        astmt(con, fmt::format(sql_check, "2"), [&](auto e) {
+            if (e.column_name == "title")
+            {
+                cur_locale_title = e.column_value;
+            }
+            else
+            {
+                cur_locale_description = e.column_value;
+            }
+        });
+        ASSERT_STRNEQ2("bogus", cur_locale_title)
+            << "Test precondition failed!";
+        ASSERT_STRNEQ2("bogus", cur_locale_description)
+            << "Test precondition failed!";
 
-    auto buf = wholth_buffer_ring_pool_element();
-    auto err = wholth_em_food_update(&food, wtsv("2"), buf);
+        wholth_Food food = wholth_entity_food_init();
+        food.id = wtsv("100");
+        food.title = wtsv(std::get<0>(title));
+        food.description = wtsv("A red thing");
 
-    ASSERT_WHOLTH_OK(err);
-    std::error_code ec = wholth::entity_manager::food::Code(err.code);
-    ASSERT_TRUE(wholth::entity_manager::food::Code::OK == ec) << ec;
+        auto buf = wholth_buffer_ring_pool_element();
+        auto err = wholth_em_food_update(&food, wtsv("2"), buf);
 
-    std::string title{"bogus"};
-    std::string description{"bogus"};
-    astmt(con, fmt::format(sql_check, "2"), [&](auto e) {
-        if (e.column_name == "title")
-        {
-            title = e.column_value;
-        }
-        else
-        {
-            description = e.column_value;
-        }
-    });
-    ASSERT_STREQ2("Tomator", title) << "title should be updated and trimmed";
-    ASSERT_STREQ2("A red thing", description)
-        << "description shoould be updated";
+        ASSERT_WHOLTH_OK(err);
+        std::error_code ec = wholth::entity_manager::food::Code(err.code);
+        ASSERT_TRUE(wholth::entity_manager::food::Code::OK == ec) << ec;
 
-    std::string diff_locale_title_new{"bogus"};
-    std::string diff_locale_description_new{"bogus"};
-    astmt(con, fmt::format(sql_check, "1"), [&](auto e) {
-        if (e.column_name == "title")
-        {
-            diff_locale_title_new = e.column_value;
-        }
-        else
-        {
-            diff_locale_description_new = e.column_value;
-        }
-    });
-    ASSERT_STREQ3(diff_locale_title, diff_locale_title_new)
-        << "Title of different lcoale should not be changed!";
-    ASSERT_STREQ3(diff_locale_description, diff_locale_description_new)
-        << "Description of different lcoale should not be changed!";
+        std::string title_cur{"bogus"};
+        std::string description{"bogus"};
+        astmt(con, fmt::format(sql_check, "2"), [&](auto e) {
+            if (e.column_name == "title")
+            {
+                title_cur = e.column_value;
+            }
+            else
+            {
+                description = e.column_value;
+            }
+        });
+        ASSERT_STREQ3(std::get<1>(title), title_cur)
+            << "title should be updated and trimmed";
+        ASSERT_STREQ2("A red thing", description)
+            << "description shoould be updated";
 
-    const auto counts_new = count_fl_and_fl_fts5(con);
-    ASSERT_STREQ3(counts_new.first, counts_old.first);
-    ASSERT_STREQ3(counts_new.second, counts_old.second);
+        std::string diff_locale_title_new{"bogus"};
+        std::string diff_locale_description_new{"bogus"};
+        astmt(con, fmt::format(sql_check, "1"), [&](auto e) {
+            if (e.column_name == "title")
+            {
+                diff_locale_title_new = e.column_value;
+            }
+            else
+            {
+                diff_locale_description_new = e.column_value;
+            }
+        });
+        ASSERT_STREQ3(diff_locale_title, diff_locale_title_new)
+            << "Title of different lcoale should not be changed!";
+        ASSERT_STREQ3(diff_locale_description, diff_locale_description_new)
+            << "Description of different lcoale should not be changed!";
+
+        const auto counts_new = count_fl_and_fl_fts5(con);
+        ASSERT_STREQ3(counts_new.first, counts_old.first);
+        ASSERT_STREQ3(counts_new.second, counts_old.second);
+    }
 }
 
 TEST_F(
@@ -452,6 +465,63 @@ TEST_F(Test_wholth_em_food_update, when_title_is_nullptr)
     ASSERT_STREQ3(title_old, title) << "title should not be updated";
     ASSERT_STREQ2("A red thing", description)
         << "description shoould be updated";
+}
+
+TEST_F(Test_wholth_em_food_update, when_title_is_bad)
+{
+
+    auto& con = db::connection();
+
+    std::vector<std::string_view> titles{{
+        "        ",
+        "",
+        " \r\n\f\t\v",
+    }};
+    for (const auto title : titles)
+    {
+        std::string title_old{"bogus"};
+        std::string description_old{"bogus"};
+        astmt(con, fmt::format(sql_check, "2"), [&](auto e) {
+            if (e.column_name == "title")
+            {
+                title_old = e.column_value;
+            }
+            else
+            {
+                description_old = e.column_value;
+            }
+        });
+        ASSERT_TRUE(title_old != "bogus") << "Test precondition failed!";
+        ASSERT_TRUE(description_old != "bogus") << "Test precondition failed!";
+
+        wholth_Food food = wholth_entity_food_init();
+        food.id = wtsv("100");
+        food.title = wtsv(title);
+        food.description = wtsv("A red thing");
+
+        auto buf = wholth_buffer_ring_pool_element();
+        auto err = wholth_em_food_update(&food, wtsv("2"), buf);
+
+        ASSERT_WHOLTH_OK(err);
+        std::error_code ec = wholth::entity_manager::food::Code(err.code);
+        ASSERT_TRUE(wholth::entity_manager::food::Code::OK == ec) << ec;
+
+        std::string title_cur{"bogus"};
+        std::string description{"bogus"};
+        astmt(con, fmt::format(sql_check, "2"), [&](auto e) {
+            if (e.column_name == "title")
+            {
+                title_cur = e.column_value;
+            }
+            else
+            {
+                description = e.column_value;
+            }
+        });
+        ASSERT_STREQ3(title_old, title_cur) << "title should not be updated";
+        ASSERT_STREQ2("A red thing", description)
+            << "description shoould be updated";
+    }
 }
 
 TEST_F(Test_wholth_em_food_update, when_description_is_nullptr)

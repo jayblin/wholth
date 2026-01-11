@@ -12,6 +12,8 @@
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/prepend_sql_params.hpp"
 #include "wholth/utils/to_string_view.hpp"
+#include <algorithm>
+#include <cctype>
 #include <span>
 #include <sstream>
 
@@ -73,6 +75,36 @@ std::error_code wholth::entity_manager::food::make_error_code(
     return {static_cast<int>(e), wholth::entity_manager::food::error_category};
 }
 
+std::string_view trim_and_replace_ws(std::string& str)
+{
+    size_t trim_start = 0;
+    size_t trim_end = 0;
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        const auto is_ws = std::isspace(str[i]);
+
+        if (is_ws)
+        {
+            str[i] = ' ';
+            if (0 == trim_end && (0 == i || (trim_start > 0)))
+            {
+                trim_start++;
+            }
+        }
+        else
+        {
+            trim_end = i;
+        }
+    }
+
+    if (trim_start >= trim_end)
+    {
+        return {};
+    }
+
+    return std::string_view{str.data() + trim_start, trim_end - trim_start + 1};
+}
+
 extern "C" auto wholth_em_food_insert(
     wholth_Food* const food,
     wholth_StringView locale_id,
@@ -94,7 +126,15 @@ extern "C" auto wholth_em_food_insert(
         return ec_to_error(wholth_em_food_Code::FOOD_EM_BAD_LOCALE_ID, buffer);
     }
 
-    if (nullptr == food->title.data || 0 == food->title.size)
+    if (nullptr == food->title.data || 0 >= food->title.size)
+    {
+        return ec_to_error(Code::FOOD_NULL_TITLE, buffer);
+    }
+
+    std::string title_copy{food->title.data, food->title.size};
+    auto title_trimmed = trim_and_replace_ws(title_copy);
+
+    if (title_trimmed.empty())
     {
         return ec_to_error(Code::FOOD_NULL_TITLE, buffer);
     }
@@ -104,7 +144,7 @@ extern "C" auto wholth_em_food_insert(
     std::string result_id;
     bind_t bind_now{now, sqlw::Type::SQL_TEXT};
     bind_t bind_locale_id{_locale_id, sqlw::Type::SQL_INT};
-    bind_t bind_title{to_string_view(food->title), sqlw::Type::SQL_TEXT};
+    bind_t bind_title{title_trimmed, sqlw::Type::SQL_TEXT};
     bind_t bind_description{
         to_string_view(food->description),
         (nullptr == food->description.data || 0 == food->description.size)
@@ -112,6 +152,9 @@ extern "C" auto wholth_em_food_insert(
             : sqlw::Type::SQL_TEXT};
 
     std::error_code ec{};
+
+    std::string match_title =
+        fmt::format("{{title}}: \"{0}\"", std::get<0>(bind_title));
 
     std::string rowid = "";
     ec = sqlw::Statement{&db::connection()}(
@@ -122,7 +165,8 @@ extern "C" auto wholth_em_food_insert(
         "    AND fl.locale_id = ?2 "
         "WHERE food_localisation_fts5 MATCH ?1",
         [&rowid](auto e) { rowid = e.column_value; },
-        std::array<bind_t, 2>{bind_title, bind_locale_id});
+        std::array<bind_t, 2>{
+            {{match_title, sqlw::Type::SQL_TEXT}, bind_locale_id}});
 
     if (sqlw::status::Condition::OK != ec)
     {
@@ -145,20 +189,22 @@ extern "C" auto wholth_em_food_insert(
 
     ec = sqlw::Transaction{&db::connection()}(
         R"sql(
-        CREATE TEMP TABLE vars (id,value);
+        CREATE TEMP TABLE IF NOT EXISTS vars (id,value);
 
         INSERT INTO food (created_at)
             VALUES (?1);
         INSERT INTO vars VALUES ('food_id', last_insert_rowid());
 
         INSERT INTO food_localisation_fts5 (title, description)
-            VALUES (trim(?1), ?2);
+            VALUES (?1, ?2);
 
         INSERT INTO food_localisation (food_id, locale_id, fl_fts5_rowid) 
             SELECT value, ?1, last_insert_rowid()
             FROM vars
             WHERE id = 'food_id'
-        RETURNING food_id
+        RETURNING food_id;
+
+        DROP TABLE vars
         )sql",
         [&](auto e) { result_id = e.column_value; },
         params);
@@ -208,18 +254,12 @@ extern "C" auto wholth_em_food_update(
 
     sqlw::Statement stmt{&db::connection()};
 
-    // std::vector<bind_t> params;
-    // params.reserve(4);
-    // params.emplace_back(food_id, sqlw::Type::SQL_INT);
-    // params.emplace_back(_locale_id, sqlw::Type::SQL_INT);
-
     std::string rowid = "";
     ec = stmt(
         "SELECT fl_fts5_rowid "
         "FROM food_localisation "
         "WHERE food_id = ?1 AND locale_id = ?2",
         [&rowid](auto e) { rowid = e.column_value; },
-        // std::span<bind_t>(params).subspan(0, 2));
         std::array<bind_t, 2>{{
             {food_id, sqlw::Type::SQL_INT},
             {_locale_id, sqlw::Type::SQL_INT},
@@ -230,14 +270,21 @@ extern "C" auto wholth_em_food_update(
         return ec_to_error(ec, buffer);
     }
 
-    // if (rowid.empty())
-    // {
     std::vector<bind_t> params{};
 
+    std::string_view title_trimmed{};
+    auto skip_title = nullptr == food->title.data || 0 >= food->title.size;
+    if (!skip_title)
+    {
+        std::string title_copy{food->title.data, food->title.size};
+        title_trimmed = trim_and_replace_ws(title_copy);
+
+        skip_title = title_trimmed.empty();
+    }
+
     const bind_t bind_title{
-        to_string_view(food->title),
-        nullptr == food->title.data ? sqlw::Type::SQL_NULL
-                                    : sqlw::Type::SQL_TEXT};
+        title_trimmed,
+        skip_title ? sqlw::Type::SQL_NULL : sqlw::Type::SQL_TEXT};
     const bind_t bind_description{
         to_string_view(food->description),
         nullptr == food->description.data ? sqlw::Type::SQL_NULL
@@ -272,7 +319,6 @@ extern "C" auto wholth_em_food_update(
         }};
     }
 
-    // ec = t("UPDATE food_localisation_fts5  ", params);
     constexpr std::string_view sql_insert_fts5 =
         "INSERT INTO food_localisation_fts5 (title, description) "
         "   VALUES (trim(?1), ?2); ";
@@ -300,29 +346,6 @@ extern "C" auto wholth_em_food_update(
               rowid.empty() ? sql_insert_fts5 : sql_update_fts5,
               rowid.empty() ? "last_insert_rowid()" : "?3"),
           params);
-    // }
-    // else
-    // {
-    //
-    //     std::stringstream ss;
-    //     ss << "UPDATE food_localisation_fts5 SET ";
-    //
-    //     wholth::utils::prepend_sql_params(
-    //         std::array<wholth::utils::extended_param_t, 2>{{
-    //             {"title", food->title, sqlw::Type::SQL_TEXT, "trim(?{})"},
-    //             {"description", food->description, sqlw::Type::SQL_TEXT, {}},
-    //         }},
-    //         params,
-    //         ss);
-    //
-    //     ss << " WHERE rowid IN "
-    //           "(SELECT fl_fts5_rowid "
-    //           " FROM food_localisation "
-    //           " WHERE food_id = ?1 AND locale_id = ?2)";
-    //
-    //     sqlw::Transaction transaction{&db::connection()};
-    //     ec = transaction(ss.str(), params);
-    // }
 
     if (sqlw::status::Condition::OK != ec)
     {

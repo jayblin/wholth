@@ -470,7 +470,6 @@ TEST_F(Test_wholth_pages_food, fetch_when_searched_by_title_and_diff_locale)
     ASSERT_EQ(wholth_pages_current_page_num(page), 0);
     ASSERT_GT(wholth_pages_count(page), 0);
     ASSERT_EQ(wholth_pages_span_size(page), foods.size);
-
 }
 
 TEST_F(Test_wholth_pages_food, fetch_should_search_by_ingredients)

@@ -34,53 +34,64 @@ static std::string find_kale(sqlw::Connection& con)
 
 TEST_F(Test_wholth_em_food_insert, when_good_case)
 {
-    auto& con = db::connection();
-    wholth_Food food = wholth_entity_food_init();
-    food.id = wtsv("22");
-    food.title = wtsv(" Tomator   ");
-    food.description = wtsv("A red thing");
+    std::vector<std::tuple<std::string_view, std::string_view>> titles{{
+        {" Tomator   ", "Tomator"},
+        {" Tomator-22   ", "Tomator-22"},
+        {"B 23 (tasty)", "B 23 (tasty)"},
+        {"\tB\n24\f(\rtasty\v)\n\t", "B 24 ( tasty )"},
+    }};
 
-    auto buff = wholth_buffer_ring_pool_element();
-    auto err = wholth_em_food_insert(&food, wtsv("2"), buff);
+    for (const auto& title : titles)
+    {
+        auto& con = db::connection();
+        wholth_Food food = wholth_entity_food_init();
+        food.id = wtsv("22");
+        food.title = wtsv(std::get<0>(title));
+        food.description = wtsv("A red thing");
 
-    ASSERT_WHOLTH_OK(err, "#A");
+        auto buff = wholth_buffer_ring_pool_element();
+        auto err = wholth_em_food_insert(&food, wtsv("2"), buff);
 
-    std::error_code ec = wholth::entity_manager::food::Code(err.code);
-    ASSERT_TRUE(wholth::entity_manager::food::Code::OK == ec) << ec;
-    ASSERT_STRNE2("22", wfsv(food.id));
+        ASSERT_WHOLTH_OK(err, "#A");
 
-    sqlw::Statement stmt{&db::connection()};
-    std::string id{"bogus"};
+        std::error_code ec = wholth::entity_manager::food::Code(err.code);
+        ASSERT_TRUE(wholth::entity_manager::food::Code::OK == ec) << ec;
+        ASSERT_STRNE2("22", wfsv(food.id));
 
-    astmt(
-        con,
-        fmt::format("SELECT id FROM food WHERE id = {}", wfsv(food.id)),
-        [&](auto e) { id = e.column_value; });
-    ASSERT_STREQ3(wfsv(food.id), id);
+        sqlw::Statement stmt{&db::connection()};
+        std::string id{"bogus"};
 
-    std::string title{"bogus"};
-    std::string description{"bogus"};
-    astmt(
-        con,
-        fmt::format(
-            "SELECT title, description "
-            "FROM food_localisation "
-            "INNER JOIN food_localisation_fts5 fl_fts5 "
-            " ON fl_fts5.rowid = fl_fts5_rowid "
-            "WHERE food_id = {} AND locale_id = 2",
-            wfsv(food.id)),
-        [&](auto e) {
-            if (e.column_name == "title")
-            {
-                title = e.column_value;
-            }
-            else
-            {
-                description = e.column_value;
-            }
-        });
-    ASSERT_STREQ2("Tomator", title);
-    ASSERT_STREQ2("A red thing", description);
+        astmt(
+            con,
+            fmt::format("SELECT id FROM food WHERE id = {}", wfsv(food.id)),
+            [&](auto e) { id = e.column_value; });
+        ASSERT_STREQ3(wfsv(food.id), id);
+
+        std::string cur_title{"bogus"};
+        std::string cur_description{"bogus"};
+        astmt(
+            con,
+            fmt::format(
+                "SELECT title, description "
+                "FROM food_localisation "
+                "INNER JOIN food_localisation_fts5 fl_fts5 "
+                " ON fl_fts5.rowid = fl_fts5_rowid "
+                "WHERE food_id = {} AND locale_id = 2",
+                wfsv(food.id)),
+            [&](auto e) {
+                if (e.column_name == "title")
+                {
+                    cur_title = e.column_value;
+                }
+                else
+                {
+                    cur_description = e.column_value;
+                }
+            });
+
+        ASSERT_STREQ3(std::get<1>(title), cur_title);
+        ASSERT_STREQ2("A red thing", cur_description);
+    }
 }
 
 TEST_F(Test_wholth_em_food_insert, when_duplicate)
@@ -228,6 +239,50 @@ TEST_F(Test_wholth_em_food_insert, when_title_is_null)
         << "Count of foods changed, but food's a duplicate, you dummy!";
 }
 
+TEST_F(Test_wholth_em_food_insert, when_title_is_bad)
+{
+    auto& con = db::connection();
+
+    std::vector<std::string_view> titles{{
+        "        ",
+        "",
+        " \r\n\f\t\v",
+    }};
+    for (const auto title : titles)
+    {
+        std::string original_count;
+        std::error_code ec;
+        astmt(con, "SELECT COUNT(id) FROM food", [&](auto e) {
+            original_count = e.column_value;
+        });
+        ASSERT_TRUE(original_count.size() > 0)
+            << "Couldn't get count of foods, so something's wrong!";
+
+        wholth_Food food = wholth_entity_food_init();
+        food.title = wtsv(title);
+        food.description = wtsv("A red thing");
+
+        auto buff = wholth_buffer_ring_pool_element();
+        auto err = wholth_em_food_insert(&food, wtsv("1"), buff);
+
+        ASSERT_WHOLTH_NOK(err, "#A");
+
+        ec = wholth::entity_manager::food::Code(err.code);
+        ASSERT_TRUE(wholth::entity_manager::food::Code::OK != ec) << ec;
+        ASSERT_TRUE(wholth::entity_manager::food::Code::FOOD_NULL_TITLE == ec)
+            << ec;
+
+        std::string new_count;
+        astmt(con, "SELECT COUNT(id) FROM food", [&](auto e) {
+            new_count = e.column_value;
+        });
+        ASSERT_TRUE(new_count.size() > 0)
+            << "Couldn't get new count of foods, so something's wrong!";
+        ASSERT_TRUE(new_count == original_count)
+            << "Count of foods changed, but food's a duplicate, you dummy!";
+    }
+}
+
 TEST_F(Test_wholth_em_food_insert, when_description_is_null)
 {
     auto& con = db::connection();
@@ -277,7 +332,8 @@ TEST_F(Test_wholth_em_food_insert, when_description_is_null)
                 description = e.column_value;
             }
         });
-    ASSERT_STREQ2("Baboraha", title) << "title should be trimmed and lowercased";
+    ASSERT_STREQ2("Baboraha", title)
+        << "title should be trimmed and lowercased";
     ASSERT_STREQ2("", description)
         << "description should not be set if not provided by user";
 }
