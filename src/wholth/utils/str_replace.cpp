@@ -1,5 +1,6 @@
 #include "wholth/utils/str_replace.hpp"
 #include <sstream>
+#include <cassert>
 
 // todo refactor and test. there are edge cases to be.
 std::string wholth::utils::str_replace(
