@@ -116,6 +116,7 @@ extern "C" wholth_Error wholth_em_food_nutrient_update_important(
 
     const auto ec = sqlw::Transaction{&db::connection()}(
         R"sql(
+        DELETE FROM food_nutrient WHERE food_id = ?1;
         WITH RECURSIVE
             cte AS (
                 SELECT
@@ -199,7 +200,8 @@ extern "C" wholth_Error wholth_em_food_nutrient_update_important(
         /*         std::cout << "------------------\n"; */
         /*     } */
         /* }, */
-        std::array<sqlw::Statement::bindable_t, 1>{{
+        std::array<sqlw::Statement::bindable_t, 2>{{
+            {food_id, sqlw::Type::SQL_INT},
             {food_id, sqlw::Type::SQL_INT},
         }});
 

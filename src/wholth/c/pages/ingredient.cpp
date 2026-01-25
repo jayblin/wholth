@@ -78,7 +78,6 @@ auto wholth::pages::prepare_ingredient_stmt(
         match_title = fmt::format(
             "{{title}}:({0})",
             wholth::utils::str_replace(query.title, ",", " OR "));
-        fmt::println("{}", match_title);
         where = "EXISTS (SELECT food_id FROM text_search WHERE food_id = f.id)";
     }
 

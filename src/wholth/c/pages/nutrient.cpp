@@ -136,8 +136,6 @@ auto wholth::pages::prepare_nutrient_stmt(
         const std::string values =
             "{title}:" + wholth::utils::str_replace(model.title, ",", " OR ");
 
-        std::cout << values << '\n';
-
         stmt.bind(4, values, sqlw::Type::SQL_TEXT);
     }
 

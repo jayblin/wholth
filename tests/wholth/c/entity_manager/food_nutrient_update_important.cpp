@@ -289,16 +289,17 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_basic_case_2)
         )sql",
         [&](auto e) { ss << e.column_name << ":" << e.column_value << ';'; });
     ASSERT_STREQ2(
-        "id:1;value:100;"
-        "id:2;value:100;"
+        // "id:1;value:100;"
+        // "id:2;value:100;"
         "id:3;value:1103;"
-        "id:4;value:100;"
-        "id:5;value:100;"
-        "id:6;value:100;"
-        "id:7;value:100;"
-        "id:8;value:100;"
-        "id:9;value:100;"
-        "id:10;value:100;",
+        // "id:4;value:100;"
+        // "id:5;value:100;"
+        // "id:6;value:100;"
+        // "id:7;value:100;"
+        // "id:8;value:100;"
+        // "id:9;value:100;"
+        // "id:10;value:100;",
+        ,
         ss.str());
 }
 
