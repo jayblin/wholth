@@ -179,3 +179,6 @@ const wholth::error::Category& wholth::error::category()
 
     return category;
 }
+
+extern "C" const wholth_ErrorCode WHOLTH_NO_ERROR = 0;
+extern "C" const wholth_Error wholth_Error_OK = {0, {NULL, 0}};

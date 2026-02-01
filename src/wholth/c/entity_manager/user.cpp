@@ -245,6 +245,9 @@ struct ErrorCategory : std::error_category
             return "USER_AUTHENTICATION_FAILED_KLEPPED";
         case USER_DOES_NOT_EXIST:
             return "USER_DOES_NOT_EXIST";
+        case _USER_FIRST_:
+        case _USER_LAST_:
+            break;
         }
 
         return "(unrecognized error)";

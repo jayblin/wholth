@@ -13,11 +13,11 @@ extern "C"
     {
         const char* data;
         unsigned long size;
-    } const wholth_StringView_default = {NULL, 0};
+    };
     typedef struct wholth_StringView_t wholth_StringView;
+    extern const wholth_StringView wholth_StringView_default;
 
-    // todo remove wholth_StringView_default from  "wholth/c/forward.h"
-    wholth_StringView wholth_default_string_view();
+    // wholth_StringView wholth_default_string_view();
 
     ARRAY_MUTABLE_T(wholth_StringView_t, wholth_StringViewArrayMutable);
 

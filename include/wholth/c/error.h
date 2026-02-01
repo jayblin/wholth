@@ -8,19 +8,20 @@ extern "C"
 {
 #endif
 
-typedef unsigned long long wholth_ErrorCode;
+    typedef unsigned long long wholth_ErrorCode;
 
-const wholth_ErrorCode WHOLTH_NO_ERROR = 0;
+    extern const wholth_ErrorCode WHOLTH_NO_ERROR;
 
-struct wholth_Error_t
-{
-    wholth_ErrorCode code;
-    wholth_StringView message;
-};
-typedef struct wholth_Error_t wholth_Error;
-const wholth_Error wholth_Error_OK = {0, {NULL, 0}};
+    struct wholth_Error_t
+    {
+        wholth_ErrorCode code;
+        wholth_StringView message;
+    };
+    typedef struct wholth_Error_t wholth_Error;
 
-bool wholth_error_ok(const wholth_Error* const err);
+    extern const wholth_Error wholth_Error_OK;
+
+    bool wholth_error_ok(const wholth_Error* const err);
 
 #ifdef __cplusplus
 }

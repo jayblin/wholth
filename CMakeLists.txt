@@ -226,38 +226,10 @@ endif()
 
 # INSTALL
 
-# add_custom_target(wholth_install_t)
-
-# add_executable(
-# 	wholth_install
-# 	src/db/db.cpp
-# 	src/install.cpp
-# )
-
-# target_link_libraries(
-# 	wholth_install
-# 	PRIVATE
-# 		sqlw
-# )
-
-# add_dependencies(wholth_install_t wholth_install)
-
-# target_include_directories(
-# 	wholth_install
-# 	PUBLIC
-# 		include
-# )
-
-# install(
-# 	TARGETS
-# 		sqlw
-# 		# wholth_install
-# 		wholth_tests
-# 		wholth
-# 	RUNTIME
-# 	DESTINATION bin
-# 	OPTIONAL
-# )
+install(
+	TARGETS wholth
+    LIBRARY COMPONENT Runtime
+)
 
 # ~INSTALL
 
