@@ -227,7 +227,7 @@ endif()
 # INSTALL
 
 install(
-	TARGETS wholth
+	TARGETS wholth sqlw
     LIBRARY COMPONENT Runtime
 )
 
