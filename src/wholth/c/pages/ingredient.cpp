@@ -23,7 +23,7 @@ struct wholth::error::is_error_code_enum<wholth_pages_ingredient_Code>
 {
 };
 
-constexpr auto field_count = 5;
+constexpr auto field_count = 6;
 using wholth::pages::internal::PageType;
 
 auto wholth::pages::hydrate(
@@ -41,6 +41,7 @@ auto wholth::pages::hydrate(
     wholth::utils::extract(vec[index].food_title, lc, buffer);
     wholth::utils::extract(vec[index].canonical_mass_g, lc, buffer);
     wholth::utils::extract(vec[index].ingredient_count, lc, buffer);
+    wholth::utils::extract(vec[index].ingredients_mass_g, lc, buffer);
 }
 
 auto wholth::pages::prepare_ingredient_stmt(
@@ -112,7 +113,14 @@ auto wholth::pages::prepare_ingredient_stmt(
             CASE WHEN fl.locale_id <> ?3
                 THEN NULL
                 ELSE fl.locale_id
-            END AS locale_id
+            END AS locale_id,
+            (
+                -- инфа об ингридиенте, который явл. рецептом
+                SELECT
+                    SUM(rs2.ingredients_mass)
+                FROM recipe_step rs2
+                WHERE rs2.recipe_id = f.id
+            ) AS ingredients_mass
         FROM recipe_step rs
         INNER JOIN recipe_step_food rsf
             ON rsf.recipe_step_id = rs.id
@@ -142,12 +150,13 @@ auto wholth::pages::prepare_ingredient_stmt(
             food_id,
             food_title,
             canonical_mass_g,
-            ingredient_count
+            ingredient_count,
+            ingredients_mass
         FROM partitioned_list
         WHERE rn = 1
         ORDER BY food_title ASC
     )
-    SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL FROM the_list
+    SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL, NULL FROM the_list
     UNION ALL
     SELECT * FROM (SELECT * FROM the_list LIMIT ?1 OFFSET ?2)
     )sql";

@@ -15,6 +15,7 @@ extern "C"
         wholth_StringView food_title;
         wholth_StringView canonical_mass_g;
         wholth_StringView ingredient_count;
+        wholth_StringView ingredients_mass_g;
     } wholth_Ingredient;
 
     wholth_Ingredient wholth_entity_ingredient_init();

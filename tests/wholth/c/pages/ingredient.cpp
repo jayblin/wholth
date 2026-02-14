@@ -68,10 +68,11 @@ class Test_wholth_pages_ingredient : public ApplicationAwareTest
         astmt(
             db::connection(),
             "INSERT OR REPLACE INTO recipe_step "
-            " (id, recipe_id, priority, seconds) VALUES "
-            " (1111110, 5,      0, 5),"
-            " (1111111, 999991, 0, 400),"
-            " (1111112, 999991, 1, 600)");
+            " (id,      recipe_id, priority, seconds, ingredients_mass)"
+            " VALUES "
+            " (1111110, 5,         0,        5,        100),"
+            " (1111111, 999991,    0,        400,      200),"
+            " (1111112, 999991,    1,        600,      300)");
         astmt(
             db::connection(),
             "INSERT INTO recipe_step_food "
@@ -239,12 +240,13 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case)
     ASSERT_NE(nullptr, ings.data);
 
     std::vector<std::vector<std::string_view>> expectations{{
-        {"777775", "999992", "an ingredient yea", "900", "0"},
-        {"777771", "1", "twpi-1-1", "100", "0"},
-        {"777776", "2", "twpi-2-1", "200", "0"},
-        {"777772", "3", "twpi-3-1", "300", "0"},
-        {"777773", "4", "twpi-4-1", "400", "0"},
-        {"777774", "5", "twpi-5-1", "500", "1"},
+        // id       food_id     food_title        c_mass icnt imass
+        {"777775", "999992", "an ingredient yea", "900", "0", ""},
+        {"777771", "1", "twpi-1-1", "100", "0", ""},
+        {"777776", "2", "twpi-2-1", "200", "0", ""},
+        {"777772", "3", "twpi-3-1", "300", "0", ""},
+        {"777773", "4", "twpi-4-1", "400", "0", ""},
+        {"777774", "5", "twpi-5-1", "500", "1", "100"},
     }};
     for (size_t i = 0; i < expectations.size(); i++)
     {
@@ -255,6 +257,7 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case)
         ASSERT_STREQ3(value[2], wfsv(ings.data[i].food_title));
         ASSERT_STREQ3(value[3], wfsv(ings.data[i].canonical_mass_g));
         ASSERT_STREQ3(value[4], wfsv(ings.data[i].ingredient_count));
+        ASSERT_STREQ3(value[5], wfsv(ings.data[i].ingredients_mass_g));
     }
 
     ASSERT_EQ(wholth_pages_max(page), 0);
@@ -282,12 +285,13 @@ TEST_F(Test_wholth_pages_ingredient, when_basic_case_and_diff_locale)
     ASSERT_NE(nullptr, ings.data);
 
     std::vector<std::vector<std::string_view>> expectations{{
-        {"777775", "999992", "an ingredient yea", "900", "0"},
-        {"777771", "1", "twpi-1-2", "100", "0"},
-        {"777776", "2", "twpi-2-2", "200", "0"},
-        {"777772", "3", "twpi-3-2", "300", "0"},
-        {"777773", "4", "twpi-4-2", "400", "0"},
-        {"777774", "5", "twpi-5-2", "500", "1"},
+        // id       food_id     food_title        c_mass icnt imass
+        {"777775", "999992", "an ingredient yea", "900", "0", "500"},
+        {"777771", "1", "twpi-1-2", "100", "0", ""},
+        {"777776", "2", "twpi-2-2", "200", "0", ""},
+        {"777772", "3", "twpi-3-2", "300", "0", ""},
+        {"777773", "4", "twpi-4-2", "400", "0", ""},
+        {"777774", "5", "twpi-5-2", "500", "1", "100"},
     }};
     for (size_t i = 0; i < expectations.size(); i++)
     {
