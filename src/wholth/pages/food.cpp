@@ -23,7 +23,7 @@
 // - move this file to wholth/c/pages/food.cpp
 
 static_assert(wholth::entity::is_food<wholth_Food>);
-static_assert(wholth::entity::count_fields<wholth_Food>() == 4);
+static_assert(wholth::entity::count_fields<wholth_Food>() == 5);
 
 using SC = wholth::pages::Code;
 using LengthContainer = wholth::entity::LengthContainer;
@@ -51,6 +51,7 @@ auto wholth::pages::hydrate(
     wholth::utils::extract(vec[index].title, lc, buffer);
     wholth::utils::extract(vec[index].preparation_time, lc, buffer);
     wholth::utils::extract(vec[index].top_nutrient, lc, buffer);
+    wholth::utils::extract(vec[index].ingredients_mass_g, lc, buffer);
 }
 
 constexpr std::string_view sql_top_nutrient =
@@ -77,8 +78,9 @@ accumulated_list AS (
             THEN NULL
             ELSE fl.locale_id
         END AS locale_id,
-        f.created_at AS created_at
+        f.created_at AS created_at,
         -- fl_fts5.description AS description
+        COALESCE(rs.ingredients_mass, 0) AS ingredients_mass
     FROM food f
     LEFT JOIN recipe_step rs
         ON rs.recipe_id = f.id
@@ -101,14 +103,14 @@ partitioned_list AS (
     FROM accumulated_list al
 ),
 the_list AS (
-    SELECT id, title, prepartion_time, top_nutrient
+    SELECT id, title, prepartion_time, top_nutrient, ingredients_mass
     FROM partitioned_list
     WHERE rn = 1
     ORDER BY created_at DESC, title ASC
 ))sql";
 
 constexpr std::string_view sql_result_union = R"sql(
-SELECT COUNT(the_list.id), NULL, NULL, NULL FROM the_list
+SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL FROM the_list
 UNION ALL
 SELECT * FROM (SELECT * FROM the_list LIMIT ?1 OFFSET ?2))sql";
 
@@ -181,7 +183,8 @@ constexpr std::string_view sql_by_ingredients =
     SELECT
         1 AS lvl,
         fl.food_id AS food_id,
-        0 AS seconds
+        0 AS seconds,
+        0 AS ingredients_mass
     FROM food_localisation_fts5 fl_fts5
     INNER JOIN food_localisation fl
         ON fl.fl_fts5_rowid = fl_fts5.rowid
@@ -191,7 +194,8 @@ constexpr std::string_view sql_by_ingredients =
     SELECT
         ft.lvl + 1 AS lvl,
         rs.recipe_id AS food_id,
-        rs.seconds AS seconds
+        rs.seconds AS seconds,
+        rs.ingredients_mass AS ingredients_mass
     FROM food_tree ft
     INNER JOIN recipe_step_food rsf
         ON rsf.food_id = ft.food_id
@@ -212,7 +216,8 @@ accumulated_list AS (
             THEN NULL
             ELSE fl.locale_id
         END AS locale_id,
-        ft.lvl
+        ft.lvl,
+        COALESCE(ft.ingredients_mass, 0) AS ingredients_mass
     FROM food_tree ft
     INNER JOIN food_localisation fl
         ON fl.food_id = ft.food_id
@@ -232,7 +237,7 @@ partitioned_list AS (
     FROM accumulated_list al
 ),
 the_list AS (
-    SELECT id, title, prepartion_time, top_nutrient
+    SELECT id, title, prepartion_time, top_nutrient, ingredients_mass
     FROM partitioned_list
     WHERE rn = 1 AND lvl <> 1
     ORDER BY id DESC

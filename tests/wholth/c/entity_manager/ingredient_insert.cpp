@@ -31,19 +31,23 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
         " (199993,'10-10-2010')");
     astmt(
         con,
-        "INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
-        "(299991,199992,600)");
+        "INSERT INTO recipe_step (id,recipe_id,seconds,ingredients_mass) "
+        "VALUES "
+        "(299991,199992,600,0),"
+        "(299992,199992,600,11)");
     astmt(
         con,
-        "INSERT INTO recipe_step_food (recipe_step_id, food_id, "
-        "canonical_mass) VALUES (299991,199991,100)");
+        "INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass)"
+        " VALUES"
+        " (299991, 199991, 100),"
+        " (299992, 199991, 50)");
 
     // const wholth_Ingredient ing{
     //     .food_id = wtsv("199993"),
     //     .canonical_mass_g = wtsv("300.12"),
     // };
     wholth_Ingredient ing = wholth_entity_ingredient_init();
-    ing.food_id = wtsv("199993"),
+    ing.food_id = wtsv("199993");
     ing.canonical_mass_g = wtsv("300.12");
     // wholth_RecipeStep step{.id = wtsv("299991")};
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
@@ -64,22 +68,56 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
     const auto result_id = wfsv(ing.id);
     ASSERT_TRUE(wholth::utils::is_valid_id(result_id)) << result_id;
 
-    std::stringstream ss;
-    astmt(
-        con,
-        R"sql(
-        SELECT
-            rsf.food_id,
-            rsf.canonical_mass
-        FROM recipe_step_food rsf
-        WHERE rsf.recipe_step_id = 299991
-        ORDER BY food_id ASC
-        )sql",
-        [&](auto e) { ss << e.column_name << ":" << e.column_value << ';'; });
-    ASSERT_STREQ2(
-        "food_id:199991;canonical_mass:100;food_id:199993;canonical_mass:300."
-        "12;",
-        ss.str());
+    {
+        std::stringstream ss;
+        astmt(
+            con,
+            R"sql(
+            SELECT
+                rsf.food_id,
+                rsf.canonical_mass
+            FROM recipe_step_food rsf
+            WHERE rsf.recipe_step_id = 299991
+            ORDER BY food_id ASC
+            )sql",
+            [&](auto e) {
+                ss << e.column_name << ":" << e.column_value << ';';
+            });
+        ASSERT_STREQ2(
+            "food_id:199991;canonical_mass:100;"
+            "food_id:199993;canonical_mass:300.12;",
+            ss.str());
+    }
+
+    {
+        std::stringstream ss;
+        astmt(
+            con,
+            R"sql(
+            SELECT rs.ingredients_mass
+            FROM recipe_step rs
+            WHERE rs.id = 299991
+            )sql",
+            [&](auto e) {
+                ss << e.column_name << ":" << e.column_value << ';';
+            });
+        ASSERT_STREQ2("ingredients_mass:400.12;", ss.str());
+    }
+
+    {
+        std::stringstream ss;
+        astmt(
+            con,
+            R"sql(
+            SELECT rs.ingredients_mass
+            FROM recipe_step rs
+            WHERE rs.id = 299992
+            )sql",
+            [&](auto e) {
+                ss << e.column_name << ":" << e.column_value << ';';
+            });
+        ASSERT_STREQ2("ingredients_mass:11;", ss.str());
+    }
 }
 
 TEST_F(Test_wholth_em_ingredient_insert, when_duplicate)
@@ -111,8 +149,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_duplicate)
     // const auto err = wholth_em_insert_ingredient(&ing, &step);
     //
     wholth_Ingredient ing = wholth_entity_ingredient_init();
-    ing.food_id = wtsv("199991"),
-    ing.canonical_mass_g = wtsv("300");
+    ing.food_id = wtsv("199991"), ing.canonical_mass_g = wtsv("300");
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299991");
 
@@ -173,8 +210,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_nonexistent_step_id)
     // const auto err = wholth_em_insert_ingredient(&ing, &step);
 
     wholth_Ingredient ing = wholth_entity_ingredient_init();
-    ing.food_id = wtsv("199991"),
-    ing.canonical_mass_g = wtsv("300");
+    ing.food_id = wtsv("199991"), ing.canonical_mass_g = wtsv("300");
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299997");
 
@@ -187,7 +223,8 @@ TEST_F(Test_wholth_em_ingredient_insert, when_nonexistent_step_id)
 
     std::error_code ec = wholth::entity_manager::ingredient::Code(err.code);
     ASSERT_TRUE(
-        wholth::entity_manager::ingredient::Code::INGREDIENT_POSTCONDITION_FAILED == ec)
+        wholth::entity_manager::ingredient::Code::
+            INGREDIENT_POSTCONDITION_FAILED == ec)
         << ec << ec.message();
 
     std::stringstream ss;
@@ -234,8 +271,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_food_id_is_equal_to_recipe_id)
     // const auto err = wholth_em_insert_ingredient(&ing, &step);
 
     wholth_Ingredient ing = wholth_entity_ingredient_init();
-    ing.food_id = wtsv("199992"),
-    ing.canonical_mass_g = wtsv("300");
+    ing.food_id = wtsv("199992"), ing.canonical_mass_g = wtsv("300");
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299991");
 
@@ -248,7 +284,8 @@ TEST_F(Test_wholth_em_ingredient_insert, when_food_id_is_equal_to_recipe_id)
 
     std::error_code ec = wholth::entity_manager::ingredient::Code(err.code);
     ASSERT_TRUE(
-        wholth::entity_manager::ingredient::Code::INGREDIENT_POSTCONDITION_FAILED == ec)
+        wholth::entity_manager::ingredient::Code::
+            INGREDIENT_POSTCONDITION_FAILED == ec)
         << ec << ec.message();
 
     std::stringstream ss;
@@ -295,7 +332,8 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_is_null)
         << err.code << wfsv(err.message);
 
     std::error_code ec = wholth::entity_manager::ingredient::Code(err.code);
-    ASSERT_TRUE(wholth::entity_manager::ingredient::Code::INGREDIENT_IS_NULL == ec)
+    ASSERT_TRUE(
+        wholth::entity_manager::ingredient::Code::INGREDIENT_IS_NULL == ec)
         << ec << ec.message();
 
     std::string new_count;
@@ -325,8 +363,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_recipe_step_is_null)
     // const auto err = wholth_em_insert_ingredient(&ing, NULL);
 
     wholth_Ingredient ing = wholth_entity_ingredient_init();
-    ing.food_id = wtsv("199992"),
-    ing.canonical_mass_g = wtsv("300");
+    ing.food_id = wtsv("199992"), ing.canonical_mass_g = wtsv("300");
 
     auto buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(&ing, NULL, buf);
@@ -385,7 +422,8 @@ TEST_F(Test_wholth_em_ingredient_insert, when_recipe_step_id_is_bogus)
         ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
             << err.code << wfsv(err.message);
 
-        std::error_code ec = wholth::entity_manager::recipe_step::Code(err.code);
+        std::error_code ec =
+            wholth::entity_manager::recipe_step::Code(err.code);
         ASSERT_TRUE(
             wholth::entity_manager::recipe_step::Code::RECIPE_STEP_INVALID_ID ==
             ec)
@@ -435,8 +473,8 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_id_is_bogus)
 
         std::error_code ec = wholth::entity_manager::ingredient::Code(err.code);
         ASSERT_TRUE(
-            wholth::entity_manager::ingredient::Code::INGREDIENT_INVALID_FOOD_ID ==
-            ec)
+            wholth::entity_manager::ingredient::Code::
+                INGREDIENT_INVALID_FOOD_ID == ec)
             << ec << ec.message();
 
         std::string new_count;
@@ -481,7 +519,8 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_mass_is_bogus)
 
         std::error_code ec = wholth::entity_manager::ingredient::Code(err.code);
         ASSERT_TRUE(
-            wholth::entity_manager::ingredient::Code::INGREDIENT_INVALID_MASS == ec)
+            wholth::entity_manager::ingredient::Code::INGREDIENT_INVALID_MASS ==
+            ec)
             << ec << ec.message();
 
         std::string new_count;
@@ -508,14 +547,12 @@ TEST_F(Test_wholth_em_ingredient_insert, when_buffer_is_nullptr)
 
     const auto err = wholth_em_ingredient_insert(&ing, &step, NULL);
 
-    ASSERT_NE(wholth_Error_OK.code, err.code)
-        << err.code << wfsv(err.message);
+    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message);
 
     std::error_code ec = wholth::entity_manager::ingredient::Code(err.code);
-    ASSERT_TRUE(
-        wholth::entity_manager::ingredient::Code::OK != ec)
+    ASSERT_TRUE(wholth::entity_manager::ingredient::Code::OK != ec)
         << ec << ec.message();
 
     std::string new_count;

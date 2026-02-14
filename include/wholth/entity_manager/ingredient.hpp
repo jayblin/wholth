@@ -15,6 +15,7 @@ enum class Code : int8_t
     INGREDIENT_INVALID_MASS,
     INGREDIENT_POSTCONDITION_FAILED,
     INGREDIENT_IS_NULL,
+    INGREDIENT_RECIPE_STEP_UPDATE_FAILED,
 };
 
 std::error_code make_error_code(Code);

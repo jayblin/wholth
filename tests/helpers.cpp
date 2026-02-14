@@ -57,8 +57,8 @@ static void init_application()
         std::cout << '\t' << wfsv(err.message) << '\n';
     }
 
-    assert(wholth_Error_OK.code == err.code);
-    assert(wholth_Error_OK.message.size == err.message.size);
+    EXPECT_TRUE(wholth_Error_OK.code == err.code) << err.code << wfsv(err.message);
+    EXPECT_TRUE(wholth_Error_OK.message.size == err.message.size) << err.code << wfsv(err.message);
 
     did_init = true;
 }

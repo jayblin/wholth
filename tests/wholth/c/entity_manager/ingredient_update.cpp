@@ -26,15 +26,21 @@ TEST_F(Test_wholth_em_ingredient_update, when_basic_case)
         "VALUES "
         " (199991,'10-10-2010'),"
         " (199992,'10-10-2010'),"
-        " (199993,'10-10-2010')");
+        " (199993,'10-10-2010'),"
+        " (199994,'10-10-2010')");
     astmt(
         con,
-        "INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
-        "(299991,199992,600)");
+        "INSERT INTO recipe_step (id,recipe_id,seconds,ingredients_mass) "
+        "VALUES "
+        "(299991,199992,600,0),"
+        "(299992,199994,10,100)");
     astmt(
         con,
-        "INSERT INTO recipe_step_food (id, recipe_step_id, food_id, "
-        "canonical_mass) VALUES (1111110, 299991,199991,100)");
+        "INSERT INTO recipe_step_food"
+        " (id, recipe_step_id, food_id, canonical_mass) VALUES"
+        " (1111110, 299991, 199991, 100),"
+        " (1111111, 299991, 199992, 50),"
+        " (1111112, 299992, 199991, 50)");
 
     // const wholth_Ingredient ing{
     //     .food_id = wtsv("199991"),
@@ -61,19 +67,56 @@ TEST_F(Test_wholth_em_ingredient_update, when_basic_case)
     ASSERT_TRUE(wholth::entity_manager::ingredient::Code::OK == ec)
         << ec << ec.message();
 
-    std::stringstream ss;
-    astmt(
-        con,
-        R"sql(
-        SELECT
-            rsf.food_id,
-            rsf.canonical_mass
-        FROM recipe_step_food rsf
-        WHERE rsf.recipe_step_id = 299991
-        ORDER BY food_id ASC
-        )sql",
-        [&](auto e) { ss << e.column_name << ":" << e.column_value << ';'; });
-    ASSERT_STREQ2("food_id:199991;canonical_mass:300.12;", ss.str());
+    {
+        std::stringstream ss;
+        astmt(
+            con,
+            R"sql(
+            SELECT
+                rsf.food_id,
+                rsf.canonical_mass
+            FROM recipe_step_food rsf
+            WHERE rsf.recipe_step_id = 299991
+            ORDER BY food_id ASC
+            )sql",
+            [&](auto e) {
+                ss << e.column_name << ":" << e.column_value << ';';
+            });
+        ASSERT_STREQ2(
+            "food_id:199991;canonical_mass:300.12;"
+            "food_id:199992;canonical_mass:50;",
+            ss.str());
+    }
+
+    {
+        std::stringstream ss;
+        astmt(
+            con,
+            R"sql(
+            SELECT rs.ingredients_mass
+            FROM recipe_step rs
+            WHERE rs.id = 299991
+            )sql",
+            [&](auto e) {
+                ss << e.column_name << ":" << e.column_value << ';';
+            });
+        ASSERT_STREQ2("ingredients_mass:350.12;", ss.str());
+    }
+
+    {
+        std::stringstream ss;
+        astmt(
+            con,
+            R"sql(
+            SELECT rs.ingredients_mass
+            FROM recipe_step rs
+            WHERE rs.id = 299992
+            )sql",
+            [&](auto e) {
+                ss << e.column_name << ":" << e.column_value << ';';
+            });
+        ASSERT_STREQ2("ingredients_mass:100;", ss.str());
+    }
 }
 
 TEST_F(Test_wholth_em_ingredient_update, when_ingredient_is_null)

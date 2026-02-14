@@ -11,8 +11,10 @@ extern "C"
     typedef struct wholth_RecipeStep
     {
         wholth_StringView id;
+        // todo rename to smthsmth_seconds?
         wholth_StringView time;
         wholth_StringView description;
+        wholth_StringView ingredients_mass_g;
     } wholth_RecipeStep;
 
     wholth_RecipeStep wholth_entity_recipe_step_init();

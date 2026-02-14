@@ -34,6 +34,8 @@ struct ErrorCategory : std::error_category
             return "INGREDIENT_IS_NULL";
         case Code::INGREDIENT_INVALID_FOOD_ID:
             return "INGREDIENT_INVALID_FOOD_ID";
+        case Code::INGREDIENT_RECIPE_STEP_UPDATE_FAILED:
+            return "Ошибка при обновлении рецепта!";
         }
 
         return "(unrecognized error)";

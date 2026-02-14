@@ -17,7 +17,7 @@ concept is_food = requires(T t) {
 template <is_food T>
 constexpr auto count_fields() -> size_t
 {
-    return 4;
+    return 5;
 }
 
 } // namespace wholth::entity

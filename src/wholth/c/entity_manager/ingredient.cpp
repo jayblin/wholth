@@ -67,7 +67,7 @@ extern "C" auto wholth_em_ingredient_insert(
 
     using bindable_t = sqlw::Statement::bindable_t;
 
-    const auto ec = sqlw::Transaction{&db::connection()}(
+    auto ec = sqlw::Transaction{&db::connection()}(
         R"sql(
         INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass) 
         SELECT
@@ -99,6 +99,26 @@ extern "C" auto wholth_em_ingredient_insert(
     wholth_buffer_move_data_to(buffer, &result_id);
 
     ing->id = wholth_buffer_view(buffer);
+
+    ec = sqlw::Transaction{&db::connection()}(
+        R"sql(
+        UPDATE recipe_step
+        SET ingredients_mass = (
+            SELECT
+                SUM(canonical_mass)
+            FROM recipe_step_food rsf
+            WHERE rsf.recipe_step_id = recipe_step.id
+        )
+        WHERE id = ?1
+        )sql",
+        std::array<bindable_t, 1>{{
+            {step_id, sqlw::Type::SQL_INT},
+        }});
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        return ec_to_error(Code::INGREDIENT_RECIPE_STEP_UPDATE_FAILED, buffer);
+    }
 
     return wholth_Error_OK;
 }
@@ -132,16 +152,16 @@ extern "C" auto wholth_em_ingredient_update(
         return ec_to_error(Code::INGREDIENT_INVALID_MASS, buffer);
     }
 
-    const auto id = to_string_view(ing->id);
+    const auto ing_id = to_string_view(ing->id);
 
-    if (!is_valid_id(id))
+    if (!is_valid_id(ing_id))
     {
         return ec_to_error(
             wholth::entity_manager::ingredient::Code::INGREDIENT_INVALID_ID,
             buffer);
     }
 
-    const auto ec = sqlw::Transaction{&db::connection()}(
+    auto ec = sqlw::Transaction{&db::connection()}(
         R"sql(
         UPDATE recipe_step_food
         SET canonical_mass = ?2
@@ -149,13 +169,40 @@ extern "C" auto wholth_em_ingredient_update(
             id = ?1
         )sql",
         std::array<sqlw::Statement::bindable_t, 2>{{
-            {id, sqlw::Type::SQL_INT},
+            {ing_id, sqlw::Type::SQL_INT},
             {mass, sqlw::Type::SQL_DOUBLE},
         }});
 
     if (sqlw::status::Condition::OK != ec)
     {
         return ec_to_error(ec, buffer);
+    }
+
+    ec = sqlw::Transaction{&db::connection()}(
+        R"sql(
+        WITH rs_id AS (
+            SELECT
+                recipe_step_id AS id
+            FROM recipe_step_food rsf
+            WHERE
+                rsf.id = ?1
+        )
+        UPDATE recipe_step
+        SET ingredients_mass = (
+            SELECT
+                SUM(canonical_mass)
+            FROM recipe_step_food rsf
+            WHERE rsf.recipe_step_id = (SELECT id FROM rs_id)
+        )
+        WHERE id = (SELECT id FROM rs_id)
+        )sql",
+        std::array<sqlw::Statement::bindable_t, 1>{{
+            {ing_id, sqlw::Type::SQL_INT},
+        }});
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        return ec_to_error(Code::INGREDIENT_RECIPE_STEP_UPDATE_FAILED, buffer);
     }
 
     return wholth_Error_OK;

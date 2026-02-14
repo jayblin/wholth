@@ -22,8 +22,10 @@ extern "C"
     {
         wholth_StringView id;
         wholth_StringView title;
+        //todo rename to smthsmth_seconds???
         wholth_StringView preparation_time;
         wholth_StringView top_nutrient;
+        wholth_StringView ingredients_mass_g;
         wholth_StringView description;
     } wholth_Food;
 

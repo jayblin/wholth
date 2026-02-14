@@ -32,7 +32,8 @@ using namespace std::chrono_literals;
 void db::user_defined::log(void *pArg, int iErrCode, const char *zMsg)
 {
 	// std::cout << '[' << iErrCode << "] " << zMsg << '\n';
-    fmt::print(fmt::fg(fmt::color::medium_violet_red), "[{}] {}\n", iErrCode, zMsg);
+    // fmt::print(fmt::fg(fmt::color::medium_violet_red), "[{}] {}\n", iErrCode, zMsg);
+    fmt::print("ERROR.SQLW [{}] {}\n", iErrCode, zMsg);
 }
 
 /* static void glfw_error_callback(int error_code, const char* description) */

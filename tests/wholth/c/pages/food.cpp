@@ -1,14 +1,11 @@
 #include "gtest/gtest.h"
-#include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <string>
-#include <thread>
 #include <type_traits>
 #include "fmt/core.h"
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/c/app.h"
 #include "wholth/c/entity/food.h"
 #include "wholth/c/pages/food.h"
 #include "wholth/c/pages/utils.h"
@@ -162,8 +159,8 @@ class Test_wholth_pages_food : public ApplicationAwareTest
 
         astmt(
             con,
-            "INSERT INTO recipe_step (recipe_id,seconds) VALUES "
-            "(1, 600) ");
+            "INSERT INTO recipe_step (recipe_id,seconds,ingredients_mass) VALUES "
+            "(1, 600, 61) ");
         astmt(
             con,
             "INSERT INTO food (id, created_at) "
@@ -178,8 +175,6 @@ class Test_wholth_pages_food : public ApplicationAwareTest
 
 TEST_F(Test_wholth_pages_food, fetch_when_first_page)
 {
-    // wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
     auto err = wholth_pages_food(&page, 8);
 
@@ -201,14 +196,14 @@ TEST_F(Test_wholth_pages_food, fetch_when_first_page)
     // }
 
     using sv = std::string_view;
-    std::vector<std::tuple<sv, sv, sv, sv>> expected_foods{{
-        {"5", "Hello there", "10.0 KCAL", ""},
-        {"4", "Saliagr", "100.0 KCAL", ""},
-        {"3", "Saltabar", "100.0 KCAL", ""},
-        {"1", "saltabre", "100.0 KCAL", "10m"},
-        {"7", "whatever", "[N/A]", ""},
-        {"6", "Генерал Кеноби!", "100.0 KCAL", ""},
-        {"2", "Какаобра", "99.0 KCAL", ""},
+    std::vector<std::tuple<sv, sv, sv, sv, sv>> expected_foods{{
+        {"5", "Hello there", "10.0 KCAL", "", "0"},
+        {"4", "Saliagr", "100.0 KCAL", "", "0"},
+        {"3", "Saltabar", "100.0 KCAL", "", "0"},
+        {"1", "saltabre", "100.0 KCAL", "10m", "61"},
+        {"7", "whatever", "[N/A]", "", "0"},
+        {"6", "Генерал Кеноби!", "100.0 KCAL", "", "0"},
+        {"2", "Какаобра", "99.0 KCAL", "", "0"},
     }};
 
     ASSERT_EQ(expected_foods.size(), foods.size);
@@ -222,6 +217,8 @@ TEST_F(Test_wholth_pages_food, fetch_when_first_page)
         ASSERT_STREQ3(std::get<2>(expected), wfsv(foods.data[i].top_nutrient));
         ASSERT_STREQ3(
             std::get<3>(expected), wfsv(foods.data[i].preparation_time));
+        ASSERT_STREQ3(
+            std::get<4>(expected), wfsv(foods.data[i].ingredients_mass_g));
         i++;
     }
 
@@ -642,4 +639,56 @@ TEST_F(Test_wholth_pages_food, fetch_should_search_by_ingredients)
         // ASSERT_GT(wholth_pages_count(page), 3);
         // ASSERT_EQ(wholth_pages_span_size(page), 8);
     }
+}
+
+TEST_F(Test_wholth_pages_food, when_by_id)
+{
+    // wholth_user_locale_id(wtsv("1"));
+
+    wholth_Page* page = nullptr;
+    auto err = wholth_pages_food(&page, 8);
+
+    auto wrap = PageWrap{page};
+
+    ASSERT_WHOLTH_OK(err);
+    ASSERT_WHOLTH_OK(wholth_pages_food_locale_id(page, wtsv("1")));
+    ASSERT_WHOLTH_OK(wholth_pages_food_id(page, wtsv("1")));
+    ASSERT_WHOLTH_OK(wholth_pages_fetch(page));
+
+    const wholth_FoodArray foods = wholth_pages_food_array(page);
+
+    // for (size_t i = 0; i < foods.size; i++)
+    // {
+    //     std::cout << "-------------\n"              //
+    //               << wfsv(foods.data[i].id) << '\n' //
+    //               << wfsv(foods.data[i].title) << '\n'
+    //               << wfsv(foods.data[i].preparation_time) << '\n'
+    //               << wfsv(foods.data[i].top_nutrient) << '\n';
+    // }
+
+    using sv = std::string_view;
+    std::vector<std::tuple<sv, sv, sv, sv, sv>> expected_foods{{
+        {"1", "saltabre", "100.0 KCAL", "10m", "61"},
+    }};
+
+    ASSERT_EQ(expected_foods.size(), foods.size);
+    ASSERT_NE(nullptr, foods.data);
+
+    size_t i = 0;
+    for (const auto& expected : expected_foods)
+    {
+        ASSERT_STREQ3(std::get<0>(expected), wfsv(foods.data[i].id));
+        ASSERT_STREQ3(std::get<1>(expected), wfsv(foods.data[i].title));
+        ASSERT_STREQ3(std::get<2>(expected), wfsv(foods.data[i].top_nutrient));
+        ASSERT_STREQ3(
+            std::get<3>(expected), wfsv(foods.data[i].preparation_time));
+        ASSERT_STREQ3(
+            std::get<4>(expected), wfsv(foods.data[i].ingredients_mass_g));
+        i++;
+    }
+
+    ASSERT_GE(wholth_pages_max(page), 0);
+    ASSERT_EQ(wholth_pages_current_page_num(page), 0);
+    ASSERT_GT(wholth_pages_count(page), 0);
+    ASSERT_EQ(wholth_pages_span_size(page), expected_foods.size());
 }
