@@ -21,7 +21,7 @@ test-dev:
 
 # RELEASE
 prep-release:
-	cmake -B build_release -S . -DCMAKE_BUILD_TYPE=Release
+	cmake -B build_release -S . --toolchain toolchain_gnu.cmake -DCMAKE_BUILD_TYPE=Release
 
 build-release:
 	cmake --build build_release --target=wholth
