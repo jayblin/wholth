@@ -11,7 +11,7 @@
 #include "wholth/utils/to_string_view.hpp"
 #include <cassert>
 
-constexpr auto field_count = 5;
+constexpr auto field_count = 6;
 using ::utils::datetime::is_valid_sqlite_datetime;
 using wholth::entity_manager::consumption_log::Code;
 using wholth::pages::internal::PageType;
@@ -70,6 +70,17 @@ auto wholth::pages::prepare_consumption_log_stmt(
             cl.id,
             cl.food_id,
             cl.mass,
+            cl.mass * COALESCE((
+                SELECT
+                    fn.value / 100      
+                FROM food_nutrient fn
+                INNER JOIN nutrient n
+                    ON n.id = fn.nutrient_id
+                WHERE
+                    fn.food_id = cl.food_id
+                    AND n.position = 10
+                LIMIT 1
+            ), 0) AS nutrient_amount,
             cl.consumed_at,
             COALESCE(fl_fts5.title, '[N/A]') AS food_title
         FROM consumption_log cl
@@ -85,7 +96,7 @@ auto wholth::pages::prepare_consumption_log_stmt(
             AND cl.consumed_at BETWEEN ?2 AND ?3
         ORDER BY cl.consumed_at ASC
     )
-    SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL FROM the_list
+    SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL, NULL FROM the_list
     UNION ALL
     SELECT * FROM (SELECT * FROM the_list LIMIT ?4 OFFSET ?5)
     )sql";
@@ -118,6 +129,7 @@ auto wholth::pages::hydrate(
     extract(vec[index].id, lc, buffer);
     extract(vec[index].food_id, lc, buffer);
     extract(vec[index].mass, lc, buffer);
+    extract(vec[index].nutrient_amount, lc, buffer);
     extract(vec[index].consumed_at, lc, buffer);
     extract(vec[index].food_title, lc, buffer);
 }

@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include <type_traits>
+#include "fmt/core.h"
 #include "helpers.hpp"
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity_manager/user.h"
@@ -19,6 +20,7 @@ class Test_wholth_pages_consumption_log : public ApplicationAwareTest
         astmt(db::connection(), "SAVEPOINT Test_wholth_pages_consumption_log");
         astmt(db::connection(), "DELETE FROM food_localisation WHERE 1=1");
         astmt(db::connection(), "DELETE FROM food_localisation_fts5 WHERE 1=1");
+        astmt(db::connection(), "DELETE FROM food_nutrient WHERE 1=1");
         astmt(
             db::connection(),
             "INSERT OR REPLACE INTO user "
@@ -79,6 +81,27 @@ class Test_wholth_pages_consumption_log : public ApplicationAwareTest
             db::connection(),
             "DELETE FROM food_localisation WHERE food_id IN (2,8) AND "
             "locale_id = 2");
+
+        std::string top_nutrient_id;
+        astmt(
+            db::connection(),
+            "SELECT id FROM nutrient WHERE position = 10",
+            [&top_nutrient_id](sqlw::Statement::ExecArgs e) {
+                top_nutrient_id = e.column_value;
+            });
+
+        ASSERT_NE(0, top_nutrient_id.size());
+        astmt(
+            db::connection(),
+            fmt::format(
+                "INSERT OR REPLACE INTO food_nutrient "
+                "(food_id,nutrient_id,value) "
+                "VALUES "
+                "(1,  {0}, 120),"
+                "(1, 1007, 117),"
+                "(2,  {0}, 77),"
+                "(2, 1098, 900)",
+                top_nutrient_id));
     }
 
     static void TearDownTestSuite()
@@ -353,14 +376,16 @@ TEST_F(Test_wholth_pages_consumption_log, when_basic_case)
     ASSERT_NE(nullptr, logs.data);
 
     std::vector<std::vector<std::string_view>> expectations{{
-        {"99990", "1", "101", "2020-01-30T11:00:00", "cl-1-1"},
-        {"99991", "2", "102", "2020-01-30T11:00:01", "cl-2-1"},
-        {"99992", "3", "103", "2025-08-30T01:11:11", "cl-3-1"},
-        {"99993", "4", "104", "2025-08-30T05:11:11", "cl-4-1"},
-        {"99994", "5", "105", "2025-08-30T11:11:11", "cl-5-1"},
-        {"99995", "6", "106", "2025-08-30T13:11:11", "cl-6-1"},
-        {"99996", "7", "107", "2025-08-30T18:11:11", "cl-7-1"},
-        {"99997", "8", "108", "2300-09-23T00:00:00", "cl-8-1"},
+        // 101 * 120 / 100
+        {"99990", "1", "101", "2020-01-30T11:00:00", "cl-1-1", "121.2"},
+        // 102 * 77 / 100
+        {"99991", "2", "102", "2020-01-30T11:00:01", "cl-2-1", "78.54"},
+        {"99992", "3", "103", "2025-08-30T01:11:11", "cl-3-1", "0"},
+        {"99993", "4", "104", "2025-08-30T05:11:11", "cl-4-1", "0"},
+        {"99994", "5", "105", "2025-08-30T11:11:11", "cl-5-1", "0"},
+        {"99995", "6", "106", "2025-08-30T13:11:11", "cl-6-1", "0"},
+        {"99996", "7", "107", "2025-08-30T18:11:11", "cl-7-1", "0"},
+        {"99997", "8", "108", "2300-09-23T00:00:00", "cl-8-1", "0"},
     }};
     for (size_t i = 0; i < expectations.size(); i++)
     {
@@ -371,6 +396,7 @@ TEST_F(Test_wholth_pages_consumption_log, when_basic_case)
         ASSERT_STREQ3(value[2], wfsv(logs.data[i].mass));
         ASSERT_STREQ3(value[3], wfsv(logs.data[i].consumed_at));
         ASSERT_STREQ3(value[4], wfsv(logs.data[i].food_title));
+        ASSERT_STREQ3(value[5], wfsv(logs.data[i].nutrient_amount));
     }
 
     ASSERT_EQ(wholth_pages_max(page), 0);
