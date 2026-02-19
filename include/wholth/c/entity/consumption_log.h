@@ -13,6 +13,7 @@ extern "C"
         wholth_StringView id;
         wholth_StringView food_id;
         wholth_StringView mass;
+        wholth_StringView nutrient_amount;
         wholth_StringView consumed_at;
         wholth_StringView food_title;
     } wholth_ConsumptionLog;

@@ -29,10 +29,12 @@ using namespace std::chrono_literals;
 //     ctx->sql_errors.emplace_back(fmt::format("[{}] {}", iErrCode, zMsg));
 // }
 
-void db::user_defined::log(void *pArg, int iErrCode, const char *zMsg)
+void db::user_defined::log(void* pArg, int iErrCode, const char* zMsg)
 {
-	// std::cout << '[' << iErrCode << "] " << zMsg << '\n';
-    // fmt::print(fmt::fg(fmt::color::medium_violet_red), "[{}] {}\n", iErrCode, zMsg);
+    (void)pArg;
+    // std::cout << '[' << iErrCode << "] " << zMsg << '\n';
+    // fmt::print(fmt::fg(fmt::color::medium_violet_red), "[{}] {}\n", iErrCode,
+    // zMsg);
     fmt::print("ERROR.SQLW [{}] {}\n", iErrCode, zMsg);
 }
 
@@ -62,57 +64,13 @@ bool is_app_version_equal_db(sqlw::Connection& con) noexcept(false)
     return are_versions_same;
 }
 
-/* static std::filesystem::path get_db_filepath() */
-/* { */
-/*     std::filesystem::path path {DATABASE_DIR}; */
-/*     path /= DATABASE_NAME; */
-
-/*     return path; */
-/* } */
-
-static bool does_db_file_exist(std::string_view db_path) noexcept
-{
-    /* auto path = get_db_filepath(); */
-    /* return std::filesystem::exists(path); */
-    return std::filesystem::exists(db_path);
-}
-
-static db::migration::MigrateResult migrate(
-    /* static std::error_code migrate( */
-    /* wholth::Context& ctx, */
-    sqlw::Connection& con
-    /* ) noexcept(false) */
-    ) noexcept
-{
-    /* assert(sqlw::status::Condition::OK == con.status()); */
-
-    const auto list = db::migration::list_sorted_migrations(MIGRATIONS_DIR);
-
-    /* ctx.migrate_result = db::migration::migrate({ */
-    /*     .con = &con, */
-    /*     .migrations = list, */
-    /*     .log = false, */
-    /* }); */
-
-    return db::migration::migrate({
-        /* const auto mr = db::migration::migrate({ */
-        .con = &con,
-        .migrations = list,
-        .log = false,
-    });
-
-    /* if (db::status::Condition::OK != mr.error_code) { */
-    /*     throw std::system_error(mr.error_code, mr.problematic_migration); */
-    /* } */
-}
-
-/* static void bump_app_version_in_db(sqlw::Connection& con) noexcept(false) */
 static std::error_code bump_app_version_in_db(sqlw::Connection& con) noexcept
 {
     /* auto ec = (sqlw::Statement {&con}) */
     return (sqlw::Statement{&con})
-        .prepare("INSERT OR REPLACE INTO app_info (field, value) "
-                 " VALUES ('version', :1)")
+        .prepare(
+            "INSERT OR REPLACE INTO app_info (field, value) "
+            " VALUES ('version', :1)")
         .bind(1, WHOLTH_APP_VERSION, sqlw::Type::SQL_TEXT)
         .exec()
         .status();
@@ -121,47 +79,6 @@ static std::error_code bump_app_version_in_db(sqlw::Connection& con) noexcept
     /*     throw std::system_error(ec); */
     /* } */
 }
-
-static void setup_db_cleanup(std::string_view db_path) noexcept(false)
-{
-    if (std::filesystem::exists(db_path))
-    {
-        std::filesystem::remove(db_path);
-    }
-
-    assert(!std::filesystem::exists(db_path));
-}
-
-/* static sqlw::Connection connect_to_db() noexcept(false) */
-/* static sqlw::Connection connect_to_db(std::string_view db_path) noexcept */
-/* { */
-/*     using C = sqlw::status::Condition; */
-
-/*     /1* const auto path = get_db_filepath(); *1/ */
-/*     /1* sqlw::Connection con {path.string()}; *1/ */
-/*     sqlw::Connection con {db_path}; */
-
-/*     /1* if (C::OK != con.status()) *1/ */
-/*     /1* { *1/ */
-/*     /1*     throw std::system_error(con.status()); *1/ */
-/*     /1* } *1/ */
-
-/*     return con; */
-/* } */
-
-// static void setup_db_global_options(wholth::Context& ctx)
-// {
-//     static bool did_global_db_setup = false;
-//
-//     if (!did_global_db_setup)
-//     {
-//         const std::error_code ec = sqlw::status::Code{
-//             sqlite3_config(SQLITE_CONFIG_LOG, error_log_callback, &ctx)};
-//         assertm(
-//             sqlw::status::Condition::OK == ec, "Error during sqlite3_config()");
-//         did_global_db_setup = true;
-//     }
-// }
 
 static void setup_db_instance_options(sqlw::Connection& con) noexcept(false)
 {
@@ -288,6 +205,7 @@ void wholth::app::setup(
     /* std::tuple<M...> models */
 )
 {
+    (void)ctx;
     // everything below may throw.
     db::setup_logger();
     db::init(db_path);

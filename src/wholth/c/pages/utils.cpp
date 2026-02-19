@@ -22,6 +22,7 @@
 
 using wholth::pages::internal::PageType;
 
+static std::string breaker = "";
 static constexpr auto page_data_buffer(wholth_Page& p) -> std::string&
 {
     return std::visit(
@@ -34,6 +35,9 @@ static constexpr auto page_data_buffer(wholth_Page& p) -> std::string&
             }
 
             assert(false);
+
+            // I am fighting the compiler here. This code should be unreachable. 
+            return breaker;
         },
         p.data);
 }
@@ -50,6 +54,9 @@ static constexpr auto page_data_container_size(const wholth_Page& p) -> size_t
             }
 
             assert(false);
+
+            // I am fighting the compiler here. This code should be unreachable. 
+            return 0;
         },
         p.data);
 }
@@ -100,6 +107,11 @@ auto fill_pages_data_prepare_stmt(sqlw::Statement& stmt, wholth_Page& page)
         assert(false);
         break;
     }
+
+    // I am fighting the compiler here. This code should be unreachable. 
+    return {
+        wholth::entity::LengthContainer{},
+        std::make_error_code(std::io_errc::stream)};
 }
 
 auto check_pagination_constraints(const wholth_Page& page) -> std::error_code
@@ -426,7 +438,8 @@ extern "C" wholth_Error wholth_pages_at(
             if constexpr (not std::is_same_v<T, std::monostate>)
             {
                 auto& ent = data.container.view[at];
-                *(reinterpret_cast<typename decltype(data.container.view)::value_type*>(
+                *(reinterpret_cast<
+                    typename decltype(data.container.view)::value_type*>(
                     entity)) = ent;
                 return;
             }

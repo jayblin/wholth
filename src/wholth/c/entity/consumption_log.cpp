@@ -6,6 +6,7 @@ wholth_ConsumptionLog wholth_entity_consumption_log_init()
         .id = wholth_StringView_default,
         .food_id = wholth_StringView_default,
         .mass = wholth_StringView_default,
+        .nutrient_amount = wholth_StringView_default,
         .consumed_at = wholth_StringView_default,
         .food_title = wholth_StringView_default,
     };
