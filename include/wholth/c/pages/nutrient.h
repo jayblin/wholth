@@ -11,11 +11,13 @@ extern "C"
 #endif
     enum wholth_pages_nutrient_Code
     {
-        _NUTRIENT_PAGE_FIRST_ = 3000,
-        NUTRIENT_PAGE_TYPE_MISMATCH,
-        NUTRIENT_PAGE_BAD_LOCALE_ID,
-        _NUTRIENT_PAGE_LAST_,
-        _NUTRIENT_PAGE_COUNT_ = _NUTRIENT_PAGE_LAST_ - _NUTRIENT_PAGE_FIRST_ - 1,
+        wholth_pages_nutrient_Code_FIRST_ = 3000,
+        wholth_pages_nutrient_Code_TYPE_MISMATCH,
+        wholth_pages_nutrient_Code_BAD_LOCALE_ID,
+        wholth_pages_nutrient_Code_LAST_,
+        wholth_pages_nutrient_Code_COUNT_ = wholth_pages_nutrient_Code_LAST_ -
+                                            wholth_pages_nutrient_Code_FIRST_ -
+                                            1,
     };
 
     ARRAY_T(wholth_Nutrient, wholth_NutrientArray);

@@ -10,25 +10,27 @@ extern "C"
 {
 #endif
 
-    enum wholth_em_food_Code {
-        _FOOD_EM_FIRST_ = 100,
-        FOOD_EM_BAD_LOCALE_ID,
-        FOOD_EM_DUPLICATE_ENTRY,
-        _FOOD_EM_LAST_,
-        _FOOD_EM_COUNT_ = _FOOD_EM_LAST_ - _FOOD_EM_FIRST_ - 1,
+    enum wholth_em_food_Code
+    {
+        wholth_em_food_Code_FIRST_ = 100,
+        wholth_em_food_Code_BAD_LOCALE_ID,
+        wholth_em_food_Code_DUPLICATE_ENTRY,
+        wholth_em_food_Code_LAST_,
+        wholth_em_food_Code_COUNT_ =
+            wholth_em_food_Code_LAST_ - wholth_em_food_Code_FIRST_ - 1,
     };
 
     wholth_Error wholth_em_food_insert(
-        wholth_Food* const food,
-        wholth_StringView locale_id,
+        wholth_Food* const   food,
+        wholth_StringView    locale_id,
         wholth_Buffer* const scratch);
     wholth_Error wholth_em_food_update(
         const wholth_Food* const food,
-        wholth_StringView locale_id,
-        wholth_Buffer* const scratch);
+        wholth_StringView        locale_id,
+        wholth_Buffer* const     scratch);
     wholth_Error wholth_em_food_delete(
         const wholth_Food* const food,
-        wholth_Buffer* const scratch);
+        wholth_Buffer* const     scratch);
 
 #ifdef __cplusplus
 }

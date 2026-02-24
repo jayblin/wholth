@@ -5,6 +5,8 @@
 
 #define MIGRATIONS_DIR "@CMAKE_CURRENT_SOURCE_DIR@/migrations"
 
+#define SQL_STATEMENTS_DIR "@CMAKE_CURRENT_SOURCE_DIR@/sql_statements"
+
 // todo remove
 #define DEFAULT_FONT_PATH "@DEFAULT_FONT_PATH@"
 

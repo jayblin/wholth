@@ -90,7 +90,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_empty_food_id)
     ASSERT_WHOLTH_NOK(err);
 
     ASSERT_EQ(
-        wholth_pages_food_nutrient_Code::FOOD_NUTRIENT_PAGE_BAD_FOOD_ID,
+        wholth_pages_food_nutrient_Code_BAD_FOOD_ID,
         err.code)
         << err.code << wfsv(err.message);
 
@@ -130,7 +130,7 @@ TEST_F(Test_wholth_pages_food_nutrient, when_invalid_food_id)
         ASSERT_WHOLTH_NOK(err);
 
         ASSERT_EQ(
-            wholth_pages_food_nutrient_Code::FOOD_NUTRIENT_PAGE_BAD_FOOD_ID,
+            wholth_pages_food_nutrient_Code_BAD_FOOD_ID,
             err.code)
             << err.code << wfsv(err.message);
 

@@ -12,14 +12,15 @@ extern "C"
 #endif
     enum wholth_pages_food_Code
     {
-        _FOOD_PAGE_FIRST_ = 1000,
-        FOOD_PAGE_TYPE_MISMATCH,
-        FOOD_PAGE_BAD_LOCALE_ID,
-        FOOD_PAGE_BAD_FOOD_ID,
-        FOOD_PAGE_INGREDIENT_LIST_TOO_SHORT,
-        FOOD_PAGE_TITLE_TOO_SHORT,
-        _FOOD_PAGE_LAST_,
-        _FOOD_PAGE_COUNT_ = _FOOD_PAGE_LAST_ - _FOOD_PAGE_FIRST_ - 1,
+        wholth_pages_food_Code_FIRST_ = 1000,
+        wholth_pages_food_Code_TYPE_MISMATCH,
+        wholth_pages_food_Code_BAD_LOCALE_ID,
+        wholth_pages_food_Code_BAD_FOOD_ID,
+        wholth_pages_food_Code_INGREDIENT_LIST_TOO_SHORT,
+        wholth_pages_food_Code_TITLE_TOO_SHORT,
+        wholth_pages_food_Code_LAST_,
+        wholth_pages_food_Code_COUNT_ =
+            wholth_pages_food_Code_LAST_ - wholth_pages_food_Code_FIRST_ - 1,
     };
 
     ARRAY_T(wholth_Food, wholth_FoodArray);
@@ -30,9 +31,9 @@ extern "C"
      * @deprecated todo remove
      */
     const wholth_FoodArray wholth_pages_food_array(const wholth_Page* const);
-    wholth_Error wholth_pages_food_id(
-        wholth_Page* const,
-        wholth_StringView search_id);
+    wholth_Error           wholth_pages_food_id(
+                  wholth_Page* const,
+                  wholth_StringView search_id);
     wholth_Error wholth_pages_food_locale_id(
         wholth_Page* const,
         wholth_StringView locale_id);

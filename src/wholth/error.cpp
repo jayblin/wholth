@@ -4,6 +4,7 @@
 #include "wholth/c/pages/nutrient.h"
 #include "wholth/c/pages/ingredient.h"
 #include "wholth/c/entity_manager/food.h"
+#include "wholth/c/exec_stmt.h"
 #include <array>
 #include <cstddef>
 #include <string_view>
@@ -15,16 +16,17 @@ const char* wholth::error::Category::name() const noexcept
     return "wholth";
 }
 
-#define FIRST_AND_LAST(ns, prefix)                                             \
-    {static_cast<size_t>(wholth_##ns##_Code ::prefix##_FIRST_),                \
-     static_cast<size_t>(wholth_##ns##_Code ::prefix##_LAST_)}
+#define FIRST_AND_LAST(ns)                                                     \
+    {static_cast<size_t>(wholth_##ns##_Code_FIRST_),                           \
+     static_cast<size_t>(wholth_##ns##_Code_LAST_)}
 
-constexpr std::array<std::pair<size_t, size_t>, 5> registered_codes = {{
-    FIRST_AND_LAST(em_food, _FOOD_EM),
-    FIRST_AND_LAST(pages_food, _FOOD_PAGE),
-    FIRST_AND_LAST(pages_nutrient, _NUTRIENT_PAGE),
-    FIRST_AND_LAST(pages_food_nutrient, _FOOD_NUTRIENT_PAGE),
-    FIRST_AND_LAST(pages_ingredient, _INGREDIENT_PAGE),
+constexpr std::array<std::pair<size_t, size_t>, 6> registered_codes = {{
+    FIRST_AND_LAST(em_food),
+    FIRST_AND_LAST(pages_food),
+    FIRST_AND_LAST(pages_nutrient),
+    FIRST_AND_LAST(pages_food_nutrient),
+    FIRST_AND_LAST(pages_ingredient),
+    FIRST_AND_LAST(exec_stmt),
 }};
 
 constexpr bool does_intersect(const size_t& idx)
@@ -65,102 +67,102 @@ std::string_view wholth::error::message(int ev)
 {
     static_assert(false == do_error_codes_overlap());
 
-    if (wholth_pages_ingredient_Code::_INGREDIENT_PAGE_FIRST_ < ev &&
-        wholth_pages_ingredient_Code::_INGREDIENT_PAGE_LAST_ > ev)
+    if (wholth_pages_ingredient_Code::wholth_pages_ingredient_Code_FIRST_ < ev &&
+        wholth_pages_ingredient_Code::wholth_pages_ingredient_Code_LAST_ > ev)
     {
         switch (static_cast<wholth_pages_ingredient_Code>(ev))
         {
-        case INGREDIENT_PAGE_BAD_LOCALE_ID:
+        case wholth_pages_ingredient_Code_BAD_LOCALE_ID:
             return "Bad locale id provided for ingredient managpageent "
                    "function!";
-        case _INGREDIENT_PAGE_FIRST_:
-        case _INGREDIENT_PAGE_LAST_:
-        case _INGREDIENT_PAGE_COUNT_:
+        case wholth_pages_ingredient_Code_FIRST_:
+        case wholth_pages_ingredient_Code_LAST_:
+        case wholth_pages_ingredient_Code_COUNT_:
             return "Not an error.";
-        case INGREDIENT_PAGE_TYPE_MISMATCH:
+        case wholth_pages_ingredient_Code_TYPE_MISMATCH:
             return "You are expected to provide a pointer to a page of "
                    "Ingredients!";
-        case INGREDIENT_PAGE_TITLE_TOO_SHORT:
+        case wholth_pages_ingredient_Code_TITLE_TOO_SHORT:
             return "Ingredient's title should be at least 3 chars long!";
-        case INGREDIENT_PAGE_BAD_FOOD_ID:
+        case wholth_pages_ingredient_Code_BAD_FOOD_ID:
             return "Provided bad ingredient id!";
         }
     }
 
-    if (wholth_em_food_Code::_FOOD_EM_FIRST_ < ev &&
-        wholth_em_food_Code::_FOOD_EM_LAST_ > ev)
+    if (wholth_em_food_Code::wholth_em_food_Code_FIRST_ < ev &&
+        wholth_em_food_Code::wholth_em_food_Code_LAST_ > ev)
     {
         switch (static_cast<wholth_em_food_Code>(ev))
         {
-        case FOOD_EM_BAD_LOCALE_ID:
+        case wholth_em_food_Code_BAD_LOCALE_ID:
             return "Bad locale id provided for food management function!";
-        case FOOD_EM_DUPLICATE_ENTRY:
+        case wholth_em_food_Code_DUPLICATE_ENTRY:
             return "Food with same title already exists for chosen locale!";
-        case _FOOD_EM_FIRST_:
-        case _FOOD_EM_LAST_:
-        case _FOOD_EM_COUNT_:
+        case wholth_em_food_Code_FIRST_:
+        case wholth_em_food_Code_LAST_:
+        case wholth_em_food_Code_COUNT_:
             return "Not an error.";
         }
     }
 
-    if (wholth_pages_food_Code::_FOOD_PAGE_FIRST_ < ev &&
-        wholth_pages_food_Code::_FOOD_PAGE_LAST_ > ev)
+    if (wholth_pages_food_Code::wholth_pages_food_Code_FIRST_ < ev &&
+        wholth_pages_food_Code::wholth_pages_food_Code_LAST_ > ev)
     {
         switch (static_cast<wholth_pages_food_Code>(ev))
         {
-        case FOOD_PAGE_TYPE_MISMATCH:
+        case wholth_pages_food_Code_TYPE_MISMATCH:
             return "You are expected to provide a pointer to a page of "
                    "Foods!";
-        case FOOD_PAGE_BAD_LOCALE_ID:
+        case wholth_pages_food_Code_BAD_LOCALE_ID:
             return "Bad locale id provided for food page query!";
-        case FOOD_PAGE_BAD_FOOD_ID:
+        case wholth_pages_food_Code_BAD_FOOD_ID:
             return "Bad food id provided for food page query!";
-        case FOOD_PAGE_INGREDIENT_LIST_TOO_SHORT:
+        case wholth_pages_food_Code_INGREDIENT_LIST_TOO_SHORT:
             return "Ingredient list is too short. Needs to be at least 3 "
                    "chars!";
-        case _FOOD_PAGE_FIRST_:
-        case _FOOD_PAGE_LAST_:
-        case _FOOD_PAGE_COUNT_:
+        case wholth_pages_food_Code_FIRST_:
+        case wholth_pages_food_Code_LAST_:
+        case wholth_pages_food_Code_COUNT_:
             return "Not an error.";
-        case FOOD_PAGE_TITLE_TOO_SHORT:
+        case wholth_pages_food_Code_TITLE_TOO_SHORT:
             return "Title you are searching for is too short. Needs to be at "
                    "least 3 chars!";
             break;
         }
     }
 
-    if (wholth_pages_nutrient_Code::_NUTRIENT_PAGE_FIRST_ < ev &&
-        wholth_pages_nutrient_Code::_NUTRIENT_PAGE_LAST_ > ev)
+    if (wholth_pages_nutrient_Code::wholth_pages_nutrient_Code_FIRST_ < ev &&
+        wholth_pages_nutrient_Code::wholth_pages_nutrient_Code_LAST_ > ev)
     {
         switch (static_cast<wholth_pages_nutrient_Code>(ev))
         {
-        case NUTRIENT_PAGE_TYPE_MISMATCH:
+        case wholth_pages_nutrient_Code_TYPE_MISMATCH:
             return "You are expected to provide a pointer to a page of "
                    "Nutrients!";
-        case NUTRIENT_PAGE_BAD_LOCALE_ID:
+        case wholth_pages_nutrient_Code_BAD_LOCALE_ID:
             return "Bad locale id provided for nutrient page query!";
-        case _NUTRIENT_PAGE_FIRST_:
-        case _NUTRIENT_PAGE_LAST_:
-        case _NUTRIENT_PAGE_COUNT_:
+        case wholth_pages_nutrient_Code_FIRST_:
+        case wholth_pages_nutrient_Code_LAST_:
+        case wholth_pages_nutrient_Code_COUNT_:
             return "Not an error.";
         }
     }
 
-    if (wholth_pages_food_nutrient_Code::_FOOD_NUTRIENT_PAGE_FIRST_ < ev &&
-        wholth_pages_food_nutrient_Code::_FOOD_NUTRIENT_PAGE_LAST_ > ev)
+    if (wholth_pages_food_nutrient_Code::wholth_pages_food_nutrient_Code_FIRST_ < ev &&
+        wholth_pages_food_nutrient_Code::wholth_pages_food_nutrient_Code_LAST_ > ev)
     {
         switch (static_cast<wholth_pages_food_nutrient_Code>(ev))
         {
-        case FOOD_NUTRIENT_PAGE_TYPE_MISMATCH:
+        case wholth_pages_food_nutrient_Code_TYPE_MISMATCH:
             return "You are expected to provide a pointer to a page of "
                    "Nutrients assigned to a speific food!";
-        case FOOD_NUTRIENT_PAGE_BAD_LOCALE_ID:
+        case wholth_pages_food_nutrient_Code_BAD_LOCALE_ID:
             return "Bad locale id provided for food nutrient page query!";
-        case FOOD_NUTRIENT_PAGE_BAD_FOOD_ID:
+        case wholth_pages_food_nutrient_Code_BAD_FOOD_ID:
             return "Bad food id provided for food nutrient page query!";
-        case _FOOD_NUTRIENT_PAGE_FIRST_:
-        case _FOOD_NUTRIENT_PAGE_LAST_:
-        case _FOOD_NUTRIENT_PAGE_COUNT_:
+        case wholth_pages_food_nutrient_Code_FIRST_:
+        case wholth_pages_food_nutrient_Code_LAST_:
+        case wholth_pages_food_nutrient_Code_COUNT_:
             return "Not an error.";
         }
     }
@@ -181,4 +183,4 @@ const wholth::error::Category& wholth::error::category()
 }
 
 extern "C" const wholth_ErrorCode WHOLTH_NO_ERROR = 0;
-extern "C" const wholth_Error wholth_Error_OK = {0, {NULL, 0}};
+extern "C" const wholth_Error     wholth_Error_OK = {0, {NULL, 0}};

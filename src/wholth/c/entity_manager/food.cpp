@@ -123,7 +123,7 @@ extern "C" auto wholth_em_food_insert(
     auto _locale_id = to_string_view(locale_id);
     if (!is_valid_id(_locale_id))
     {
-        return ec_to_error(wholth_em_food_Code::FOOD_EM_BAD_LOCALE_ID, buffer);
+        return ec_to_error(wholth_em_food_Code_BAD_LOCALE_ID, buffer);
     }
 
     if (nullptr == food->title.data || 0 >= food->title.size)
@@ -175,7 +175,7 @@ extern "C" auto wholth_em_food_insert(
 
     if (!rowid.empty())
     {
-        return ec_to_error(FOOD_EM_DUPLICATE_ENTRY, buffer);
+        return ec_to_error(wholth_em_food_Code_DUPLICATE_ENTRY, buffer);
     }
 
     const std::array<bind_t, 4> params{{
@@ -240,7 +240,7 @@ extern "C" auto wholth_em_food_update(
     auto _locale_id = to_string_view(locale_id);
     if (!is_valid_id(_locale_id))
     {
-        return ec_to_error(wholth_em_food_Code::FOOD_EM_BAD_LOCALE_ID, buffer);
+        return ec_to_error(wholth_em_food_Code_BAD_LOCALE_ID, buffer);
     }
 
     const auto food_id = to_string_view(food->id);

@@ -26,5 +26,6 @@
 #include "wholth/c/pages/recipe_step.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/c/string_view.h"
+#include "wholth/c/util.h"
 
 #endif // WHOLTH_C_H

@@ -61,12 +61,12 @@ auto wholth::pages::prepare_food_nutrient_stmt(
 
     if (!is_valid_id(model.food_id))
     {
-        return {LengthContainer{0}, FOOD_NUTRIENT_PAGE_BAD_FOOD_ID};
+        return {LengthContainer{0}, wholth_pages_food_nutrient_Code_BAD_FOOD_ID};
     }
 
     if (!is_valid_id(model.locale_id))
     {
-        return {LengthContainer{0}, FOOD_NUTRIENT_PAGE_BAD_LOCALE_ID};
+        return {LengthContainer{0}, wholth_pages_food_nutrient_Code_BAD_LOCALE_ID};
     }
 
     // nutrient value in schientific notaion
@@ -265,7 +265,7 @@ static wholth_Error set_model_field(
 {
     if (!check_page(page))
     {
-        return from_error_code(FOOD_NUTRIENT_PAGE_TYPE_MISMATCH);
+        return from_error_code(wholth_pages_food_nutrient_Code_TYPE_MISMATCH);
     }
 
     auto& _page =
@@ -281,7 +281,7 @@ static wholth_Error set_model_field(
         const auto id = to_string_view(value);
         if (!is_valid_id(id))
         {
-            ec = FOOD_NUTRIENT_PAGE_BAD_LOCALE_ID;
+            ec = wholth_pages_food_nutrient_Code_BAD_LOCALE_ID;
         }
         else
         {
@@ -293,7 +293,7 @@ static wholth_Error set_model_field(
         const auto id = to_string_view(value);
         if (!is_valid_id(id))
         {
-            ec = FOOD_NUTRIENT_PAGE_BAD_FOOD_ID;
+            ec = wholth_pages_food_nutrient_Code_BAD_FOOD_ID;
         }
         else
         {

@@ -62,7 +62,7 @@ auto wholth::pages::prepare_nutrient_stmt(
     {
         return {
             LengthContainer{},
-            wholth_pages_nutrient_Code::NUTRIENT_PAGE_BAD_LOCALE_ID};
+            wholth_pages_nutrient_Code_BAD_LOCALE_ID};
     }
 
     constexpr std::string_view sql_tpl = R"sql(
@@ -198,7 +198,7 @@ static wholth_Error set_model_field(
 {
     if (!check_page(page))
     {
-        return from_error_code(NUTRIENT_PAGE_TYPE_MISMATCH);
+        return from_error_code(wholth_pages_nutrient_Code_TYPE_MISMATCH);
     }
 
     auto& _page =
@@ -214,7 +214,7 @@ static wholth_Error set_model_field(
         const auto id = to_string_view(value);
         if (!is_valid_id(id))
         {
-            ec = NUTRIENT_PAGE_BAD_LOCALE_ID;
+            ec = wholth_pages_nutrient_Code_BAD_LOCALE_ID;
         }
         else
         {

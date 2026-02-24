@@ -122,7 +122,7 @@ static auto prepare_food_stmt_by_id(
 
     if (!is_valid_id(query.id))
     {
-        return wholth_pages_food_Code::FOOD_PAGE_BAD_FOOD_ID;
+        return wholth_pages_food_Code_BAD_FOOD_ID;
     }
 
     const std::string sql_filtered_list =
@@ -152,7 +152,7 @@ static auto prepare_food_stmt_generic(
     {
         if (query.title.size() < 3)
         {
-            return wholth_pages_food_Code::FOOD_PAGE_TITLE_TOO_SHORT;
+            return wholth_pages_food_Code_TITLE_TOO_SHORT;
         }
 
         where = " food_localisation_fts5 MATCH ?4 ";
@@ -251,7 +251,7 @@ static auto prepare_food_stmt_by_ingredients(
 
     if (query.ingredients.size() < 3)
     {
-        return wholth_pages_food_Code::FOOD_PAGE_INGREDIENT_LIST_TOO_SHORT;
+        return wholth_pages_food_Code_INGREDIENT_LIST_TOO_SHORT;
     }
 
     const std::string sql = fmt::format(
@@ -282,7 +282,7 @@ auto wholth::pages::prepare_food_stmt(
     if (!is_valid_id(query.locale_id))
     {
         return {
-            LengthContainer{}, wholth_pages_food_Code::FOOD_PAGE_BAD_LOCALE_ID};
+            LengthContainer{}, wholth_pages_food_Code_BAD_LOCALE_ID};
     }
 
     std::error_code ec{};

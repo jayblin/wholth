@@ -75,6 +75,7 @@ add_library(
     src/wholth/utils/to_error.cpp
     src/wholth/utils/str_replace.cpp
     src/wholth/utils/str_split.cpp
+    src/wholth/c/exec_stmt.cpp
 )
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -193,6 +194,7 @@ if (DEFINED WHOLTH_STANDALONE)
         tests/wholth/c/pages/ingredient.cpp
         tests/wholth/c/pages/consumption_log.cpp
         tests/wholth/c/pages/recipe_step.cpp
+        tests/wholth/sql_statements/ingredient_delete.cpp
         # tests/wholth/c/entity_manager/recipe_step_update.cpp
         # tests/wholth/c/entity_manager/update_food.cpp
         # tests/wholth/c/entity_manager/update_important_nutrients.cpp

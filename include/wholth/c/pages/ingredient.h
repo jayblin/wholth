@@ -12,13 +12,15 @@ extern "C"
 #endif
     enum wholth_pages_ingredient_Code
     {
-        _INGREDIENT_PAGE_FIRST_ = 2000,
-        INGREDIENT_PAGE_TYPE_MISMATCH,
-        INGREDIENT_PAGE_BAD_LOCALE_ID,
-        INGREDIENT_PAGE_TITLE_TOO_SHORT,
-        INGREDIENT_PAGE_BAD_FOOD_ID,
-        _INGREDIENT_PAGE_LAST_,
-        _INGREDIENT_PAGE_COUNT_ = _INGREDIENT_PAGE_LAST_ - _INGREDIENT_PAGE_FIRST_ - 1,
+        wholth_pages_ingredient_Code_FIRST_ = 2000,
+        wholth_pages_ingredient_Code_TYPE_MISMATCH,
+        wholth_pages_ingredient_Code_BAD_LOCALE_ID,
+        wholth_pages_ingredient_Code_TITLE_TOO_SHORT,
+        wholth_pages_ingredient_Code_BAD_FOOD_ID,
+        wholth_pages_ingredient_Code_LAST_,
+        wholth_pages_ingredient_Code_COUNT_ =
+            wholth_pages_ingredient_Code_LAST_ -
+            wholth_pages_ingredient_Code_FIRST_ - 1,
     };
 
     ARRAY_T(wholth_Ingredient, wholth_IngredientArray);

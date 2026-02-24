@@ -12,13 +12,14 @@ extern "C"
 
     enum wholth_pages_food_nutrient_Code
     {
-        _FOOD_NUTRIENT_PAGE_FIRST_ = 4000,
-        FOOD_NUTRIENT_PAGE_TYPE_MISMATCH,
-        FOOD_NUTRIENT_PAGE_BAD_LOCALE_ID,
-        FOOD_NUTRIENT_PAGE_BAD_FOOD_ID,
-        _FOOD_NUTRIENT_PAGE_LAST_,
-        _FOOD_NUTRIENT_PAGE_COUNT_ =
-            _FOOD_NUTRIENT_PAGE_LAST_ - _FOOD_NUTRIENT_PAGE_FIRST_ - 1,
+        wholth_pages_food_nutrient_Code_FIRST_ = 4000,
+        wholth_pages_food_nutrient_Code_TYPE_MISMATCH,
+        wholth_pages_food_nutrient_Code_BAD_LOCALE_ID,
+        wholth_pages_food_nutrient_Code_BAD_FOOD_ID,
+        wholth_pages_food_nutrient_Code_LAST_,
+        wholth_pages_food_nutrient_Code_COUNT_ =
+            wholth_pages_food_nutrient_Code_LAST_ -
+            wholth_pages_food_nutrient_Code_FIRST_ - 1,
     };
 
     ARRAY_T(wholth_Nutrient, wholth_FoodNutrientArray);

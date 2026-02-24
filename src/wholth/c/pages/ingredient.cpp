@@ -62,7 +62,7 @@ auto wholth::pages::prepare_ingredient_stmt(
 
     if (!wholth::utils::is_valid_id(query.locale_id))
     {
-        return {LengthContainer{0}, INGREDIENT_PAGE_BAD_LOCALE_ID};
+        return {LengthContainer{0}, wholth_pages_ingredient_Code_BAD_LOCALE_ID};
     }
 
     // std::vector<std::string_view> titles{};
@@ -73,7 +73,7 @@ auto wholth::pages::prepare_ingredient_stmt(
     {
         if (query.title.size() < 3)
         {
-            return {LengthContainer{0}, INGREDIENT_PAGE_TITLE_TOO_SHORT};
+            return {LengthContainer{0}, wholth_pages_ingredient_Code_TITLE_TOO_SHORT};
         }
 
         match_title = fmt::format(
@@ -234,7 +234,7 @@ static wholth_Error set_model_field(
 {
     if (!check_page(page))
     {
-        return wholth::utils::from_error_code(INGREDIENT_PAGE_TYPE_MISMATCH);
+        return wholth::utils::from_error_code(wholth_pages_ingredient_Code_TYPE_MISMATCH);
     }
 
     auto& query = std::get<PageType::INGREDIENT>(page->data).query;
@@ -249,7 +249,7 @@ static wholth_Error set_model_field(
         const auto id = wholth::utils::to_string_view(value);
         if (!wholth::utils::is_valid_id(id))
         {
-            ec = INGREDIENT_PAGE_BAD_LOCALE_ID;
+            ec = wholth_pages_ingredient_Code_BAD_LOCALE_ID;
         }
         else
         {
@@ -261,7 +261,7 @@ static wholth_Error set_model_field(
         const auto id = wholth::utils::to_string_view(value);
         if (!wholth::utils::is_valid_id(id))
         {
-            ec = INGREDIENT_PAGE_BAD_FOOD_ID;
+            ec = wholth_pages_ingredient_Code_BAD_FOOD_ID;
         }
         else
         {

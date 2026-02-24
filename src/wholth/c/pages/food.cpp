@@ -51,7 +51,7 @@ static wholth_Error set_model_field(
 {
     if (!check_ptr(page))
     {
-        return wholth::utils::from_error_code(FOOD_PAGE_TYPE_MISMATCH);
+        return wholth::utils::from_error_code(wholth_pages_food_Code_TYPE_MISMATCH);
     }
 
     auto& query =
@@ -67,7 +67,7 @@ static wholth_Error set_model_field(
         const auto id = to_string_view(value);
         if (!is_valid_id(id))
         {
-            ec = FOOD_PAGE_BAD_LOCALE_ID;
+            ec = wholth_pages_food_Code_BAD_LOCALE_ID;
         }
         else
         {
@@ -79,7 +79,7 @@ static wholth_Error set_model_field(
         const auto id = to_string_view(value);
         if (!is_valid_id(id))
         {
-            ec = FOOD_PAGE_BAD_FOOD_ID;
+            ec = wholth_pages_food_Code_BAD_FOOD_ID;
         }
         else
         {
