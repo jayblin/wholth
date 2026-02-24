@@ -31,13 +31,13 @@ TEST_F(Test_wholth_em_food_nutrient_upsert, when_new_nutrient)
     //     .id = wtsv("999999"),
     // };
     // wholth_Nutrient nutr{
-    //     .id = wtsv("1008"),
+    //     .id = wtsv("2047"),
     //     .value = wtsv("1234.5"),
     // };
     wholth_Food food = wholth_entity_food_init();
     food.id = wtsv("999999");
     wholth_Nutrient nutr = wholth_entity_nutrient_init();
-    nutr.id = wtsv("1008");
+    nutr.id = wtsv("2047");
     nutr.value = wtsv("1234.5");
 
     wholth_Buffer* buf = wholth_buffer_ring_pool_element();
@@ -53,7 +53,7 @@ TEST_F(Test_wholth_em_food_nutrient_upsert, when_new_nutrient)
         "SELECT food_id, nutrient_id, value FROM food_nutrient "
         "WHERE food_id = 999999 ORDER BY nutrient_id DESC",
         [&](auto e) { ss << e.column_value << ";"; });
-    ASSERT_STREQ2("999999;1009;343;999999;1008;1234.5;", ss.str());
+    ASSERT_STREQ2("999999;2047;1234.5;999999;1009;343;", ss.str());
 }
 
 TEST_F(Test_wholth_em_food_nutrient_upsert, when_existing_nutrient)
@@ -119,7 +119,7 @@ TEST_F(Test_wholth_em_food_nutrient_upsert, when_food_is_null)
     // auto err = wholth_em_upsert_food_nutrient(NULL, &nutr);
 
     wholth_Nutrient nutr = wholth_entity_nutrient_init();
-    nutr.id = wtsv("1008");
+    nutr.id = wtsv("2047");
     nutr.value = wtsv("1234.5");
 
     wholth_Buffer* buf = wholth_buffer_ring_pool_element();
@@ -292,7 +292,7 @@ TEST_F(Test_wholth_em_food_nutrient_upsert, when_buffer_is_nullptr)
     wholth_Food food = wholth_entity_food_init();
     food.id = wtsv("999999");
     wholth_Nutrient nutr = wholth_entity_nutrient_init();
-    nutr.id = wtsv("1008");
+    nutr.id = wtsv("2047");
     nutr.value = wtsv("1234.5");
 
     auto err = wholth_em_food_nutrient_upsert(&food, &nutr, NULL);
