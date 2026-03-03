@@ -14,7 +14,6 @@
 #include "wholth/c/entity_manager/food.h"
 #include "wholth/c/entity_manager/food_nutrient.h"
 #include "wholth/c/entity_manager/ingredient.h"
-#include "wholth/c/entity_manager/recipe_step.h"
 #include "wholth/c/entity_manager/user.h"
 #include "wholth/c/food_details.h"
 #include "wholth/c/forward.h"
