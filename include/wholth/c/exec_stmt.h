@@ -30,13 +30,15 @@ extern "C"
         wholth_exec_stmt_Task_INSERT,
     } wholth_exec_stmt_Task;
 
-    struct wholth_exec_stmt_Result;
+    struct wholth_exec_stmt_Result_t;
+    typedef struct wholth_exec_stmt_Result_t wholth_exec_stmt_Result;
+
     wholth_Error wholth_exec_stmt_Result_new(wholth_exec_stmt_Result**);
     wholth_Error wholth_exec_stmt_Result_del(wholth_exec_stmt_Result*);
     const wholth_StringView wholth_exec_stmt_Result_at(
         const wholth_exec_stmt_Result*,
-        unsigned long long row = 0,
-        unsigned long long column = 0);
+        unsigned long long row,
+        unsigned long long column);
 
     typedef struct wholth_exec_stmt_Args_t
     {

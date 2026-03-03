@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -19,7 +20,7 @@
 #include <utility>
 #include "wholth/cmake_vars.h"
 
-struct wholth_exec_stmt_Result
+struct wholth_exec_stmt_Result_t
 {
     using State = wholth::internal::ring_pool::EntryState;
     struct Data
@@ -457,22 +458,21 @@ extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
         return to_wholth_str_view("");
     }
 
+    if (0 == result->data.column_count) {
+        return to_wholth_str_view("");
+    }
+
     if (column >= result->data.column_count)
     {
         return to_wholth_str_view("");
     }
 
-    // todo check int bounds
-    if (row * column >= result->data.sizes.size())
-    {
-    }
+    const auto sz = result->data.sizes.size();
+    const auto idx = row * result->data.column_count + column;
 
-    // return to_wholth_str_view()
-    // todo check int bounds
-    const auto idx = column + row * column;
-    if (idx >= result->data.sizes.size())
+    if (idx < row * result->data.column_count || idx >= sz)
     {
-        // return
+        return to_wholth_str_view("");
     }
 
     const auto offset = idx > 0 ? result->data.sizes[idx - 1] : 0;

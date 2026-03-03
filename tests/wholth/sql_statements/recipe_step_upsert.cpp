@@ -1,7 +1,6 @@
 #include "db/db.hpp"
 #include "fmt/core.h"
 #include "helpers.hpp"
-#include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "wholth/c/exec_stmt.h"
 #include "exec_stmt_helpers.hpp"
@@ -247,7 +246,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_good_insert)
     ASSERT_STRNE3(count_rs_old, count_rs_new);
     ASSERT_STRNE3(count_rsl_old, count_rsl_new);
 
-    const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle));
+    const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle, 0, 0));
     ASSERT_STRNEQ2("", res_id);
 
     {
@@ -313,7 +312,7 @@ TEST_F(
         ASSERT_STRNE3(count_rs_old, count_rs_new);
         ASSERT_STRNE3(count_rsl_old, count_rsl_new);
 
-        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle));
+        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle, 0, 0));
         ASSERT_STRNEQ2("", res_id);
 
         {
@@ -381,7 +380,7 @@ TEST_F(
         ASSERT_STRNE3(count_rs_old, count_rs_new);
         ASSERT_STRNE3(count_rsl_old, count_rsl_new);
 
-        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle));
+        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle, 0, 0));
         ASSERT_STRNEQ2("", res_id);
 
         {
@@ -442,7 +441,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_good_update)
     ASSERT_STREQ3(count_rs_old, count_rs_new);
     ASSERT_STREQ3(count_rsl_old, count_rsl_new);
 
-    const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle));
+    const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle, 0, 0));
     ASSERT_STREQ2("1", res_id);
 
     std::string acc = "";
@@ -496,7 +495,7 @@ TEST_F(
         ASSERT_STREQ3(count_rs_old, count_rs_new);
         ASSERT_STREQ3(count_rsl_old, count_rsl_new);
 
-        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle));
+        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle, 0, 0));
         ASSERT_STREQ2("1", res_id);
 
         std::string acc = "";
@@ -552,7 +551,7 @@ TEST_F(
         ASSERT_STREQ3(count_rs_old, count_rs_new);
         ASSERT_STREQ3(count_rsl_old, count_rsl_new);
 
-        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle));
+        const auto res_id = wfsv(wholth_exec_stmt_Result_at(res.handle, 0, 0));
         ASSERT_STREQ2("1", res_id);
 
         std::string acc = "";
@@ -568,8 +567,7 @@ TEST_F(
             [&](auto e) { (acc += e.column_value) += ";"; });
         ASSERT_NE("", acc);
 
-        ASSERT_STREQ2(
-            "1;630;1;;1;630;2;description 2 of 1;", acc);
+        ASSERT_STREQ2("1;630;1;;1;630;2;description 2 of 1;", acc);
         ASSERT_OTHER_RECIPE_STEP_UNCHANGED_2();
     }
 }
