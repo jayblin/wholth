@@ -91,7 +91,7 @@ extern "C"
     // wholth_exec_stmt_Result wholth_exec_stmt(
     wholth_Error wholth_exec_stmt(
         const wholth_exec_stmt_Args* const,
-        wholth_exec_stmt_Result* = NULL);
+        wholth_exec_stmt_Result*);
 
     // bool wholth_is_error(const wholth_exec_stmt_Result* const);
 
