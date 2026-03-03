@@ -3,9 +3,6 @@
 
 #include "wholth/c/error.h"
 #include "wholth/c/string_view.h"
-#include "wholth/c/buffer.h"
-#include <cstddef>
-#include <cstdint>
 
 #ifdef __cplusplus
 extern "C"
@@ -38,13 +35,13 @@ extern "C"
     wholth_Error wholth_exec_stmt_Result_del(wholth_exec_stmt_Result*);
     const wholth_StringView wholth_exec_stmt_Result_at(
         const wholth_exec_stmt_Result*,
-        uint64_t row = 0,
-        uint64_t column = 0);
+        unsigned long long row = 0,
+        unsigned long long column = 0);
 
     typedef struct wholth_exec_stmt_Args_t
     {
         wholth_StringView                      sql_file;
-        uint64_t                               binds_size;
+        unsigned long long                     binds_size;
         const wholth_exec_stmt_Bindable* const binds;
         // wholth_Buffer* const                   buffer;
     } wholth_exec_stmt_Args;

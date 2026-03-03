@@ -449,8 +449,8 @@ extern "C" wholth_Error wholth_exec_stmt(
 
 extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
     const wholth_exec_stmt_Result* result,
-    uint64_t                       row,
-    uint64_t                       column)
+    unsigned long long             row,
+    unsigned long long             column)
 {
     if (nullptr == result)
     {
