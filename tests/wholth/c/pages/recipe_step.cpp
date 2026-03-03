@@ -37,18 +37,16 @@ class Test_wholth_pages_recipe_step : public ApplicationAwareTest
 
 TEST_F(Test_wholth_pages_recipe_step, when_basic_case)
 {
-    wholth_user_locale_id(wtsv("1"));
-
     wholth_Page* page = nullptr;
-    auto err = wholth_pages_recipe_step(&page);
-    auto wrap = PageWrap{page};
+    auto         err = wholth_pages_recipe_step(&page);
+    auto         wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
 
     wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
+    ASSERT_WHOLTH_OK(wholth_pages_recipe_step_locale_id(page, wtsv("1")));
 
     // ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     err = wholth_pages_fetch(page);
-
     ASSERT_WHOLTH_OK(err);
 
     const wholth_RecipeStep* step = wholth_pages_recipe_step_first(page);
@@ -62,14 +60,13 @@ TEST_F(Test_wholth_pages_recipe_step, when_basic_case)
 
 TEST_F(Test_wholth_pages_recipe_step, when_basic_case_and_diff_locale)
 {
-    wholth_user_locale_id(wtsv("2"));
-
     wholth_Page* page = nullptr;
-    auto err = wholth_pages_recipe_step(&page);
-    auto wrap = PageWrap{page};
+    auto         err = wholth_pages_recipe_step(&page);
+    auto         wrap = PageWrap{page};
     ASSERT_WHOLTH_OK(err);
 
     wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
+    ASSERT_WHOLTH_OK(wholth_pages_recipe_step_locale_id(page, wtsv("2")));
 
     // ASSERT_TRUE(wholth_pages_skip_to(page, 0));
     err = wholth_pages_fetch(page);
@@ -89,25 +86,24 @@ TEST_F(Test_wholth_pages_recipe_step, when_not_found)
 {
     {
         wholth_Page* page = nullptr;
-        auto err = wholth_pages_recipe_step(&page);
-        auto wrap = PageWrap{page};
+        auto         err = wholth_pages_recipe_step(&page);
+        auto         wrap = PageWrap{page};
         ASSERT_WHOLTH_OK(err);
 
-        wholth_user_locale_id(wtsv("2"));
+        ASSERT_WHOLTH_OK(wholth_pages_recipe_step_locale_id(page, wtsv("2")));
         wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
-        wholth_user_locale_id(wtsv("1"));
+        ASSERT_WHOLTH_OK(wholth_pages_recipe_step_locale_id(page, wtsv("1")));
         wholth_pages_recipe_step_recipe_id(page, wtsv("22"));
     }
 
     {
-        wholth_user_locale_id(wtsv("1"));
-
         wholth_Page* page = nullptr;
-        auto err = wholth_pages_recipe_step(&page);
-        auto wrap = PageWrap{page};
+        auto         err = wholth_pages_recipe_step(&page);
+        auto         wrap = PageWrap{page};
         ASSERT_WHOLTH_OK(err);
 
         wholth_pages_recipe_step_recipe_id(page, wtsv("1"));
+        ASSERT_WHOLTH_OK(wholth_pages_recipe_step_locale_id(page, wtsv("1")));
 
         // ASSERT_TRUE(wholth_pages_skip_to(page, 0));
         err = wholth_pages_fetch(page);

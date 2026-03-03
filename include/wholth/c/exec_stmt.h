@@ -4,6 +4,8 @@
 #include "wholth/c/error.h"
 #include "wholth/c/string_view.h"
 #include "wholth/c/buffer.h"
+#include <cstddef>
+#include <cstdint>
 
 #ifdef __cplusplus
 extern "C"
@@ -28,14 +30,23 @@ extern "C"
     {
         wholth_exec_stmt_Task_NOOP,
         wholth_exec_stmt_Task_DELETE,
+        wholth_exec_stmt_Task_INSERT,
     } wholth_exec_stmt_Task;
+
+    struct wholth_exec_stmt_Result;
+    wholth_Error wholth_exec_stmt_Result_new(wholth_exec_stmt_Result**);
+    wholth_Error wholth_exec_stmt_Result_del(wholth_exec_stmt_Result*);
+    const wholth_StringView wholth_exec_stmt_Result_at(
+        const wholth_exec_stmt_Result*,
+        uint64_t row = 0,
+        uint64_t column = 0);
 
     typedef struct wholth_exec_stmt_Args_t
     {
         wholth_StringView                      sql_file;
-        unsigned long                          binds_size;
+        uint64_t                               binds_size;
         const wholth_exec_stmt_Bindable* const binds;
-        wholth_Buffer* const                   buffer;
+        // wholth_Buffer* const                   buffer;
     } wholth_exec_stmt_Args;
 
     // typedef enum wholth_exec_stmt_ResultType_e
@@ -57,8 +68,8 @@ extern "C"
     enum wholth_exec_stmt_Code
     {
         wholth_exec_stmt_Code_FIRST_ = 10000,
-        wholth_exec_stmt_Code_SQL_FILE_DOES_NOT_EXIST,
         wholth_exec_stmt_Code_NOOP,
+        wholth_exec_stmt_Code_SQL_FILE_DOES_NOT_EXIST,
         wholth_exec_stmt_Code_SQL_FILE_ARG_MISCONF,
         wholth_exec_stmt_Code_SQL_FILE_VALIDATOR_MISCONF,
         wholth_exec_stmt_Code_SQL_FILE_VALIDATOR_UNKNOWN,
@@ -66,7 +77,10 @@ extern "C"
         wholth_exec_stmt_Code_SQL_FILE_BINDABLE_MISCOUNT,
         wholth_exec_stmt_Code_SQL_FILE_MISCONF,
         wholth_exec_stmt_Code_BINDS_MISCOUNT,
-        wholth_exec_stmt_Code_ARGS_INVALID,
+        wholth_exec_stmt_Code_ARGS_NULLPTR,
+        wholth_exec_stmt_Code_ARGS_RESULT_IS_NULLPTR,
+        wholth_exec_stmt_Code_BINDABLE_VALUE_IS_NULLPTR_BUT_SIZE_IS_GT_0,
+        wholth_exec_stmt_Code_BINDABLE_VALIDATION_FAIL,
         wholth_exec_stmt_Code_LAST_,
         wholth_exec_stmt_Code_COUNT_ =
             wholth_exec_stmt_Code_LAST_ - wholth_exec_stmt_Code_FIRST_ - 1,
@@ -76,7 +90,9 @@ extern "C"
      * Look into `???????` directory to find out what script does.
      */
     // wholth_exec_stmt_Result wholth_exec_stmt(
-    wholth_Error wholth_exec_stmt(const wholth_exec_stmt_Args* const);
+    wholth_Error wholth_exec_stmt(
+        const wholth_exec_stmt_Args* const,
+        wholth_exec_stmt_Result* = NULL);
 
     // bool wholth_is_error(const wholth_exec_stmt_Result* const);
 

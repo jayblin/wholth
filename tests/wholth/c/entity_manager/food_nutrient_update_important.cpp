@@ -4,11 +4,11 @@
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/food.h"
 #include "wholth/c/entity_manager/food_nutrient.h"
-#include "wholth/c/forward.h"
 #include "wholth/entity_manager/food.hpp"
 #include <gtest/gtest.h>
 #include <sstream>
 #include <type_traits>
+#include "assert.hpp"
 
 static_assert(nullptr == (void*)NULL);
 
@@ -29,35 +29,39 @@ class Test_wholth_em_food_nutrient_update_important
         // -1- 4
         // -1-3- 7
         // -1-3-4- 8
-        // -2- 4
-        // -2- 5
-        // -2- 6
+        // x2- 4
+        // x2- 5
+        // x2- 6
         // 10
         // -5- 11
-        astmt(
+        ASSERT_STMT_OK(
             con,
             "INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
             "(1,1,600),"
-            "(2,1,600),"
+            // Кейса, когда у еды есть несколько связанных сущностей
+            // recipe_step, отныне невозможен.
+            // "(2,1,600),"
             "(3,4,600),"
             "(4,7,600),"
-            "(5,10,600)");
+            "(5,10,600)",
+            [](auto) {});
 
-        astmt(
+        ASSERT_STMT_OK(
             con,
             "INSERT INTO recipe_step_food (recipe_step_id, food_id, "
             "canonical_mass) VALUES "
             "(1,2,200),"
             "(1,3,300),"
             "(1,4,400),"
-            "(2,4,400),"
-            "(2,5,500),"
-            "(2,6,600),"
+            // "(2,4,400),"
+            // "(2,5,500),"
+            // "(2,6,600),"
             "(3,7,700),"
             "(4,8,800),"
-            "(5,11,1100)");
+            "(5,11,1100)",
+            [](auto) {});
 
-        astmt(
+        ASSERT_STMT_OK(
             con,
             "INSERT INTO nutrient (id,unit,position) VALUES "
             "(1,'KCAL',10),"
@@ -71,9 +75,10 @@ class Test_wholth_em_food_nutrient_update_important
             "(9,'G',60),"
             "(10,'G',61) "
             "ON CONFLICT DO UPDATE SET "
-            "unit=excluded.unit, position=excluded.unit");
-        astmt(con, "DELETE FROM food_nutrient");
-        astmt(
+            "unit=excluded.unit, position=excluded.unit",
+            [](auto) {});
+        ASSERT_STMT_OK(con, "DELETE FROM food_nutrient", [](auto) {});
+        ASSERT_STMT_OK(
             con,
             "INSERT INTO food_nutrient(food_id,nutrient_id,value) VALUES "
             "(2,1, 20),"
@@ -175,7 +180,8 @@ class Test_wholth_em_food_nutrient_update_important
             "(10,9, 100),"
             "(10,10,100),"
 
-            "(11,3, 1103)");
+            "(11,3, 1103)",
+            [](auto) {});
     }
 };
 
@@ -184,14 +190,14 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_basic_case)
     wholth_Food food = wholth_entity_food_init();
     food.id = wtsv("1");
     wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-    const auto err = wholth_em_food_nutrient_update_important(&food, buf);
+    const auto     err = wholth_em_food_nutrient_update_important(&food, buf);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message);
 
     std::stringstream ss;
-    astmt(
+    ASSERT_STMT_OK(
         db::connection(),
         R"sql(
         SELECT
@@ -214,21 +220,21 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_basic_case)
     //   ingredient number i in a recipe step.
     //
     //   Example for nutrient id = 1:
-    // (200*20 + 300*30 + 400*40 + 400*40 + 500*50 + 600*60)
-    //      -----------------------------------------
-    //         (200 + 300 + 400 + 400 + 500 + 600)
+    //      (200*20 + 300*30 + 400*40)
+    //    ------------------------------
+    //          (200 + 300 + 400)
     //
     //
     // The function must assume that each ingredient has its nutrient value
     // already calculated, so recursion only 1 level deep.
     ASSERT_STREQ2(
-        "id:1;value:44.17;"
-        "id:2;value:44.17;"
-        "id:4;value:44.17;"
-        "id:6;value:44.17;"
-        "id:7;value:44.17;"
-        "id:8;value:44.17;"
-        "id:9;value:44.17;",
+        "id:1;value:32.22;"
+        "id:2;value:32.22;"
+        "id:4;value:32.22;"
+        "id:6;value:32.22;"
+        "id:7;value:32.22;"
+        "id:8;value:32.22;"
+        "id:9;value:32.22;",
         ss.str());
 }
 
@@ -236,7 +242,7 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_basic_case_2)
 {
     {
         std::stringstream ss;
-        astmt(
+        ASSERT_STMT_OK(
             db::connection(),
             R"sql(
         SELECT
@@ -268,14 +274,14 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_basic_case_2)
     wholth_Food food = wholth_entity_food_init();
     food.id = wtsv("10");
     wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-    const auto err = wholth_em_food_nutrient_update_important(&food, buf);
+    const auto     err = wholth_em_food_nutrient_update_important(&food, buf);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message);
 
     std::stringstream ss;
-    astmt(
+    ASSERT_STMT_OK(
         db::connection(),
         R"sql(
         SELECT
@@ -306,7 +312,7 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_basic_case_2)
 TEST_F(Test_wholth_em_food_nutrient_update_important, when_food_is_nulltpr)
 {
     wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-    const auto err = wholth_em_food_nutrient_update_important(NULL, buf);
+    const auto     err = wholth_em_food_nutrient_update_important(NULL, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
@@ -318,9 +324,9 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_food_is_nulltpr)
 
 TEST_F(Test_wholth_em_food_nutrient_update_important, when_food_id_is_nulltpr)
 {
-    wholth_Food food = wholth_entity_food_init();
+    wholth_Food    food = wholth_entity_food_init();
     wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-    const auto err = wholth_em_food_nutrient_update_important(&food, buf);
+    const auto     err = wholth_em_food_nutrient_update_important(&food, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
@@ -334,7 +340,7 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_buffer_is_nulltpr)
 {
     {
         std::stringstream ss;
-        astmt(
+        ASSERT_STMT_OK(
             db::connection(),
             R"sql(
         SELECT
@@ -372,7 +378,7 @@ TEST_F(Test_wholth_em_food_nutrient_update_important, when_buffer_is_nulltpr)
         << err.code << wfsv(err.message);
 
     std::stringstream ss;
-    astmt(
+    ASSERT_STMT_OK(
         db::connection(),
         R"sql(
         SELECT

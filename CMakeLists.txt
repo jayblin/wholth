@@ -46,7 +46,6 @@ add_library(
     src/wholth/c/entity/consumption_log.cpp
     src/wholth/c/entity/user.cpp
     src/wholth/c/entity_manager/ingredient.cpp
-    src/wholth/c/entity_manager/recipe_step.cpp
     src/wholth/c/entity_manager/food.cpp
     src/wholth/c/entity_manager/ingredient.cpp
     src/wholth/c/entity_manager/food_nutrient.cpp
@@ -66,7 +65,6 @@ add_library(
     # src/wholth/context.cpp
     src/wholth/entity_manager/ingredient.cpp
     src/wholth/entity_manager/nutrient.cpp
-    src/wholth/entity_manager/recipe_step.cpp
     # src/wholth/entity_manager/update_important_nutrients.cpp
     src/wholth/pagination.cpp
     src/wholth/status.cpp
@@ -184,8 +182,6 @@ if (DEFINED WHOLTH_STANDALONE)
         tests/wholth/c/entity_manager/consumption_log_delete.cpp
         tests/wholth/c/entity_manager/consumption_log_insert.cpp
         tests/wholth/c/entity_manager/consumption_log_update.cpp
-        tests/wholth/c/entity_manager/recipe_step_insert.cpp
-        tests/wholth/c/entity_manager/recipe_step_update.cpp
         tests/wholth/c/entity_manager/user_insert.cpp
         tests/wholth/c/entity_manager/user_authenticate.cpp
         tests/wholth/c/pages/food.cpp
@@ -195,7 +191,7 @@ if (DEFINED WHOLTH_STANDALONE)
         tests/wholth/c/pages/consumption_log.cpp
         tests/wholth/c/pages/recipe_step.cpp
         tests/wholth/sql_statements/ingredient_delete.cpp
-        # tests/wholth/c/entity_manager/recipe_step_update.cpp
+        tests/wholth/sql_statements/recipe_step_upsert.cpp
         # tests/wholth/c/entity_manager/update_food.cpp
         # tests/wholth/c/entity_manager/update_important_nutrients.cpp
         # tests/wholth/c/entity_manager/update_ingredient.cpp

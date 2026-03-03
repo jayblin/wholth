@@ -22,8 +22,7 @@ class Test_wholth_sql_statements_ingredient_delete : public ApplicationAwareTest
             "INSERT OR REPLACE INTO recipe_step "
             " (id, recipe_id) VALUES "
             " (1, 10),"
-            " (2, 10),"
-            " (3, 11)");
+            " (2, 11)");
 
         astmt(
             db::connection(),
@@ -31,8 +30,7 @@ class Test_wholth_sql_statements_ingredient_delete : public ApplicationAwareTest
             " (id, recipe_step_id, food_id) VALUES "
             " (100, 1, 20),"
             " (101, 1, 21),"
-            " (102, 2, 22),"
-            " (103, 3, 20);");
+            " (102, 2, 22);");
     }
 };
 
@@ -86,7 +84,6 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_bad_id)
     };
     for (const auto id : ids)
     {
-        wholth_Buffer*                  buf = wholth_buffer_ring_pool_element();
         const wholth_exec_stmt_Bindable binds[1] = {{
             .value = wtsv(id),
         }};
@@ -95,7 +92,6 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_bad_id)
             .sql_file = wtsv("ingredient_delete.sql"),
             .binds_size = 1,
             .binds = binds,
-            .buffer = buf,
         };
         const auto err = wholth_exec_stmt(&args);
 
@@ -130,13 +126,10 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_binds_is_nullptr)
     });
     ASSERT_NE("bogus", old_count);
 
-    wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-
     wholth_exec_stmt_Args args = {
         .sql_file = wtsv("ingredient_delete.sql"),
         .binds_size = 1,
         .binds = nullptr,
-        .buffer = buf,
     };
     const auto err = wholth_exec_stmt(&args);
 
@@ -169,7 +162,6 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_binds)
     });
     ASSERT_NE("bogus", old_count);
 
-    wholth_Buffer*                  buf = wholth_buffer_ring_pool_element();
     const wholth_exec_stmt_Bindable binds[1] = {{
         .value = wtsv("102"),
     }};
@@ -178,7 +170,6 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_binds)
         .sql_file = wtsv("ingredient_delete.sql"),
         .binds_size = 0,
         .binds = binds,
-        .buffer = buf,
     };
     const auto err = wholth_exec_stmt(&args);
 
@@ -211,7 +202,6 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_good_case)
     });
     ASSERT_NE("bogus", old_count);
 
-    wholth_Buffer*                  buf = wholth_buffer_ring_pool_element();
     const wholth_exec_stmt_Bindable binds[1] = {{
         .value = wtsv("102"),
     }};
@@ -220,7 +210,6 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_good_case)
         .sql_file = wtsv("ingredient_delete.sql"),
         .binds_size = 1,
         .binds = binds,
-        .buffer = buf,
     };
     const auto err = wholth_exec_stmt(&args);
 
@@ -255,7 +244,6 @@ TEST_F(
     });
     ASSERT_NE("bogus", old_count);
 
-    wholth_Buffer*                  buf = wholth_buffer_ring_pool_element();
     const wholth_exec_stmt_Bindable binds[2] = {
         {
             .value = wtsv("102"),
@@ -268,7 +256,6 @@ TEST_F(
         .sql_file = wtsv("ingredient_delete.sql"),
         .binds_size = 1,
         .binds = binds,
-        .buffer = buf,
     };
     const auto err = wholth_exec_stmt(&args);
 

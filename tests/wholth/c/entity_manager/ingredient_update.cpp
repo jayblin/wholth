@@ -2,9 +2,7 @@
 #include "sqlw/statement.hpp"
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity_manager/ingredient.h"
-#include "wholth/c/forward.h"
 #include "wholth/entity_manager/ingredient.hpp"
-#include "wholth/entity_manager/recipe_step.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -187,10 +185,6 @@ TEST_F(Test_wholth_em_ingredient_update, when_recipe_step_is_null)
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message);
-
-    std::error_code ec = wholth::entity_manager::recipe_step::Code(err.code);
-    ASSERT_EQ(wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL, ec)
-        << ec << ec.message();
 
     std::string new_count;
     astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {

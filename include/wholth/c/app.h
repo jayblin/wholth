@@ -19,10 +19,6 @@ extern "C"
 
     wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const);
 
-    // todo rename
-    void wholth_user_locale_id(const wholth_StringView);
-    void wholth_app_locale_id(const wholth_StringView);
-
     void wholth_app_password_encryption_secret(wholth_StringView secret);
 
 #ifdef __cplusplus /* If this is a C++ compiler, end C linkage */

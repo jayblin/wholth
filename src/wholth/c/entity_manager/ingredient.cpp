@@ -3,10 +3,8 @@
 #include "sqlw/transaction.hpp"
 #include "sqlw/utils.hpp"
 #include "wholth/c/buffer.h"
-#include "wholth/c/forward.h"
 #include "wholth/c/internal.hpp"
 #include "wholth/entity_manager/ingredient.hpp"
-#include "wholth/entity_manager/recipe_step.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <cassert>
@@ -19,15 +17,20 @@ using wholth::utils::to_string_view;
 static_assert(nullptr == (void*)NULL);
 
 extern "C" auto wholth_em_ingredient_insert(
-    wholth_Ingredient* const ing,
+    wholth_Ingredient* const       ing,
     const wholth_RecipeStep* const step,
-    wholth_Buffer* const buffer) -> wholth_Error
+    wholth_Buffer* const           buffer) -> wholth_Error
 {
     if (nullptr == step)
     {
-        return ec_to_error(
-            wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL,
-            buffer);
+        // kostil
+        constexpr std::string_view msg = "RECIPE_STEP_NULL";
+        return {
+            .code = 400,
+            .message = {
+                .data = msg.data(),
+                .size = msg.size(),
+            }};
     }
 
     if (nullptr == ing)
@@ -58,9 +61,14 @@ extern "C" auto wholth_em_ingredient_insert(
 
     if (!is_valid_id(step_id))
     {
-        return ec_to_error(
-            wholth::entity_manager::recipe_step::Code::RECIPE_STEP_INVALID_ID,
-            buffer);
+        // kostil
+        constexpr std::string_view msg = "RECIPE_STEP_INVALID_ID";
+        return {
+            .code = 400,
+            .message = {
+                .data = msg.data(),
+                .size = msg.size(),
+            }};
     }
 
     std::string result_id;
@@ -126,7 +134,7 @@ extern "C" auto wholth_em_ingredient_insert(
 extern "C" auto wholth_em_ingredient_update(
     const wholth_Ingredient* const ing,
     const wholth_RecipeStep* const step,
-    wholth_Buffer* const buffer) -> wholth_Error
+    wholth_Buffer* const           buffer) -> wholth_Error
 {
     if (nullptr == buffer)
     {
@@ -140,9 +148,14 @@ extern "C" auto wholth_em_ingredient_update(
 
     if (nullptr == step)
     {
-        return ec_to_error(
-            wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL,
-            buffer);
+        // kostil
+        constexpr std::string_view msg = "RECIPE_STEP_NULL";
+        return {
+            .code = 400,
+            .message = {
+                .data = msg.data(),
+                .size = msg.size(),
+            }};
     }
 
     const auto mass = to_string_view(ing->canonical_mass_g);

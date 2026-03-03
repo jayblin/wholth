@@ -3,14 +3,13 @@
 #include "wholth/c/buffer.h"
 #include "wholth/c/entity/recipe_step.h"
 #include "wholth/c/entity_manager/ingredient.h"
-#include "wholth/c/forward.h"
 #include "wholth/entity_manager/ingredient.hpp"
-#include "wholth/entity_manager/recipe_step.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <sstream>
 #include <type_traits>
+#include "assert.hpp"
 
 static_assert(nullptr == (void*)NULL);
 
@@ -22,25 +21,42 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
 {
     auto& con = db::connection();
 
-    astmt(
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO food (id, created_at) "
         "VALUES "
         " (199991,'10-10-2010'),"
         " (199992,'10-10-2010'),"
-        " (199993,'10-10-2010')");
-    astmt(
+        " (199993,'10-10-2010')",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step (id,recipe_id,seconds,ingredients_mass) "
         "VALUES "
-        "(299991,199992,600,0),"
-        "(299992,199992,600,11)");
-    astmt(
+        "(299991,199992,600,0)",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step_food (recipe_step_id,food_id,canonical_mass)"
         " VALUES"
-        " (299991, 199991, 100),"
-        " (299992, 199991, 50)");
+        " (299991, 199991, 100)",
+        [](auto) {});
+
+    // Это для кейса, когда несколько  recipe_step существует в отношении одной
+    // еды.
+    // {
+    // ASSERT_STMT_OK(
+    //     con,
+    //     "INSERT INTO recipe_step (id,recipe_id,seconds,ingredients_mass) "
+    //     "VALUES "
+    //     "(299991,199992,600,0),"
+    //     "(299992,199992,600,11)",[](auto) {});
+    // ASSERT_STMT_OK(
+    //     con,
+    //     "INSERT INTO recipe_step_food
+    //     (recipe_step_id,food_id,canonical_mass)" " VALUES" " (299991, 199991,
+    //     100)," " (299992, 199991, 50)",[](auto) {});
+    // }
 
     // const wholth_Ingredient ing{
     //     .food_id = wtsv("199993"),
@@ -53,7 +69,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299991");
 
-    auto buf = wholth_buffer_ring_pool_element();
+    auto       buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
@@ -70,7 +86,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
 
     {
         std::stringstream ss;
-        astmt(
+        ASSERT_STMT_OK(
             con,
             R"sql(
             SELECT
@@ -91,7 +107,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
 
     {
         std::stringstream ss;
-        astmt(
+        ASSERT_STMT_OK(
             con,
             R"sql(
             SELECT rs.ingredients_mass
@@ -104,41 +120,46 @@ TEST_F(Test_wholth_em_ingredient_insert, when_basic_case)
         ASSERT_STREQ2("ingredients_mass:400.12;", ss.str());
     }
 
-    {
-        std::stringstream ss;
-        astmt(
-            con,
-            R"sql(
-            SELECT rs.ingredients_mass
-            FROM recipe_step rs
-            WHERE rs.id = 299992
-            )sql",
-            [&](auto e) {
-                ss << e.column_name << ":" << e.column_value << ';';
-            });
-        ASSERT_STREQ2("ingredients_mass:11;", ss.str());
-    }
+    // Это для кейса, когда несколько  recipe_step существует в отношении одной
+    // еды.
+    // {
+    //     std::stringstream ss;
+    //     ASSERT_STMT_OK(
+    //         con,
+    //         R"sql(
+    //         SELECT rs.ingredients_mass
+    //         FROM recipe_step rs
+    //         WHERE rs.id = 299992
+    //         )sql",
+    //         [&](auto e) {
+    //             ss << e.column_name << ":" << e.column_value << ';';
+    //         });
+    //     ASSERT_STREQ2("ingredients_mass:11;", ss.str());
+    // }
 }
 
 TEST_F(Test_wholth_em_ingredient_insert, when_duplicate)
 {
     auto& con = db::connection();
 
-    astmt(
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO food (id, created_at) "
         "VALUES "
         " (199991,'10-10-2010'),"
         " (199992,'10-10-2010'),"
-        " (199993,'10-10-2010')");
-    astmt(
+        " (199993,'10-10-2010')",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
-        "(299991,199992,600)");
-    astmt(
+        "(299991,199992,600)",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step_food (recipe_step_id, food_id, "
-        "canonical_mass) VALUES (299991,199991,100)");
+        "canonical_mass) VALUES (299991,199991,100)",
+        [](auto) {});
 
     // const wholth_Ingredient ing{
     //     .food_id = wtsv("199991"),
@@ -153,7 +174,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_duplicate)
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299991");
 
-    auto buf = wholth_buffer_ring_pool_element();
+    auto       buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
@@ -167,7 +188,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_duplicate)
     ASSERT_EQ(ing.id.size, 0);
 
     std::stringstream ss;
-    astmt(
+    ASSERT_STMT_OK(
         con,
         R"sql(
         SELECT
@@ -185,21 +206,24 @@ TEST_F(Test_wholth_em_ingredient_insert, when_nonexistent_step_id)
 {
     auto& con = db::connection();
 
-    astmt(
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO food (id, created_at) "
         "VALUES "
         " (199991,'10-10-2010'),"
         " (199992,'10-10-2010'),"
-        " (199993,'10-10-2010')");
-    astmt(
+        " (199993,'10-10-2010')",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
-        "(299991,199992,600)");
-    astmt(
+        "(299991,199992,600)",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step_food (recipe_step_id, food_id, "
-        "canonical_mass) VALUES (299991,199991,100)");
+        "canonical_mass) VALUES (299991,199991,100)",
+        [](auto) {});
 
     // const wholth_Ingredient ing{
     //     .food_id = wtsv("199991"),
@@ -214,7 +238,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_nonexistent_step_id)
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299997");
 
-    auto buf = wholth_buffer_ring_pool_element();
+    auto       buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
@@ -228,7 +252,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_nonexistent_step_id)
         << ec << ec.message();
 
     std::stringstream ss;
-    astmt(
+    ASSERT_STMT_OK(
         con,
         R"sql(
         SELECT
@@ -246,21 +270,24 @@ TEST_F(Test_wholth_em_ingredient_insert, when_food_id_is_equal_to_recipe_id)
 {
     auto& con = db::connection();
 
-    astmt(
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO food (id, created_at) "
         "VALUES "
         " (199991,'10-10-2010'),"
         " (199992,'10-10-2010'),"
-        " (199993,'10-10-2010')");
-    astmt(
+        " (199993,'10-10-2010')",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step (id,recipe_id,seconds) VALUES "
-        "(299991,199992,600)");
-    astmt(
+        "(299991,199992,600)",
+        [](auto) {});
+    ASSERT_STMT_OK(
         con,
         "INSERT INTO recipe_step_food (recipe_step_id, food_id, "
-        "canonical_mass) VALUES (299991,199991,100)");
+        "canonical_mass) VALUES (299991,199991,100)",
+        [](auto) {});
 
     // const wholth_Ingredient ing{
     //     .food_id = wtsv("199992"),
@@ -275,7 +302,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_food_id_is_equal_to_recipe_id)
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299991");
 
-    auto buf = wholth_buffer_ring_pool_element();
+    auto       buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
@@ -289,7 +316,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_food_id_is_equal_to_recipe_id)
         << ec << ec.message();
 
     std::stringstream ss;
-    astmt(
+    ASSERT_STMT_OK(
         con,
         R"sql(
         SELECT
@@ -308,7 +335,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_is_null)
     auto& con = db::connection();
 
     std::string old_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         old_count = e.column_value;
     });
     ASSERT_GT(old_count.size(), 0);
@@ -324,7 +351,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_is_null)
     wholth_RecipeStep step = wholth_entity_recipe_step_init();
     step.id = wtsv("299991");
 
-    auto buf = wholth_buffer_ring_pool_element();
+    auto       buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(NULL, &step, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
@@ -337,7 +364,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_is_null)
         << ec << ec.message();
 
     std::string new_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         new_count = e.column_value;
     });
     ASSERT_GT(new_count.size(), 0);
@@ -349,7 +376,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_recipe_step_is_null)
     auto& con = db::connection();
 
     std::string old_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         old_count = e.column_value;
     });
     ASSERT_GT(old_count.size(), 0);
@@ -365,20 +392,15 @@ TEST_F(Test_wholth_em_ingredient_insert, when_recipe_step_is_null)
     wholth_Ingredient ing = wholth_entity_ingredient_init();
     ing.food_id = wtsv("199992"), ing.canonical_mass_g = wtsv("300");
 
-    auto buf = wholth_buffer_ring_pool_element();
+    auto       buf = wholth_buffer_ring_pool_element();
     const auto err = wholth_em_ingredient_insert(&ing, NULL, buf);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message);
 
-    std::error_code ec = wholth::entity_manager::recipe_step::Code(err.code);
-    ASSERT_TRUE(
-        wholth::entity_manager::recipe_step::Code::RECIPE_STEP_NULL == ec)
-        << ec << ec.message();
-
     std::string new_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         new_count = e.column_value;
     });
     ASSERT_GT(new_count.size(), 0);
@@ -390,7 +412,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_recipe_step_id_is_bogus)
     auto& con = db::connection();
 
     std::string old_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         old_count = e.column_value;
     });
     ASSERT_GT(old_count.size(), 0);
@@ -415,24 +437,18 @@ TEST_F(Test_wholth_em_ingredient_insert, when_recipe_step_id_is_bogus)
     {
         // const auto err = wholth_em_insert_ingredient(&ing, &step);
         wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-        const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
+        const auto     err = wholth_em_ingredient_insert(&ing, &step, buf);
 
         ASSERT_NE(wholth_Error_OK.code, err.code)
             << err.code << wfsv(err.message);
         ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
             << err.code << wfsv(err.message);
 
-        std::error_code ec =
-            wholth::entity_manager::recipe_step::Code(err.code);
-        ASSERT_TRUE(
-            wholth::entity_manager::recipe_step::Code::RECIPE_STEP_INVALID_ID ==
-            ec)
-            << ec << ec.message();
-
         std::string new_count;
-        astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
-            new_count = e.column_value;
-        });
+        ASSERT_STMT_OK(
+            con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+                new_count = e.column_value;
+            });
         ASSERT_GT(new_count.size(), 0);
         ASSERT_STREQ3(old_count, new_count);
     }
@@ -443,7 +459,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_id_is_bogus)
     auto& con = db::connection();
 
     std::string old_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         old_count = e.column_value;
     });
     ASSERT_GT(old_count.size(), 0);
@@ -464,7 +480,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_id_is_bogus)
     {
         // const auto err = wholth_em_insert_ingredient(&ing, &step);
         wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-        const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
+        const auto     err = wholth_em_ingredient_insert(&ing, &step, buf);
 
         ASSERT_NE(wholth_Error_OK.code, err.code)
             << err.code << wfsv(err.message);
@@ -478,9 +494,10 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_id_is_bogus)
             << ec << ec.message();
 
         std::string new_count;
-        astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
-            new_count = e.column_value;
-        });
+        ASSERT_STMT_OK(
+            con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+                new_count = e.column_value;
+            });
         ASSERT_GT(new_count.size(), 0);
         ASSERT_STREQ3(old_count, new_count);
     }
@@ -491,7 +508,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_mass_is_bogus)
     auto& con = db::connection();
 
     std::string old_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         old_count = e.column_value;
     });
     ASSERT_GT(old_count.size(), 0);
@@ -510,7 +527,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_mass_is_bogus)
     {
         // const auto err = wholth_em_insert_ingredient(&ing, &step);
         wholth_Buffer* buf = wholth_buffer_ring_pool_element();
-        const auto err = wholth_em_ingredient_insert(&ing, &step, buf);
+        const auto     err = wholth_em_ingredient_insert(&ing, &step, buf);
 
         ASSERT_NE(wholth_Error_OK.code, err.code)
             << err.code << wfsv(err.message);
@@ -524,9 +541,10 @@ TEST_F(Test_wholth_em_ingredient_insert, when_ingredient_mass_is_bogus)
             << ec << ec.message();
 
         std::string new_count;
-        astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
-            new_count = e.column_value;
-        });
+        ASSERT_STMT_OK(
+            con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+                new_count = e.column_value;
+            });
         ASSERT_GT(new_count.size(), 0);
         ASSERT_STREQ3(old_count, new_count);
     }
@@ -537,12 +555,12 @@ TEST_F(Test_wholth_em_ingredient_insert, when_buffer_is_nullptr)
     auto& con = db::connection();
 
     std::string old_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         old_count = e.column_value;
     });
     ASSERT_GT(old_count.size(), 0);
 
-    auto ing = wholth_entity_ingredient_init();
+    auto              ing = wholth_entity_ingredient_init();
     wholth_RecipeStep step{.id = wtsv("299991")};
 
     const auto err = wholth_em_ingredient_insert(&ing, &step, NULL);
@@ -556,7 +574,7 @@ TEST_F(Test_wholth_em_ingredient_insert, when_buffer_is_nullptr)
         << ec << ec.message();
 
     std::string new_count;
-    astmt(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
+    ASSERT_STMT_OK(con, "SELECT COUNT(*) FROM recipe_step_food", [&](auto e) {
         new_count = e.column_value;
     });
     ASSERT_GT(new_count.size(), 0);

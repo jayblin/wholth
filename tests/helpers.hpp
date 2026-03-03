@@ -4,6 +4,7 @@
 #include "db/db.hpp"
 #include "sqlw/connection.hpp"
 #include "sqlw/statement.hpp"
+#include "wholth/c/buffer.h"
 #include "wholth/c/error.h"
 #include "wholth/c/pages/utils.h"
 #include "wholth/c/string_view.h"
@@ -19,6 +20,21 @@
 
 void ASSERT_WHOLTH_OK(wholth_Error err, std::string_view msg = "");
 void ASSERT_WHOLTH_NOK(wholth_Error err, std::string_view msg = "");
+
+struct BufferWrap
+{
+    wholth_Buffer* handle = nullptr;
+
+    BufferWrap()
+    {
+        wholth_buffer_new(&handle);
+    }
+
+    ~BufferWrap()
+    {
+        wholth_buffer_del(handle);
+    }
+};
 
 class GlobalInMemoryDatabaseAwareTest : public testing::Test
 {
@@ -100,9 +116,12 @@ class ApplicationAwareTest : public testing::Test
 auto wtsv(std::string_view sv) -> wholth_StringView;
 auto wfsv(wholth_StringView sv) -> std::string_view;
 
+/**
+ * @deprecated use ASTMT from assert.hpp
+ */
 auto astmt(
-    sqlw::Connection& connection,
-    std::string_view sql,
+    sqlw::Connection&           connection,
+    std::string_view            sql,
     sqlw::Statement::callback_t callback = nullptr) -> void;
 
 struct PageWrap

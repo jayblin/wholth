@@ -19,6 +19,9 @@ extern "C"
     void wholth_pages_recipe_step_recipe_id(
         wholth_Page* const,
         wholth_StringView recipe_id);
+    wholth_Error wholth_pages_recipe_step_locale_id(
+        wholth_Page* const,
+        wholth_StringView locale_id);
 
 #ifdef __cplusplus
 }

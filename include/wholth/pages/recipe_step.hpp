@@ -13,6 +13,7 @@ namespace wholth::pages
 struct RecipeStepQuery
 {
     std::string recipe_id{""};
+    std::string locale_id{""};
 };
 
 struct RecipeStep

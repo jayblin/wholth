@@ -2,10 +2,13 @@
 #include "db/db.hpp"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
+#include "sqlw/transaction.hpp"
 #include "wholth/c/error.h"
+#include "wholth/internal/ring_pool.hpp"
 #include "wholth/utils/is_valid_id.hpp"
 #include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -15,6 +18,31 @@
 #include <unordered_map>
 #include <utility>
 #include "wholth/cmake_vars.h"
+
+struct wholth_exec_stmt_Result
+{
+    using State = wholth::internal::ring_pool::EntryState;
+    struct Data
+    {
+        uint64_t column_count{0};
+        // uint64_t              row_count{0};
+        std::string           sql_output{""};
+        std::vector<uint64_t> sizes{};
+    };
+
+    std::atomic<State> state{State::FREE};
+    Data               data{};
+};
+
+wholth_Error wholth_exec_stmt_Result_new(wholth_exec_stmt_Result** res)
+{
+    return wholth::internal::ring_pool::fetch<wholth_exec_stmt_Result>(res);
+}
+
+wholth_Error wholth_exec_stmt_Result_del(wholth_exec_stmt_Result* res)
+{
+    return wholth::internal::ring_pool::unfetch<wholth_exec_stmt_Result>(res);
+}
 
 static wholth_StringView to_wholth_str_view(std::string_view sv)
 {
@@ -26,6 +54,11 @@ static constexpr sqlw::Type to_sqlw_type(std::string_view t)
     if /*constexpr*/ ("INT" == t)
     {
         return sqlw::Type::SQL_INT;
+    }
+
+    if /*constexpr*/ ("TEXT" == t)
+    {
+        return sqlw::Type::SQL_TEXT;
     }
 
     return sqlw::Type::SQL_NULL;
@@ -189,20 +222,20 @@ static wholth_exec_stmt_Task task_from_line(std::string_view line)
         return wholth_exec_stmt_Task_DELETE;
     }
 
+    if ("-- wholth_exec_stmt_Task_INSERT" == line)
+    {
+        return wholth_exec_stmt_Task_INSERT;
+    }
+
     return wholth_exec_stmt_Task_NOOP;
 }
 
-// ptr -> ptr -> value
 static wholth_Error get_entry(
     const MapEntry** result,
     std::string_view filename)
 {
     if (!g_cache.contains(filename))
     {
-        // std::cout << "<<<<<<<<<<<<<<<<<<<<<<\nDOES NOT CONTAINS!!!!\n"
-        //           << __FILE__ << ":" << __LINE__ << "\n"
-        //           << filename << "\n";
-
         MapEntry entry{};
 
         std::stringstream     sql_stream{};
@@ -275,18 +308,19 @@ static wholth_Error get_entry(
 
     return wholth_Error_OK;
 }
+
 /**
  * Look into `???????` directory to find out what script does.
  */
 // extern "C" wholth_exec_stmt_Result wholth_exec_stmt(
 extern "C" wholth_Error wholth_exec_stmt(
-    const wholth_exec_stmt_Args* const args)
+    const wholth_exec_stmt_Args* const args,
+    wholth_exec_stmt_Result*           result)
 {
-    // TODO check nullptr != args
     if (nullptr == args)
     {
         return {
-            .code = wholth_exec_stmt_Code_ARGS_INVALID,
+            .code = wholth_exec_stmt_Code_ARGS_NULLPTR,
             .message = to_wholth_str_view("Передан nullptr как аргумент!"),
         };
     }
@@ -327,64 +361,123 @@ extern "C" wholth_Error wholth_exec_stmt(
                 "кол-ву указанному в пользователем!")};
     }
 
-    // args.binds_count
-    // TODO check overflow
+    std::vector<sqlw::Statement::bindable_t> binds(args->binds_size);
+
     for (uint64_t i = 0; i < args->binds_size; i++)
     {
+        if (nullptr == args->binds[i].value.data &&
+            args->binds[i].value.size > 0)
+        {
+            return {
+                // TODO change code
+                .code =
+                    wholth_exec_stmt_Code_BINDABLE_VALUE_IS_NULLPTR_BUT_SIZE_IS_GT_0,
+                .message = to_wholth_str_view(
+                    "BINDABLE_VALUE_IS_NULLPTR_BUT_SIZE_IS_GT_0")};
+        }
+
+        // TODO check overflow
         const auto& bindable = entry->bindables[i];
-        const auto  v = wholth::utils::to_string_view(args->binds[i].value);
+
+        const auto v = wholth::utils::to_string_view(args->binds[i].value);
+        binds[i] = {
+            v,
+            nullptr == args->binds[i].value.data ? sqlw::Type::SQL_NULL
+                                                 : bindable.type};
 
         if (nullptr != bindable.validator_func)
         {
             if (!bindable.validator_func(v))
             {
                 return {
-                    .code = 1,
+                    .code = wholth_exec_stmt_Code_BINDABLE_VALIDATION_FAIL,
                     .message =
                         to_wholth_str_view(bindable.validation_error_msg)};
             }
         }
     }
 
-    auto&           con = db::connection();
-    sqlw::Statement stmt{&con};
-
-    stmt.prepare(entry->sql);
-
-    if (sqlw::status::Condition::OK != stmt.status())
-    {
-        return wholth::utils::from_error_code(stmt.status());
-    }
-
-    // assert bind not nullptr
-    for (uint64_t i = 0; i < args->binds_size; i++)
-    {
-        const auto v = args->binds[i].value;
-        stmt.bind(i + 1, {v.data, v.size}, entry->bindables[i].type);
-
-        if (sqlw::status::Condition::OK != stmt.status())
-        {
-            return wholth::utils::from_error_code(stmt.status());
-        }
-    }
-
+    auto&             con = db::connection();
     std::stringstream buffer_stream{};
+    std::error_code   ec{};
+
+    wholth_exec_stmt_Result::Data result_data{};
 
     switch (entry->task)
     {
     case wholth_exec_stmt_Task_DELETE:
-        stmt.exec([&buffer_stream](sqlw::Statement::ExecArgs e) {
-            buffer_stream << e.column_value;
-        });
+    case wholth_exec_stmt_Task_INSERT: {
+        // stmt.exec([&buffer_stream](sqlw::Statement::ExecArgs e) {
+        //     buffer_stream << e.column_value;
+        // });
+        sqlw::Transaction transaction{&con};
+        uint64_t          sql_output_size = 0;
+        ec = transaction(
+            entry->sql,
+            [&buffer_stream, &result_data, &sql_output_size](
+                sqlw::Statement::ExecArgs e) {
+                buffer_stream << e.column_value;
+                result_data.column_count = e.column_count;
+                // result_data.row_count++;
+                // todo check int bounds
+                sql_output_size += e.column_value.size();
+                result_data.sizes.push_back(sql_output_size);
+            },
+            binds);
         break;
+    }
     case wholth_exec_stmt_Task_NOOP:
         assert(false);
     }
 
-    if (sqlw::status::Condition::OK != stmt.status())
+    // if (sqlw::status::Condition::OK != stmt.status())
+    if (sqlw::status::Condition::OK != ec)
     {
-        return wholth::utils::from_error_code(stmt.status());
+        // return wholth::utils::from_error_code(stmt.status());
+        return wholth::utils::from_error_code(ec);
+    }
+
+    result_data.sql_output = buffer_stream.str();
+
+    if (nullptr != result)
+    {
+        result->data = std::move(result_data);
     }
 
     return wholth_Error_OK;
+}
+
+extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
+    const wholth_exec_stmt_Result* result,
+    uint64_t                       row,
+    uint64_t                       column)
+{
+    if (nullptr == result)
+    {
+        return to_wholth_str_view("");
+    }
+
+    if (column >= result->data.column_count)
+    {
+        return to_wholth_str_view("");
+    }
+
+    // todo check int bounds
+    if (row * column >= result->data.sizes.size())
+    {
+    }
+
+    // return to_wholth_str_view()
+    // todo check int bounds
+    const auto idx = column + row * column;
+    if (idx >= result->data.sizes.size())
+    {
+        // return
+    }
+
+    const auto offset = idx > 0 ? result->data.sizes[idx - 1] : 0;
+
+    return {
+        .data = result->data.sql_output.data() + offset,
+        .size = result->data.sizes[idx]};
 }
