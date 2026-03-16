@@ -12,7 +12,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <limits>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -25,8 +24,7 @@ struct wholth_exec_stmt_Result_t
     using State = wholth::internal::ring_pool::EntryState;
     struct Data
     {
-        uint64_t column_count{0};
-        // uint64_t              row_count{0};
+        uint64_t              column_count{0};
         std::string           sql_output{""};
         std::vector<uint64_t> sizes{};
     };
@@ -187,6 +185,7 @@ struct MapEntry
     wholth_exec_stmt_Task task{wholth_exec_stmt_Task_NOOP};
     std::vector<Bindable> bindables;
 };
+
 // TODO check if needed
 struct CompareToStringView
 {
@@ -226,6 +225,11 @@ static wholth_exec_stmt_Task task_from_line(std::string_view line)
     if ("-- wholth_exec_stmt_Task_INSERT" == line)
     {
         return wholth_exec_stmt_Task_INSERT;
+    }
+
+    if ("-- wholth_exec_stmt_Task_SELECT" == line)
+    {
+        return wholth_exec_stmt_Task_SELECT;
     }
 
     return wholth_exec_stmt_Task_NOOP;
@@ -310,10 +314,6 @@ static wholth_Error get_entry(
     return wholth_Error_OK;
 }
 
-/**
- * Look into `???????` directory to find out what script does.
- */
-// extern "C" wholth_exec_stmt_Result wholth_exec_stmt(
 extern "C" wholth_Error wholth_exec_stmt(
     const wholth_exec_stmt_Args* const args,
     wholth_exec_stmt_Result*           result)
@@ -407,10 +407,8 @@ extern "C" wholth_Error wholth_exec_stmt(
     switch (entry->task)
     {
     case wholth_exec_stmt_Task_DELETE:
-    case wholth_exec_stmt_Task_INSERT: {
-        // stmt.exec([&buffer_stream](sqlw::Statement::ExecArgs e) {
-        //     buffer_stream << e.column_value;
-        // });
+    case wholth_exec_stmt_Task_INSERT:
+    case wholth_exec_stmt_Task_SELECT: {
         sqlw::Transaction transaction{&con};
         uint64_t          sql_output_size = 0;
         ec = transaction(
@@ -419,10 +417,10 @@ extern "C" wholth_Error wholth_exec_stmt(
                 sqlw::Statement::ExecArgs e) {
                 buffer_stream << e.column_value;
                 result_data.column_count = e.column_count;
-                // result_data.row_count++;
                 // todo check int bounds
                 sql_output_size += e.column_value.size();
                 result_data.sizes.push_back(sql_output_size);
+                // result_data.offsets.push_back(e.column_value.size());
             },
             binds);
         break;
@@ -458,7 +456,8 @@ extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
         return to_wholth_str_view("");
     }
 
-    if (0 == result->data.column_count) {
+    if (0 == result->data.column_count)
+    {
         return to_wholth_str_view("");
     }
 
@@ -475,9 +474,27 @@ extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
         return to_wholth_str_view("");
     }
 
-    const auto offset = idx > 0 ? result->data.sizes[idx - 1] : 0;
+    // const auto offset = idx > 0 ? result->data.sizes[idx - 1] : 0;
+    if (0 == idx)
+    {
+        return {
+            .data = result->data.sql_output.data(),
+            .size = result->data.sizes[idx]};
+    }
 
-    return {
-        .data = result->data.sql_output.data() + offset,
-        .size = result->data.sizes[idx]};
+    const auto offset = result->data.sizes[idx - 1];
+    const auto size = result->data.sizes[idx] - offset;
+
+    return {.data = result->data.sql_output.data() + offset, .size = size};
+}
+
+extern "C" unsigned long long wholth_exec_stmt_Result_row_count(
+    const wholth_exec_stmt_Result* res)
+{
+    if (nullptr == res || 0 == res->data.column_count)
+    {
+        return 0;
+    }
+
+    return res->data.sizes.size() / res->data.column_count;
 }

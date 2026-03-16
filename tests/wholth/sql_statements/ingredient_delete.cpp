@@ -1,7 +1,6 @@
 #include "db/db.hpp"
 #include "helpers.hpp"
 #include "sqlw/statement.hpp"
-#include "wholth/c/buffer.h"
 #include "wholth/c/exec_stmt.h"
 #include <string>
 #include <unistd.h>
@@ -44,7 +43,7 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_args_is_nullptr)
     });
     ASSERT_NE("bogus", old_count);
 
-    const auto err = wholth_exec_stmt(nullptr);
+    const auto err = wholth_exec_stmt(nullptr, nullptr);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
@@ -93,7 +92,7 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_bad_id)
             .binds_size = 1,
             .binds = binds,
         };
-        const auto err = wholth_exec_stmt(&args);
+        const auto err = wholth_exec_stmt(&args, nullptr);
 
         ASSERT_NE(wholth_Error_OK.code, err.code)
             << err.code << wfsv(err.message);
@@ -131,7 +130,7 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_binds_is_nullptr)
         .binds_size = 1,
         .binds = nullptr,
     };
-    const auto err = wholth_exec_stmt(&args);
+    const auto err = wholth_exec_stmt(&args, nullptr);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
@@ -171,7 +170,7 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_binds)
         .binds_size = 0,
         .binds = binds,
     };
-    const auto err = wholth_exec_stmt(&args);
+    const auto err = wholth_exec_stmt(&args, nullptr);
 
     ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
@@ -211,7 +210,7 @@ TEST_F(Test_wholth_sql_statements_ingredient_delete, when_good_case)
         .binds_size = 1,
         .binds = binds,
     };
-    const auto err = wholth_exec_stmt(&args);
+    const auto err = wholth_exec_stmt(&args, nullptr);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
@@ -257,7 +256,7 @@ TEST_F(
         .binds_size = 1,
         .binds = binds,
     };
-    const auto err = wholth_exec_stmt(&args);
+    const auto err = wholth_exec_stmt(&args, nullptr);
 
     ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message);
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)

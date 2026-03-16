@@ -192,6 +192,7 @@ if (DEFINED WHOLTH_STANDALONE)
         tests/wholth/c/pages/recipe_step.cpp
         tests/wholth/sql_statements/ingredient_delete.cpp
         tests/wholth/sql_statements/recipe_step_upsert.cpp
+        tests/wholth/sql_statements/nutrient_top_select.cpp
         # tests/wholth/c/entity_manager/update_food.cpp
         # tests/wholth/c/entity_manager/update_important_nutrients.cpp
         # tests/wholth/c/entity_manager/update_ingredient.cpp

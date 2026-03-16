@@ -28,13 +28,16 @@ extern "C"
         wholth_exec_stmt_Task_NOOP,
         wholth_exec_stmt_Task_DELETE,
         wholth_exec_stmt_Task_INSERT,
+        wholth_exec_stmt_Task_SELECT,
     } wholth_exec_stmt_Task;
 
     struct wholth_exec_stmt_Result_t;
     typedef struct wholth_exec_stmt_Result_t wholth_exec_stmt_Result;
 
-    wholth_Error wholth_exec_stmt_Result_new(wholth_exec_stmt_Result**);
-    wholth_Error wholth_exec_stmt_Result_del(wholth_exec_stmt_Result*);
+    wholth_Error       wholth_exec_stmt_Result_new(wholth_exec_stmt_Result**);
+    wholth_Error       wholth_exec_stmt_Result_del(wholth_exec_stmt_Result*);
+    unsigned long long wholth_exec_stmt_Result_row_count(
+        const wholth_exec_stmt_Result*);
     const wholth_StringView wholth_exec_stmt_Result_at(
         const wholth_exec_stmt_Result*,
         unsigned long long row,
@@ -86,9 +89,9 @@ extern "C"
     };
 
     /**
-     * Look into `???????` directory to find out what script does.
+     * Look into `sql_statements` directory at the core of this project to find
+     * out what script does.
      */
-    // wholth_exec_stmt_Result wholth_exec_stmt(
     wholth_Error wholth_exec_stmt(
         const wholth_exec_stmt_Args* const,
         wholth_exec_stmt_Result*);

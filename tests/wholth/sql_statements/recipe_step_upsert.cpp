@@ -93,7 +93,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_args_is_nullptr)
     std::string count_rsl_old;
     count_initial_entities(count_rs_old, count_rsl_old);
 
-    const auto err = wholth_exec_stmt(nullptr);
+    const auto err = wholth_exec_stmt(nullptr, nullptr);
     ASSERT_ERR_NOK(err);
 
     std::string count_rs_new;
@@ -128,7 +128,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_food_id)
                       .binds_size = 5,
                       .binds = binds,
         };
-        const auto err = wholth_exec_stmt(&args);
+        const auto err = wholth_exec_stmt(&args, nullptr);
         ASSERT_ERR_NOK(err);
         ASSERT_ERR_MSG(err, "Невалидный идентифкатор рецепта(пищи)!");
 
@@ -204,7 +204,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_locale_id)
             .binds_size = 5,
             .binds = binds,
         };
-        const auto err = wholth_exec_stmt(&args);
+        const auto err = wholth_exec_stmt(&args, nullptr);
         ASSERT_ERR_NOK(err);
         ASSERT_ERR_MSG(err, "Невалидный идентифкатор локали!");
 
