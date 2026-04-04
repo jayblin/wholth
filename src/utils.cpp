@@ -9,7 +9,7 @@ auto wholth::utils::current_time_and_date() -> std::string
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
     std::stringstream ss;
-    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%dT%H:%M:%S");
+    ss << std::put_time(std::gmtime(&in_time_t), "%Y-%m-%dT%H:%M:%S");
 
     /* auto now = std::chrono::system_clock::now(); */
     /* std::time_t timestamp = std::chrono::system_clock::to_time_t(now); */
