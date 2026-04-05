@@ -9,8 +9,6 @@
 #include <utility>
 #include <cassert>
 
-using namespace std::chrono_literals;
-
 static auto& g_context = wholth::c::internal::global_context();
 
 extern "C" wholth_Error wholth_app_setup(const wholth_AppSetupArgs* const args)
