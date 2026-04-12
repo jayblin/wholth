@@ -60,6 +60,11 @@ static constexpr sqlw::Type to_sqlw_type(std::string_view t)
         return sqlw::Type::SQL_TEXT;
     }
 
+    if /*constexpr*/ ("DOUBLE" == t)
+    {
+        return sqlw::Type::SQL_DOUBLE;
+    }
+
     return sqlw::Type::SQL_NULL;
 }
 
@@ -232,14 +237,20 @@ static wholth_exec_stmt_Task task_from_line(std::string_view line)
         return wholth_exec_stmt_Task_SELECT;
     }
 
+    if ("-- wholth_exec_stmt_Task_UPDATE" == line)
+    {
+        return wholth_exec_stmt_Task_UPDATE;
+    }
+
     return wholth_exec_stmt_Task_NOOP;
 }
 
 static wholth_Error get_entry(
     const MapEntry** result,
-    std::string_view filename)
+    std::string_view filename,
+    bool             skip_cache)
 {
-    if (!g_cache.contains(filename))
+    if (true == skip_cache || !g_cache.contains(filename))
     {
         MapEntry entry{};
 
@@ -338,7 +349,7 @@ extern "C" wholth_Error wholth_exec_stmt(
     const auto filename = wholth::utils::to_string_view(args->sql_file);
 
     const MapEntry* entry{nullptr};
-    const auto      err = get_entry(&entry, filename);
+    const auto      err = get_entry(&entry, filename, args->skip_cache);
 
     if (!wholth_error_ok(&err))
     {

@@ -29,6 +29,7 @@ extern "C"
         wholth_exec_stmt_Task_DELETE,
         wholth_exec_stmt_Task_INSERT,
         wholth_exec_stmt_Task_SELECT,
+        wholth_exec_stmt_Task_UPDATE,
     } wholth_exec_stmt_Task;
 
     struct wholth_exec_stmt_Result_t;
@@ -48,6 +49,7 @@ extern "C"
         wholth_StringView                      sql_file;
         unsigned long long                     binds_size;
         const wholth_exec_stmt_Bindable* const binds;
+        bool                                   skip_cache;
         // wholth_Buffer* const                   buffer;
     } wholth_exec_stmt_Args;
 
