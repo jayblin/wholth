@@ -419,6 +419,7 @@ extern "C" wholth_Error wholth_exec_stmt(
     {
     case wholth_exec_stmt_Task_DELETE:
     case wholth_exec_stmt_Task_INSERT:
+    case wholth_exec_stmt_Task_UPDATE:
     case wholth_exec_stmt_Task_SELECT: {
         sqlw::Transaction transaction{&con};
         uint64_t          sql_output_size = 0;
