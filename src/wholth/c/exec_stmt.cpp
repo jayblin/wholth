@@ -392,10 +392,7 @@ extern "C" wholth_Error wholth_exec_stmt(
         const auto& bindable = entry->bindables[i];
 
         const auto v = wholth::utils::to_string_view(args->binds[i].value);
-        binds[i] = {
-            v,
-            nullptr == args->binds[i].value.data ? sqlw::Type::SQL_NULL
-                                                 : bindable.type};
+        binds[i] = {v, bindable.type};
 
         if (nullptr != bindable.validator_func)
         {
@@ -458,6 +455,7 @@ extern "C" wholth_Error wholth_exec_stmt(
     return wholth_Error_OK;
 }
 
+constexpr std::string_view _empty_str = "";
 extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
     const wholth_exec_stmt_Result* result,
     unsigned long long             row,
@@ -465,17 +463,17 @@ extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
 {
     if (nullptr == result)
     {
-        return to_wholth_str_view("");
+        return to_wholth_str_view(_empty_str);
     }
 
     if (0 == result->data.column_count)
     {
-        return to_wholth_str_view("");
+        return to_wholth_str_view(_empty_str);
     }
 
     if (column >= result->data.column_count)
     {
-        return to_wholth_str_view("");
+        return to_wholth_str_view(_empty_str);
     }
 
     const auto sz = result->data.sizes.size();
@@ -483,7 +481,7 @@ extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
 
     if (idx < row * result->data.column_count || idx >= sz)
     {
-        return to_wholth_str_view("");
+        return to_wholth_str_view(_empty_str);
     }
 
     // const auto offset = idx > 0 ? result->data.sizes[idx - 1] : 0;
