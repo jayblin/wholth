@@ -11,6 +11,8 @@
 #include <tuple>
 #include <utility>
 
+// i do not like this std::error_code approach
+
 const char* wholth::error::Category::name() const noexcept
 {
     return "wholth";
@@ -167,7 +169,7 @@ std::string_view wholth::error::message(int ev)
         }
     }
 
-    return "(unrecognized error)";
+    return "error:(unrecognized error)";
 }
 
 std::string wholth::error::Category::message(int ev) const

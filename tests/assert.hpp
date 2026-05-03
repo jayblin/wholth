@@ -40,7 +40,7 @@
             << err.code << wfsv(err.message) << msg;                           \
     }
 
-#define ASSERT_ERR_MSG(err, msg)                                               \
+#define ASSERT_ERR_MSG(err, expected)                                          \
     {                                                                          \
-        ASSERT_STREQ2(msg, wfsv(err.message));                                 \
+        ASSERT_STREQ2(expected, wfsv(err.message));                            \
     }

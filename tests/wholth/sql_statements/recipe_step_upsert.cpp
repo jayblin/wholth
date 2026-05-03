@@ -112,25 +112,32 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_food_id)
     std::string count_rsl_old;
     count_initial_entities(count_rs_old, count_rsl_old);
 
-    std::vector<wholth_exec_stmt_Bindable> ids = {
-        {},
-        {wtsv("")},
-        {wtsv("abc")},
-        {wtsv("-123")},
-        {wtsv("1f")},
-        {wtsv("  102")},
-    };
-    for (const auto id : ids)
+    struct _Case
     {
-        const wholth_exec_stmt_Bindable binds[5] = {id, {}, {}, {}, {}};
+        wholth_exec_stmt_Bindable id;
+        std::string_view          expected_error_message;
+    };
+    std::vector<_Case> cases = {
+        {{}, "GENERIC_SQL_ERROR_MSG"},
+        {{wtsv("")}, "Невалидный идентифкатор рецепта(пищи)!"},
+        {{wtsv("abc")}, "Невалидный идентифкатор рецепта(пищи)!"},
+        {{wtsv("-123")}, "Невалидный идентифкатор рецепта(пищи)!"},
+        {{wtsv("1f")}, "Невалидный идентифкатор рецепта(пищи)!"},
+        {{wtsv("  102")}, "Невалидный идентифкатор рецепта(пищи)!"},
+    };
+    size_t i = 0;
+    for (const auto t_case : cases)
+    {
+        std::string                     msg = fmt::format(" - case #{}", i);
+        const wholth_exec_stmt_Bindable binds[5] = {t_case.id, {}, {}, {}, {}};
         wholth_exec_stmt_Args           args = {
                       .sql_file = wtsv("recipe_step_upsert.sql"),
                       .binds_size = 5,
                       .binds = binds,
         };
         const auto err = wholth_exec_stmt(&args, nullptr);
-        ASSERT_ERR_NOK(err);
-        ASSERT_ERR_MSG(err, "Невалидный идентифкатор рецепта(пищи)!");
+        ASSERT_ERR_NOK2(err, msg);
+        ASSERT_STREQ3(t_case.expected_error_message, wfsv(err.message)) << msg;
 
         std::string count_rs_new;
         std::string count_rsl_new;
@@ -140,6 +147,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_food_id)
 
         ASSERT_OTHER_RECIPE_STEP_UNCHANGED_1();
         ASSERT_OTHER_RECIPE_STEP_UNCHANGED_2();
+        i++;
     }
 }
 
@@ -187,26 +195,34 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_locale_id)
     std::string count_rsl_old;
     count_initial_entities(count_rs_old, count_rsl_old);
 
-    std::vector<wholth_exec_stmt_Bindable> locale_ids = {
-        {},
-        {wtsv("")},
-        {wtsv("abc")},
-        {wtsv("-123")},
-        {wtsv("1f")},
-        {wtsv("  102")},
-    };
-    for (const auto locale_id : locale_ids)
+    struct _Case
     {
+        wholth_exec_stmt_Bindable locale_id;
+        std::string_view          expected_error_message;
+    };
+    std::vector<_Case> cases = {
+        // in this case locale_id is NULL
+        // {{}, "GENERIC_SQL_ERROR_MSG"},
+        {{wtsv("")}, "Невалидный идентифкатор локали!"},
+        {{wtsv("abc")}, "Невалидный идентифкатор локали!"},
+        {{wtsv("-123")}, "Невалидный идентифкатор локали!"},
+        {{wtsv("1f")}, "Невалидный идентифкатор локали!"},
+        {{wtsv("  102")}, "Невалидный идентифкатор локали!"},
+    };
+    size_t i = 0;
+    for (const auto t_case : cases)
+    {
+        std::string                     msg = fmt::format(" - case #{}", i);
         const wholth_exec_stmt_Bindable binds[5] = {
-            {wtsv("1")}, {wtsv("630")}, locale_id, {}, {}};
+            {wtsv("1")}, {wtsv("630")}, {}, t_case.locale_id, {}};
         wholth_exec_stmt_Args args = {
             .sql_file = wtsv("recipe_step_upsert.sql"),
             .binds_size = 5,
             .binds = binds,
         };
         const auto err = wholth_exec_stmt(&args, nullptr);
-        ASSERT_ERR_NOK(err);
-        ASSERT_ERR_MSG(err, "Невалидный идентифкатор локали!");
+        ASSERT_ERR_NOK2(err, msg);
+        ASSERT_STREQ3(t_case.expected_error_message, wfsv(err.message)) << msg;
 
         std::string count_rs_new;
         std::string count_rsl_new;
@@ -216,6 +232,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_locale_id)
 
         ASSERT_OTHER_RECIPE_STEP_UNCHANGED_1();
         ASSERT_OTHER_RECIPE_STEP_UNCHANGED_2();
+        i++;
     }
 }
 

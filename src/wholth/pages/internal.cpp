@@ -33,7 +33,7 @@ struct ErrorCategory : std::error_category
             return "INVALID_LOCALE_ID";
         }
 
-        return "(unrecognized error)";
+        return "internal:(unrecognized error)";
     }
 };
 

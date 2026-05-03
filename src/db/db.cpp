@@ -37,7 +37,7 @@ struct ErrorCategory : std::error_category
             return "no error";
         }
 
-        return "(unrecognized error)";
+        return "db:(unrecognized error)";
     }
 };
 
@@ -56,7 +56,7 @@ struct ConditionCategory : std::error_category
             return "ok";
         }
 
-        return "(unrecognized error)";
+        return "db:(unrecognized error)";
     }
 
     bool equivalent(const std::error_code& ec, int cond)
@@ -116,7 +116,7 @@ static std::error_code does_migration_table_exist(sqlw::Connection* con)
         "SELECT name "
         "FROM sqlite_master "
         "WHERE type='table' AND name='migration'",
-        [&result](sqlw::Statement::ExecArgs _) { result = true; });
+        [&result](sqlw::Statement::ExecArgs) { result = true; });
 
     return result ? ec : db::status::Code::MIGRATION_TABLE_DOES_NOT_EXIST;
 }

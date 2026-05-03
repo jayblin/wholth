@@ -38,7 +38,7 @@ struct ErrorCategory : std::error_category
             return "provided ill-formed mass";
         }
 
-        return "(unrecognized error)";
+        return "status:(unrecognized error)";
     }
 };
 
@@ -59,7 +59,7 @@ struct ConditionCategory : std::error_category
             return "no error";
         }
 
-        return "(unrecognized error)";
+        return "status:(unrecognized error)";
     }
 
     bool equivalent(const std::error_code& ec, int cond)

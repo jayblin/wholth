@@ -1,5 +1,6 @@
 #include "wholth/c/exec_stmt.h"
 #include "db/db.hpp"
+#include "fmt/core.h"
 #include "sqlw/forward.hpp"
 #include "sqlw/statement.hpp"
 #include "sqlw/transaction.hpp"
@@ -25,7 +26,7 @@ struct wholth_exec_stmt_Result_t
     struct Data
     {
         uint64_t              column_count{0};
-        std::string           sql_output{""};
+        std::string           buffer{""};
         std::vector<uint64_t> sizes{};
     };
 
@@ -390,18 +391,25 @@ extern "C" wholth_Error wholth_exec_stmt(
 
         // TODO check overflow
         const auto& bindable = entry->bindables[i];
+        const auto  v = wholth::utils::to_string_view(args->binds[i].value);
 
-        const auto v = wholth::utils::to_string_view(args->binds[i].value);
-        binds[i] = {v, bindable.type};
-
-        if (nullptr != bindable.validator_func)
+        if (nullptr == args->binds[i].value.data)
         {
-            if (!bindable.validator_func(v))
+            binds[i] = {{}, sqlw::Type::SQL_NULL};
+        }
+        else
+        {
+            binds[i] = {v, bindable.type};
+
+            if (nullptr != bindable.validator_func)
             {
-                return {
-                    .code = wholth_exec_stmt_Code_BINDABLE_VALIDATION_FAIL,
-                    .message =
-                        to_wholth_str_view(bindable.validation_error_msg)};
+                if (!bindable.validator_func(v))
+                {
+                    return {
+                        .code = wholth_exec_stmt_Code_BINDABLE_VALIDATION_FAIL,
+                        .message =
+                            to_wholth_str_view(bindable.validation_error_msg)};
+                }
             }
         }
     }
@@ -411,6 +419,7 @@ extern "C" wholth_Error wholth_exec_stmt(
     std::error_code   ec{};
 
     wholth_exec_stmt_Result::Data result_data{};
+    sqlw::Transaction             transaction{&con};
 
     switch (entry->task)
     {
@@ -418,8 +427,7 @@ extern "C" wholth_Error wholth_exec_stmt(
     case wholth_exec_stmt_Task_INSERT:
     case wholth_exec_stmt_Task_UPDATE:
     case wholth_exec_stmt_Task_SELECT: {
-        sqlw::Transaction transaction{&con};
-        uint64_t          sql_output_size = 0;
+        uint64_t sql_output_size = 0;
         ec = transaction(
             entry->sql,
             [&buffer_stream, &result_data, &sql_output_size](
@@ -435,17 +443,48 @@ extern "C" wholth_Error wholth_exec_stmt(
         break;
     }
     case wholth_exec_stmt_Task_NOOP:
-        assert(false);
+        return wholth_Error_OK;
     }
 
-    // if (sqlw::status::Condition::OK != stmt.status())
     if (sqlw::status::Condition::OK != ec)
     {
-        // return wholth::utils::from_error_code(stmt.status());
-        return wholth::utils::from_error_code(ec);
+        if (nullptr != result)
+        {
+            const auto meta = transaction.target_stmt_meta();
+            const auto transaction_err_msg = ec.message();
+            result_data.buffer = fmt::format(
+                "TRANSACTION_ERR:[{}];"
+                "STATEMENT_ERR:[{}];"
+                "STATEMENT_LAST_OK_PREPARE_IDX:[{}];"
+                "STATEMENT_LAST_OK_BIND_IDX:[{}];",
+                transaction_err_msg,
+                transaction.target_stmt_error_message(),
+                meta.last_ok_prepare_idx,
+                meta.last_ok_bind_idx);
+
+            result->data = std::move(result_data);
+
+            const auto& buffer = result->data.buffer;
+            const auto  subview = std::string_view(
+                buffer.data() + 17 + transaction_err_msg.size() + 2 + 15,
+                transaction.target_stmt_error_message().size());
+
+            return {
+                .code =
+                    static_cast<wholth_ErrorCode>(ec.value()), // todo change
+                .message = {.data = subview.data(), .size = subview.size()}};
+        }
+
+        constexpr std::string_view generic_sql_error_msg =
+            "GENERIC_SQL_ERROR_MSG";
+        return {
+            .code = static_cast<wholth_ErrorCode>(ec.value()), // todo change
+            .message = {
+                .data = generic_sql_error_msg.data(),
+                .size = generic_sql_error_msg.size()}};
     }
 
-    result_data.sql_output = buffer_stream.str();
+    result_data.buffer = buffer_stream.str();
 
     if (nullptr != result)
     {
@@ -455,7 +494,7 @@ extern "C" wholth_Error wholth_exec_stmt(
     return wholth_Error_OK;
 }
 
-constexpr std::string_view _empty_str = "";
+constexpr std::string_view         _empty_str = "";
 extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
     const wholth_exec_stmt_Result* result,
     unsigned long long             row,
@@ -488,14 +527,14 @@ extern "C" const wholth_StringView wholth_exec_stmt_Result_at(
     if (0 == idx)
     {
         return {
-            .data = result->data.sql_output.data(),
+            .data = result->data.buffer.data(),
             .size = result->data.sizes[idx]};
     }
 
     const auto offset = result->data.sizes[idx - 1];
     const auto size = result->data.sizes[idx] - offset;
 
-    return {.data = result->data.sql_output.data() + offset, .size = size};
+    return {.data = result->data.buffer.data() + offset, .size = size};
 }
 
 extern "C" unsigned long long wholth_exec_stmt_Result_row_count(
@@ -507,4 +546,15 @@ extern "C" unsigned long long wholth_exec_stmt_Result_row_count(
     }
 
     return res->data.sizes.size() / res->data.column_count;
+}
+
+const wholth_StringView wholth_exec_stmt_Result_full_error_msg(
+    const wholth_exec_stmt_Result* res)
+{
+    if (nullptr == res)
+    {
+        return {.data = nullptr, .size = 0};
+    }
+
+    return {.data = res->data.buffer.data(), .size = res->data.buffer.size()};
 }

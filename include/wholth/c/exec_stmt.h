@@ -43,6 +43,8 @@ extern "C"
         const wholth_exec_stmt_Result*,
         unsigned long long row,
         unsigned long long column);
+    const wholth_StringView wholth_exec_stmt_Result_full_error_msg(
+        const wholth_exec_stmt_Result*);
 
     typedef struct wholth_exec_stmt_Args_t
     {
