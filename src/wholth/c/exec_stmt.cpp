@@ -455,8 +455,8 @@ extern "C" wholth_Error wholth_exec_stmt(
             result_data.buffer = fmt::format(
                 "TRANSACTION_ERR:[{}];"
                 "STATEMENT_ERR:[{}];"
-                "STATEMENT_LAST_OK_PREPARE_IDX:[{}];"
-                "STATEMENT_LAST_OK_BIND_IDX:[{}];",
+                "STATEMENT_LAST_OK_PREPARE_INDEX:[{}];"
+                "STATEMENT_LAST_OK_BIND_NUMBER:[{}];",
                 transaction_err_msg,
                 transaction.target_stmt_error_message(),
                 meta.last_ok_prepare_idx,

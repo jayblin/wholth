@@ -128,7 +128,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_food_id)
     size_t i = 0;
     for (const auto t_case : cases)
     {
-        std::string                     msg = fmt::format(" - case #{}", i);
+        std::string                     msg = fmt::format(" - case #{} - ", i);
         const wholth_exec_stmt_Bindable binds[5] = {t_case.id, {}, {}, {}, {}};
         wholth_exec_stmt_Args           args = {
                       .sql_file = wtsv("recipe_step_upsert.sql"),
@@ -212,7 +212,7 @@ TEST_F(Test_wholth_sql_statements_recipe_step_upsert, when_bad_locale_id)
     size_t i = 0;
     for (const auto t_case : cases)
     {
-        std::string                     msg = fmt::format(" - case #{}", i);
+        std::string                     msg = fmt::format(" - case #{} - ", i);
         const wholth_exec_stmt_Bindable binds[5] = {
             {wtsv("1")}, {wtsv("630")}, {}, t_case.locale_id, {}};
         wholth_exec_stmt_Args args = {

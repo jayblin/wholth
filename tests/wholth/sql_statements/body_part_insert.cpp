@@ -127,7 +127,7 @@ TEST_F(
     size_t i = 0;
     for (const auto t_case : cases)
     {
-        std::string msg = fmt::format(" - case #{}", i);
+        std::string msg = fmt::format(" - case #{} - ", i);
         ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             t_case.title, t_case.description, {wtsv("1")}};
@@ -214,7 +214,7 @@ TEST_F(Test_wholth_sql_statements_body_part_insert, when_bad_title)
     size_t i = 0;
     for (const auto t_case : cases)
     {
-        std::string msg = fmt::format(" - case #{}", i);
+        std::string msg = fmt::format(" - case #{} - ", i);
         // astmt(db::connection(), "SAVEPOINT _savepoint_");
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             t_case.title, t_case.description, {wtsv("1")}};
@@ -270,7 +270,7 @@ TEST_F(Test_wholth_sql_statements_body_part_insert, when_bad_parent_id)
     size_t i = 0;
     for (const auto parent_id : parent_ids)
     {
-        std::string msg = fmt::format(" - case #{}", i);
+        std::string msg = fmt::format(" - case #{} - ", i);
         ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             {wtsv("arm")}, {wtsv("an arm")}, parent_id};
@@ -327,7 +327,7 @@ TEST_F(Test_wholth_sql_statements_body_part_insert, when_null_parent_id)
     size_t i = 0;
     for (const auto parent_id : parent_ids)
     {
-        std::string msg = fmt::format(" - case #{}", i);
+        std::string msg = fmt::format(" - case #{} - ", i);
         ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             {wtsv("arm")}, {wtsv("an arm")}, parent_id};
@@ -448,7 +448,7 @@ TEST_F(
         std::string count_bpns_old;
         count_initial_entities(count_bp_old, count_bpl_old, count_bpns_old);
 
-        std::string                     msg = fmt::format(" - case #{}", i);
+        std::string                     msg = fmt::format(" - case #{} - ", i);
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             {wtsv(msg)}, {}, {_case.parent_id}};
         wholth_exec_stmt_Args args = {

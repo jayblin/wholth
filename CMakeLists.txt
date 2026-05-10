@@ -106,7 +106,7 @@ endif()
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        86da5145f3e34eb0c8ae7dc947c515c3232bef3d
+  GIT_TAG        7c421f648f46030d717ed9329cfe35d7e226f746
 )
 
 FetchContent_Declare(
@@ -195,6 +195,12 @@ if (DEFINED WHOLTH_STANDALONE)
         tests/wholth/sql_statements/nutrient_top_select.cpp
         tests/wholth/sql_statements/body_part_insert.cpp
         tests/wholth/sql_statements/body_part_update_text.cpp
+        tests/wholth/sql_statements/exercise_insert.cpp
+        tests/wholth/sql_statements/exercise_update.cpp
+        tests/wholth/sql_statements/exercise_log_insert.cpp
+        tests/wholth/sql_statements/exercise_log_update.cpp
+        tests/wholth/sql_statements/exercise_log_delete.cpp
+        tests/wholth/sql_statements/exercise_body_part_insert.cpp
         # tests/wholth/c/entity_manager/update_food.cpp
         # tests/wholth/c/entity_manager/update_important_nutrients.cpp
         # tests/wholth/c/entity_manager/update_ingredient.cpp

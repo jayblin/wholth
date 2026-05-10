@@ -128,7 +128,7 @@ TEST_F(
     size_t i = 0;
     for (const auto t_case : cases)
     {
-        std::string msg = fmt::format(" - case #{}", i);
+        std::string msg = fmt::format(" - case #{} - ", i);
         ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             {wtsv("2")},
@@ -198,7 +198,7 @@ TEST_F(Test_wholth_sql_statements_body_part_update_text, when_bad_title)
     for (const auto t_case : cases)
     {
         ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
-        std::string                     msg = fmt::format(" - case #{}", i);
+        std::string                     msg = fmt::format(" - case #{} - ", i);
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             {wtsv("2")},
             t_case.title,
@@ -272,7 +272,7 @@ TEST_F(Test_wholth_sql_statements_body_part_update_text, when_null_data)
     for (const auto t_case : cases)
     {
         ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
-        std::string                     msg = fmt::format(" - case #{}", i);
+        std::string                     msg = fmt::format(" - case #{} - ", i);
         const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
             {wtsv("2")},
             t_case.title,

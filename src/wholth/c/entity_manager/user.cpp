@@ -29,40 +29,40 @@ struct HashHexed
     char represenation[size];
 };
 
-static std::error_code sha256_string(HashHexed& hex, std::string_view value)
-{
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-
-    SHA256(
-        reinterpret_cast<const unsigned char*>(value.data()),
-        value.size(),
-        hash);
-
-    // thanks
-    // https://github.com/vikramls/openssl_examples/blob/master/crypto.cpp#L347
-    // Convert md to hex string.
-    for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-        // todo check hash[i] is valid???
-        const int r = hash[i] % 16;
-        const int l = (hash[i] - r) / 16;
-
-        // @see https://www.ascii-code.com/
-        hex.represenation[2 * i] = '0' + l;
-        if (l > 9)
-        {
-            hex.represenation[2 * i] += 7;
-        }
-
-        hex.represenation[2 * i + 1] = '0' + r;
-        if (r > 9)
-        {
-            hex.represenation[2 * i + 1] += 7;
-        }
-    }
-
-    return {};
-}
+// static std::error_code sha256_string(HashHexed& hex, std::string_view value)
+// {
+//     unsigned char hash[SHA256_DIGEST_LENGTH];
+//
+//     SHA256(
+//         reinterpret_cast<const unsigned char*>(value.data()),
+//         value.size(),
+//         hash);
+//
+//     // thanks
+//     // https://github.com/vikramls/openssl_examples/blob/master/crypto.cpp#L347
+//     // Convert md to hex string.
+//     for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
+//     {
+//         // todo check hash[i] is valid???
+//         const int r = hash[i] % 16;
+//         const int l = (hash[i] - r) / 16;
+//
+//         // @see https://www.ascii-code.com/
+//         hex.represenation[2 * i] = '0' + l;
+//         if (l > 9)
+//         {
+//             hex.represenation[2 * i] += 7;
+//         }
+//
+//         hex.represenation[2 * i + 1] = '0' + r;
+//         if (r > 9)
+//         {
+//             hex.represenation[2 * i + 1] += 7;
+//         }
+//     }
+//
+//     return {};
+// }
 
 /**
  * @see https://www.rfc-editor.org/rfc/rfc9106.html#section-4-6.2
