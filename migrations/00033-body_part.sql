@@ -42,7 +42,7 @@ INSERT INTO body_part_nset (body_part_id, lft, rgt) VALUES
 (6,10,11)
 ;
 
-CREATE TRIGGER IF NOT EXISTS body_part_before_insert_trigger
+CREATE TRIGGER IF NOT EXISTS body_part_trigger_before_insert
 BEFORE INSERT ON body_part
 BEGIN
     WITH
@@ -68,7 +68,7 @@ BEGIN
     FROM unq_title_chck;
 END;
 
-CREATE TRIGGER IF NOT EXISTS body_part_before_update_trigger
+CREATE TRIGGER IF NOT EXISTS body_part_trigger_before_update
 BEFORE UPDATE ON body_part
 BEGIN
     WITH
@@ -95,7 +95,7 @@ BEGIN
 END
 ;
 
-CREATE TRIGGER IF NOT EXISTS body_part_nset_before_insert_trigger
+CREATE TRIGGER IF NOT EXISTS body_part_nset_trigger_before_insert
 BEFORE INSERT ON body_part_nset
 BEGIN
     WITH

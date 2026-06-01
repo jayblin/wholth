@@ -151,9 +151,9 @@ TEST_F(Test_wholth_sql_statements_exercise_body_part_insert, when_duplicate)
     ASSERT_ERR_OK2(err, wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
 
     err = wholth_exec_stmt(&args, res);
-    ASSERT_ERR_NOK2(err, wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
-    ASSERT_STREQ2("Упражнение уже привязано к части тела!", wfsv(err.message))
-        << wfsv(wholth_exec_stmt_Result_full_error_msg(res));
+    ASSERT_ERR_OK2(err, wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
+    // ASSERT_STREQ2("Упражнение уже привязано к части тела!", wfsv(err.message))
+    //     << wfsv(wholth_exec_stmt_Result_full_error_msg(res));
 
     ASSERT_COUNT_EQ("1", "");
 

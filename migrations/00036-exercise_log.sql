@@ -1,16 +1,19 @@
 CREATE TABLE IF NOT EXISTS exercise_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     exercise_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
     type_id INTEGER NOT NULL,
     value INT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (exercise_id) REFERENCES exercise(id),
+    FOREIGN KEY (user_id) REFERENCES user(id),
     FOREIGN KEY (type_id) REFERENCES exercise_type(id)
 ) STRICT;
 
 CREATE VIEW exercise_log_validator_view (
     id,
     exercise_id,
+    user_id,
     type_id,
     value,
     created_at
@@ -18,6 +21,7 @@ CREATE VIEW exercise_log_validator_view (
 SELECT 
     el.id,
     el.exercise_id,
+    el.user_id,
     el.type_id,
     el.value,
     el.created_at
@@ -31,6 +35,13 @@ BEGIN
         THEN RAISE(FAIL, 'Не передан идентификатор упражнения!')
         WHEN 0 = (SELECT COUNT(id) FROM exercise WHERE id = NEW.exercise_id)
         THEN RAISE(FAIL, 'Не удалось найти упражнение с таким идентификатором!')
+    END;
+
+    SELECT CASE
+        WHEN NEW.user_id IS NULL
+        THEN RAISE(FAIL, 'Не передан идентификатор пользователя!')
+        WHEN 0 = (SELECT COUNT(id) FROM user WHERE id = NEW.user_id)
+        THEN RAISE(FAIL, 'Не удалось найти пользователя с таким идентификатором!')
     END;
 
     SELECT CASE
@@ -58,13 +69,13 @@ END;
 CREATE TRIGGER IF NOT EXISTS exercise_log_trigger_before_insert
 BEFORE INSERT ON exercise_log
 BEGIN
-    INSERT INTO exercise_log_validator_view (exercise_id, type_id, value, created_at)
-    VALUES (NEW.exercise_id, NEW.type_id, NEW.value, NEW.created_at);
+    INSERT INTO exercise_log_validator_view (exercise_id, user_id, type_id, value, created_at)
+    VALUES (NEW.exercise_id, NEW.user_id, NEW.type_id, NEW.value, NEW.created_at);
 END;
 
 CREATE TRIGGER IF NOT EXISTS exercise_log_trigger_before_update
 BEFORE UPDATE ON exercise_log
 BEGIN
-    INSERT INTO exercise_log_validator_view (exercise_id, type_id, value, created_at)
-    VALUES (NEW.exercise_id, NEW.type_id, NEW.value, NEW.created_at);
+    INSERT INTO exercise_log_validator_view (exercise_id, user_id, type_id, value, created_at)
+    VALUES (NEW.exercise_id, NEW.user_id, NEW.type_id, NEW.value, NEW.created_at);
 END

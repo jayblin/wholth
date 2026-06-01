@@ -7,7 +7,6 @@
 #include "wholth/c/error.h"
 #include "wholth/internal/ring_pool.hpp"
 #include "wholth/utils/is_valid_id.hpp"
-#include "wholth/utils/to_error.hpp"
 #include "wholth/utils/to_string_view.hpp"
 #include <atomic>
 #include <cstdint>
@@ -326,6 +325,145 @@ static wholth_Error get_entry(
     return wholth_Error_OK;
 }
 
+static wholth_Error handle_transaction(
+    const MapEntry*                                 entry,
+    const std::vector<sqlw::Statement::bindable_t>& binds,
+    wholth_exec_stmt_Result*                        result)
+{
+    wholth_exec_stmt_Result::Data result_data{};
+    std::stringstream             buffer_stream{};
+    uint64_t                      sql_output_size = 0;
+    sqlw::Transaction             transaction{&db::connection()};
+
+    const auto ec = transaction(
+        entry->sql,
+        [&buffer_stream, &result_data, &sql_output_size](
+            sqlw::Statement::ExecArgs e) {
+            buffer_stream << e.column_value;
+            result_data.column_count = e.column_count;
+            // todo check int bounds
+            sql_output_size += e.column_value.size();
+            result_data.sizes.push_back(sql_output_size);
+            // result_data.offsets.push_back(e.column_value.size());
+        },
+        binds);
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        if (nullptr != result)
+        {
+            const auto meta = transaction.target_stmt_meta();
+            const auto transaction_err_msg = ec.message();
+            result_data.buffer = fmt::format(
+                "TRANSACTION_ERR:[{}];"
+                "STATEMENT_ERR:[{}];"
+                "STATEMENT_LAST_OK_PREPARE_INDEX:[{}];"
+                "STATEMENT_LAST_OK_BIND_NUMBER:[{}];",
+                transaction_err_msg,
+                transaction.target_stmt_error_message(),
+                meta.last_ok_prepare_idx,
+                meta.last_ok_bind_idx);
+
+            result->data = std::move(result_data);
+
+            const auto& buffer = result->data.buffer;
+            const auto  subview = std::string_view(
+                buffer.data() + 17 + transaction_err_msg.size() + 2 + 15,
+                transaction.target_stmt_error_message().size());
+
+            return {
+                .code =
+                    static_cast<wholth_ErrorCode>(ec.value()), // todo change
+                .message = {.data = subview.data(), .size = subview.size()}};
+        }
+
+        constexpr std::string_view generic_sql_error_msg =
+            "GENERIC_SQL_ERROR_MSG";
+        return {
+            .code = static_cast<wholth_ErrorCode>(ec.value()), // todo change
+            .message = {
+                .data = generic_sql_error_msg.data(),
+                .size = generic_sql_error_msg.size()}};
+    }
+
+    result_data.buffer = buffer_stream.str();
+
+    if (nullptr != result)
+    {
+        result->data = std::move(result_data);
+    }
+
+    return wholth_Error_OK;
+}
+
+static wholth_Error handle_select(
+    const MapEntry*                                 entry,
+    const std::vector<sqlw::Statement::bindable_t>& binds,
+    wholth_exec_stmt_Result*                        result)
+{
+    wholth_exec_stmt_Result::Data result_data{};
+    std::stringstream             buffer_stream{};
+    uint64_t                      sql_output_size = 0;
+    sqlw::Statement               stmt{&db::connection()};
+
+    const auto ec = stmt(
+        entry->sql,
+        [&buffer_stream, &result_data, &sql_output_size](
+            sqlw::Statement::ExecArgs e) {
+            buffer_stream << e.column_value;
+            result_data.column_count = e.column_count;
+            // todo check int bounds
+            sql_output_size += e.column_value.size();
+            result_data.sizes.push_back(sql_output_size);
+            // result_data.offsets.push_back(e.column_value.size());
+        },
+        binds);
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        if (nullptr != result)
+        {
+            const auto meta = stmt.meta();
+            const auto err_msg = ec.message();
+            result_data.buffer = fmt::format(
+                "STATEMENT_ERR:[{}];"
+                "STATEMENT_LAST_OK_PREPARE_INDEX:[{}];"
+                "STATEMENT_LAST_OK_BIND_NUMBER:[{}];",
+                err_msg,
+                meta.last_ok_prepare_idx,
+                meta.last_ok_bind_idx);
+
+            result->data = std::move(result_data);
+
+            const auto& buffer = result->data.buffer;
+            const auto  subview =
+                std::string_view(buffer.data() + 15, err_msg.size());
+
+            return {
+                .code =
+                    static_cast<wholth_ErrorCode>(ec.value()), // todo change
+                .message = {.data = subview.data(), .size = subview.size()}};
+        }
+
+        constexpr std::string_view generic_sql_error_msg =
+            "GENERIC_SQL_ERROR_MSG";
+        return {
+            .code = static_cast<wholth_ErrorCode>(ec.value()), // todo change
+            .message = {
+                .data = generic_sql_error_msg.data(),
+                .size = generic_sql_error_msg.size()}};
+    }
+
+    result_data.buffer = buffer_stream.str();
+
+    if (nullptr != result)
+    {
+        result->data = std::move(result_data);
+    }
+
+    return wholth_Error_OK;
+}
+
 extern "C" wholth_Error wholth_exec_stmt(
     const wholth_exec_stmt_Args* const args,
     wholth_exec_stmt_Result*           result)
@@ -414,84 +552,19 @@ extern "C" wholth_Error wholth_exec_stmt(
         }
     }
 
-    auto&             con = db::connection();
-    std::stringstream buffer_stream{};
-    std::error_code   ec{};
-
-    wholth_exec_stmt_Result::Data result_data{};
-    sqlw::Transaction             transaction{&con};
-
     switch (entry->task)
     {
     case wholth_exec_stmt_Task_DELETE:
     case wholth_exec_stmt_Task_INSERT:
-    case wholth_exec_stmt_Task_UPDATE:
+    case wholth_exec_stmt_Task_UPDATE: {
+        return handle_transaction(entry, binds, result);
+    }
     case wholth_exec_stmt_Task_SELECT: {
-        uint64_t sql_output_size = 0;
-        ec = transaction(
-            entry->sql,
-            [&buffer_stream, &result_data, &sql_output_size](
-                sqlw::Statement::ExecArgs e) {
-                buffer_stream << e.column_value;
-                result_data.column_count = e.column_count;
-                // todo check int bounds
-                sql_output_size += e.column_value.size();
-                result_data.sizes.push_back(sql_output_size);
-                // result_data.offsets.push_back(e.column_value.size());
-            },
-            binds);
-        break;
+        return handle_select(entry, binds, result);
     }
     case wholth_exec_stmt_Task_NOOP:
         return wholth_Error_OK;
     }
-
-    if (sqlw::status::Condition::OK != ec)
-    {
-        if (nullptr != result)
-        {
-            const auto meta = transaction.target_stmt_meta();
-            const auto transaction_err_msg = ec.message();
-            result_data.buffer = fmt::format(
-                "TRANSACTION_ERR:[{}];"
-                "STATEMENT_ERR:[{}];"
-                "STATEMENT_LAST_OK_PREPARE_INDEX:[{}];"
-                "STATEMENT_LAST_OK_BIND_NUMBER:[{}];",
-                transaction_err_msg,
-                transaction.target_stmt_error_message(),
-                meta.last_ok_prepare_idx,
-                meta.last_ok_bind_idx);
-
-            result->data = std::move(result_data);
-
-            const auto& buffer = result->data.buffer;
-            const auto  subview = std::string_view(
-                buffer.data() + 17 + transaction_err_msg.size() + 2 + 15,
-                transaction.target_stmt_error_message().size());
-
-            return {
-                .code =
-                    static_cast<wholth_ErrorCode>(ec.value()), // todo change
-                .message = {.data = subview.data(), .size = subview.size()}};
-        }
-
-        constexpr std::string_view generic_sql_error_msg =
-            "GENERIC_SQL_ERROR_MSG";
-        return {
-            .code = static_cast<wholth_ErrorCode>(ec.value()), // todo change
-            .message = {
-                .data = generic_sql_error_msg.data(),
-                .size = generic_sql_error_msg.size()}};
-    }
-
-    result_data.buffer = buffer_stream.str();
-
-    if (nullptr != result)
-    {
-        result->data = std::move(result_data);
-    }
-
-    return wholth_Error_OK;
 }
 
 constexpr std::string_view         _empty_str = "";

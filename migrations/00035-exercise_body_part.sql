@@ -28,6 +28,6 @@ BEGIN
             SELECT 1 FROM exercise_body_part
             WHERE body_part_id = NEW.body_part_id AND exercise_id = NEW.exercise_id
         )
-        THEN RAISE(FAIL, 'Упражнение уже привязано к части тела!')
+        THEN RAISE(IGNORE)
     END;
 END

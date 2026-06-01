@@ -144,6 +144,8 @@ TEST_F(Test_wholth_sql_statements_exercise_update, should_report_errors)
         auto                     err = wholth_exec_stmt_Result_new(&res);
         ASSERT_ERR_OK2(err, msg);
         err = wholth_exec_stmt(&args, res);
+        std::cout << msg << '\n';
+        std::cout << "CODE: " << err.code << '\n';
         ASSERT_ERR_NOK2(
             err, msg << wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
         ASSERT_STREQ3(t_case.expected_stmt_err_msg, wfsv(err.message))
@@ -233,9 +235,12 @@ TEST_F(
 
 TEST_F(Test_wholth_sql_statements_exercise_update, should_save_data)
 {
+    for (size_t i = 0; i < 2; i++)
     {
+        std::string title = fmt::format("aboba-{}", i);
+        std::string description = fmt::format("an aboba-{}", i);
         const wholth_exec_stmt_Bindable binds[4] = {
-            {wtsv("aboba")}, {wtsv("an aboba")}, {wtsv("1")}};
+            {wtsv(title)}, {wtsv(description)}, {wtsv("1")}};
         wholth_exec_stmt_Args args = {
             .sql_file = wtsv("exercise_insert.sql"),
             .binds_size = 3,
@@ -256,58 +261,52 @@ TEST_F(Test_wholth_sql_statements_exercise_update, should_save_data)
         wholth_exec_stmt_Bindable title;
         wholth_exec_stmt_Bindable description;
         wholth_exec_stmt_Bindable preferred_type_id;
-        wholth_exec_stmt_Bindable unit_id;
         std::string_view          expected_data;
     };
     std::vector<_Case> cases = {
         // 0
-        {
-            {wtsv("aboba 2")},
-            {wtsv("an aboba 2")},
-            {wtsv("3")},
-            {wtsv("2")},
-            "aboba 2,an aboba 2,3,",
-        },
+        {{wtsv("aboba 2")},
+         {wtsv("an aboba 2")},
+         {wtsv("3")},
+         "1,aboba 2,an aboba 2,3,"
+         "2,aboba-1,an aboba-1,1,"},
         // 1
-        {
-            {wtsv("aboba")},
-            {wtsv("")},
-            {wtsv("3")},
-            {wtsv("2")},
-            "aboba,,3,",
-        },
+        {{wtsv("aboba")},
+         {wtsv("")},
+         {wtsv("3")},
+         "1,aboba,,3,"
+         "2,aboba-1,an aboba-1,1,"},
         // 2
-        {
-            {wtsv("aboba 2")},
-            {nullptr, 0},
-            {nullptr, 0},
-            {nullptr, 0},
-            "aboba 2,an aboba,1,",
-        },
+        {{wtsv("aboba 2")},
+         {nullptr, 0},
+         {nullptr, 0},
+         "1,aboba 2,an aboba-0,1,"
+         "2,aboba-1,an aboba-1,1,"},
         // 3
-        {
-            {nullptr, 0},
-            {wtsv("an aboba 2")},
-            {nullptr, 0},
-            {nullptr, 0},
-            "aboba,an aboba 2,1,",
-        },
+        {{nullptr, 0},
+         {wtsv("an aboba 2")},
+         {nullptr, 0},
+         "1,aboba-0,an aboba 2,1,"
+         "2,aboba-1,an aboba-1,1,"},
         // 4
-        {
-            {nullptr, 0},
-            {nullptr, 0},
-            {wtsv("3")},
-            {nullptr, 0},
-            "aboba,an aboba,3,",
-        },
+        {{nullptr, 0},
+         {nullptr, 0},
+         {wtsv("3")},
+         "1,aboba-0,an aboba-0,3,"
+         "2,aboba-1,an aboba-1,1,"},
         // 5
-        {
-            {nullptr, 0},
-            {nullptr, 0},
-            {nullptr, 0},
-            {wtsv("2")},
-            "aboba,an aboba,1,",
-        }};
+        {{nullptr, 0},
+         {nullptr, 0},
+         {nullptr, 0},
+         "1,aboba-0,an aboba-0,1,"
+         "2,aboba-1,an aboba-1,1,"},
+        // 6
+        {{wtsv("aboba-3")},
+         {nullptr, 0},
+         {nullptr, 0},
+         "1,aboba-3,an aboba-0,1,"
+         "2,aboba-1,an aboba-1,1,"},
+    };
     size_t i = 0;
     for (const auto& t_case : cases)
     {
@@ -330,14 +329,16 @@ TEST_F(Test_wholth_sql_statements_exercise_update, should_save_data)
         ASSERT_ERR_OK2(
             err, msg << wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
 
-        ASSERT_EXERCISE_COUNT_EQ("1", msg);
+        ASSERT_EXERCISE_COUNT_EQ("2", msg);
 
         std::string data{""};
         ASSERT_STMT_OK(
             db::connection(),
-            "SELECT elf5.title, elf5.description, e.preferred_type_id "
-            "FROM exercise e LEFT JOIN exercise_localisation_fts5 "
-            "elf5 ON elf5.rowid = e.el_fts5_rowid WHERE e.id = 1",
+            "SELECT e.id, elf5.title, elf5.description, e.preferred_type_id "
+            "FROM exercise e "
+            "LEFT JOIN exercise_localisation_fts5 elf5 "
+            "ON elf5.rowid = e.el_fts5_rowid "
+            "ORDER BY e.id ASC",
             [&](auto e) { (data += e.column_value) += ","; });
         ASSERT_STREQ3(t_case.expected_data, data) << msg;
 

@@ -1,8 +1,7 @@
 CREATE TABLE IF NOT EXISTS exercise_type (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     alias TEXT NOT NULL,
-    unit TEXT NOT NULL,
-    UNIQUE (alias)
+    unit TEXT NOT NULL
 ) STRICT;
 
 INSERT INTO exercise_type (id, alias, unit)
@@ -69,7 +68,8 @@ BEGIN
             THEN true
             WHEN _title = ''
             THEN RAISE(FAIL, 'Для упражнения нужно заполнить название!')
-            WHEN NEW.action <> 'update' AND 0 < (SELECT COUNT(id) FROM exercise WHERE alias = _title)
+            WHEN NEW.action <> 'update'
+                AND (SELECT COUNT(id) FROM exercise WHERE alias = _title) > 0
             THEN RAISE(FAIL, 'Уже есть упражнение с таким названием!')
         END
     FROM title_chk;
@@ -129,5 +129,6 @@ BEGIN
 
     UPDATE exercise
     SET alias = coalesce(lower(trim(NEW.title)), alias),
-        preferred_type_id = coalesce(NEW.preferred_type_id, preferred_type_id);
+        preferred_type_id = coalesce(NEW.preferred_type_id, preferred_type_id)
+    WHERE id = NEW.exercise_id;
 END

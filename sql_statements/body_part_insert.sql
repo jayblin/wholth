@@ -28,19 +28,11 @@ FROM (SELECT * FROM _data ORDER BY parent_id DESC LIMIT 1) AS _d;
 UPDATE body_part_nset
 SET
    rgt = rgt+2
-WHERE rgt > (
-    SELECT rgt
-    FROM body_part_nset
-    WHERE body_part_id = last_insert_rowid())
-;
-
-UPDATE body_part_nset
-SET
-   rgt = rgt+2
-WHERE rgt = (
+WHERE rgt >= (
     SELECT lft
     FROM body_part_nset
     WHERE body_part_id = last_insert_rowid())
+    AND body_part_id <> last_insert_rowid()
 ;
 
 UPDATE body_part_nset
@@ -50,6 +42,7 @@ WHERE lft >= (
     SELECT rgt
     FROM body_part_nset
     WHERE body_part_id = last_insert_rowid())
+    AND body_part_id <> last_insert_rowid()
 ;
 
 SELECT body_part_id FROM body_part_nset WHERE rowid = last_insert_rowid()

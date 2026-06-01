@@ -21,8 +21,8 @@ std::string_view wfsv(wholth_StringView sv)
 }
 
 void astmt(
-    sqlw::Connection& connection,
-    std::string_view sql,
+    sqlw::Connection&           connection,
+    std::string_view            sql,
     sqlw::Statement::callback_t callback)
 {
     sqlw::Statement stmt{&connection};
@@ -57,8 +57,10 @@ static void init_application()
         std::cout << '\t' << wfsv(err.message) << '\n';
     }
 
-    EXPECT_TRUE(wholth_Error_OK.code == err.code) << err.code << wfsv(err.message);
-    EXPECT_TRUE(wholth_Error_OK.message.size == err.message.size) << err.code << wfsv(err.message);
+    EXPECT_TRUE(wholth_Error_OK.code == err.code)
+        << err.code << wfsv(err.message);
+    EXPECT_TRUE(wholth_Error_OK.message.size == err.message.size)
+        << err.code << wfsv(err.message);
 
     did_init = true;
 }
@@ -78,18 +80,22 @@ void ApplicationAwareTest::TearDown()
 {
     auto ec = sqlw::Statement{&db::connection()}("ROLLBACK TO unittestsp");
     ASSERT_TRUE(sqlw::status::Condition::OK == ec);
+    ec = sqlw::Statement{&db::connection()}("RELEASE unittestsp");
+    ASSERT_TRUE(sqlw::status::Condition::OK == ec);
 }
 
 void ASSERT_WHOLTH_OK(wholth_Error err, std::string_view msg)
 {
-    ASSERT_EQ(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message) << msg;
+    ASSERT_EQ(wholth_Error_OK.code, err.code)
+        << err.code << wfsv(err.message) << msg;
     ASSERT_EQ(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message) << msg;
 }
 
 void ASSERT_WHOLTH_NOK(wholth_Error err, std::string_view msg)
 {
-    ASSERT_NE(wholth_Error_OK.code, err.code) << err.code << wfsv(err.message) << msg;
+    ASSERT_NE(wholth_Error_OK.code, err.code)
+        << err.code << wfsv(err.message) << msg;
     ASSERT_NE(wholth_Error_OK.message.size, err.message.size)
         << err.code << wfsv(err.message) << msg;
 }

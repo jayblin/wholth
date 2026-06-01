@@ -16,7 +16,7 @@ static_assert(nullptr == (void*)NULL);
 
 using bind_t = sqlw::Statement::bindable_t;
 
-constexpr auto BIND_COUNT = 1;
+constexpr auto BIND_COUNT = 2;
 constexpr auto ENTRIES_COUNT = 3;
 
 #define ASSERT_EXERCISE_LOG_COUNT_EQ(expected, msg)                            \
@@ -36,6 +36,13 @@ class Test_wholth_sql_statements_exercise_log_delete
     {
         ApplicationAwareTest::SetUp();
 
+        ASSERT_STMT_OK(
+            db::connection(),
+            "INSERT INTO user (id,name,password_hashed,locale_id) VALUES "
+            "(1,'bob','pass',1),"
+            "(2,'rob','pass',1)",
+            [](auto) {})
+
         {
             const wholth_exec_stmt_Bindable binds[3] = {
                 {wtsv("aboba")}, {wtsv("an aboba")}, {wtsv("1")}};
@@ -54,11 +61,11 @@ class Test_wholth_sql_statements_exercise_log_delete
 
         for (auto i = 0; i < ENTRIES_COUNT; i++)
         {
-            const wholth_exec_stmt_Bindable binds[4] = {
-                {wtsv("1")}, {wtsv("1")}, {wtsv("10")}, {}};
+            const wholth_exec_stmt_Bindable binds[5] = {
+                {wtsv("1")}, {wtsv("1")}, {wtsv("1")}, {wtsv("10")}, {}};
             wholth_exec_stmt_Args args = {
                 .sql_file = wtsv("exercise_log_insert.sql"),
-                .binds_size = 4,
+                .binds_size = 5,
                 .binds = binds,
             };
             wholth_exec_stmt_Result* res = nullptr;
@@ -70,10 +77,30 @@ class Test_wholth_sql_statements_exercise_log_delete
 
             this->log_ids[i] = wfsv(wholth_exec_stmt_Result_at(res, 0, 0));
         }
+
+        for (auto i = 0; i < ENTRIES_COUNT; i++)
+        {
+            const wholth_exec_stmt_Bindable binds[5] = {
+                {wtsv("1")}, {wtsv("2")}, {wtsv("1")}, {wtsv("10")}, {}};
+            wholth_exec_stmt_Args args = {
+                .sql_file = wtsv("exercise_log_insert.sql"),
+                .binds_size = 5,
+                .binds = binds,
+            };
+            wholth_exec_stmt_Result* res = nullptr;
+            auto                     err = wholth_exec_stmt_Result_new(&res);
+            ASSERT_ERR_OK(err);
+            err = wholth_exec_stmt(&args, res);
+            ASSERT_ERR_OK2(
+                err, wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
+
+            this->log_ids[i + ENTRIES_COUNT] =
+                wfsv(wholth_exec_stmt_Result_at(res, 0, 0));
+        }
     }
 
   protected:
-    std::array<std::string, ENTRIES_COUNT> log_ids{};
+    std::array<std::string, 2 * ENTRIES_COUNT> log_ids{};
 };
 
 TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_report_errors)
@@ -81,24 +108,31 @@ TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_report_errors)
     struct _Case
     {
         wholth_exec_stmt_Bindable id;
+        wholth_exec_stmt_Bindable user_id;
         std::string_view          expected_stmt_err_msg;
     };
     std::vector<_Case> cases = {
         // 0
-        {{wtsv("-1")}, {"Идентификатор лога не валиден!"}},
+        {{wtsv("-1")}, {wtsv("")}, {"Идентификатор лога не валиден!"}},
         // 1
-        {{wtsv("1d")}, {"Идентификатор лога не валиден!"}},
+        {{wtsv("1d")}, {wtsv("")}, {"Идентификатор лога не валиден!"}},
+        // 2
+        {{wtsv("1")}, {wtsv("-1")}, {"Идентификатор пользователя не валиден!"}},
+        // 3
+        {{wtsv("1")},
+         {wtsv("12e")},
+         {"Идентификатор пользователя не валиден!"}},
     };
     size_t i = 0;
     for (const auto& t_case : cases)
     {
         std::string msg = fmt::format(" - case #{} - ", i++);
-        ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
-        const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {t_case.id};
-        wholth_exec_stmt_Args           args = {
-                      .sql_file = wtsv("exercise_log_delete.sql"),
-                      .binds_size = BIND_COUNT,
-                      .binds = binds,
+        const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
+            t_case.id, t_case.user_id};
+        wholth_exec_stmt_Args args = {
+            .sql_file = wtsv("exercise_log_delete.sql"),
+            .binds_size = BIND_COUNT,
+            .binds = binds,
         };
         wholth_exec_stmt_Result* res = nullptr;
         auto                     err = wholth_exec_stmt_Result_new(&res);
@@ -109,10 +143,12 @@ TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_report_errors)
         ASSERT_STREQ3(t_case.expected_stmt_err_msg, wfsv(err.message))
             << msg << wfsv(wholth_exec_stmt_Result_full_error_msg(res));
 
-        ASSERT_EXERCISE_LOG_COUNT_EQ("3", msg);
+        ASSERT_EXERCISE_LOG_COUNT_EQ("6", msg);
 
-        ASSERT_STMT_OK(
-            db::connection(), "ROLLBACK TO _savepoint_", [](auto) {});
+        // ASSERT_STMT_OK(
+        //     db::connection(),
+        //     "ROLLBACK TO _savepoint_;RELEASE _savepoint_",
+        //     [](auto) {});
     }
 }
 
@@ -121,25 +157,32 @@ TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_noop)
     struct _Case
     {
         wholth_exec_stmt_Bindable id;
+        wholth_exec_stmt_Bindable user_id;
     };
     std::vector<_Case> cases = {
         // 0
-        {{wtsv("33")}},
+        {{wtsv("33")}, {}},
         // 1
-        {{}},
+        {{}, {}},
         // 2
-        {{nullptr, 0}},
+        {{nullptr, 0}, {}},
+        // 3
+        {{wtsv("1")}, {}},
+        // 4
+        {{wtsv("1")}, {wtsv("4")}},
     };
     size_t i = 0;
     for (const auto& t_case : cases)
     {
         std::string msg = fmt::format(" - case #{} - ", i++);
-        ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
-        const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {t_case.id};
-        wholth_exec_stmt_Args           args = {
-                      .sql_file = wtsv("exercise_log_delete.sql"),
-                      .binds_size = BIND_COUNT,
-                      .binds = binds,
+        // ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto)
+        // {});
+        const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
+            t_case.id, t_case.user_id};
+        wholth_exec_stmt_Args args = {
+            .sql_file = wtsv("exercise_log_delete.sql"),
+            .binds_size = BIND_COUNT,
+            .binds = binds,
         };
         wholth_exec_stmt_Result* res = nullptr;
         auto                     err = wholth_exec_stmt_Result_new(&res);
@@ -148,18 +191,20 @@ TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_noop)
         ASSERT_ERR_OK2(
             err, msg << wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
 
-        ASSERT_EXERCISE_LOG_COUNT_EQ("3", msg);
+        ASSERT_EXERCISE_LOG_COUNT_EQ("6", msg);
 
-        ASSERT_STMT_OK(
-            db::connection(), "ROLLBACK TO _savepoint_", [](auto) {});
+        // ASSERT_STMT_OK(
+        //     db::connection(),
+        //     "ROLLBACK TO _savepoint_;RELEASE _savepoint_",
+        //     [](auto) {});
     }
 }
 
 TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_delete)
 {
-    ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
+    // ASSERT_STMT_OK(db::connection(), "SAVEPOINT _savepoint_", [](auto) {});
     const wholth_exec_stmt_Bindable binds[BIND_COUNT] = {
-        {wtsv(this->log_ids[0])}};
+        {wtsv(this->log_ids[0])}, {wtsv("1")}};
     wholth_exec_stmt_Args args = {
         .sql_file = wtsv("exercise_log_delete.sql"),
         .binds_size = BIND_COUNT,
@@ -171,7 +216,7 @@ TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_delete)
     err = wholth_exec_stmt(&args, res);
     ASSERT_ERR_OK2(err, wfsv(wholth_exec_stmt_Result_full_error_msg(res)));
 
-    ASSERT_EXERCISE_LOG_COUNT_EQ("2", "");
+    ASSERT_EXERCISE_LOG_COUNT_EQ("5", "");
 
     for (auto i = 1; i < ENTRIES_COUNT; i++)
     {
@@ -179,9 +224,26 @@ TEST_F(Test_wholth_sql_statements_exercise_log_delete, should_delete)
         ASSERT_STMT_OK(
             db::connection(),
             fmt::format(
-                "SELECT id FROM exercise_log WHERE id={}",
+                "SELECT id FROM exercise_log WHERE id={} AND user_id=1",
                 this->log_ids[i]),
             [&](auto e) { data << e.column_value << ","; });
-        ASSERT_STRNEQ2("", data.str()) << "idx #" << i;
+        ASSERT_STRNEQ2("", data.str()) << "idx 1#" << i;
     }
+
+    for (auto i = 0; i < ENTRIES_COUNT; i++)
+    {
+        std::stringstream data{""};
+        ASSERT_STMT_OK(
+            db::connection(),
+            fmt::format(
+                "SELECT id FROM exercise_log WHERE id={} AND user_id=2",
+                this->log_ids[i + ENTRIES_COUNT]),
+            [&](auto e) { data << e.column_value << ","; });
+        ASSERT_STRNEQ2("", data.str()) << "idx 2#" << i;
+    }
+
+    // ASSERT_STMT_OK(
+    //     db::connection(),
+    //     "ROLLBACK TO _savepoint_;RELEASE _savepoint_",
+    //     [](auto) {});
 }

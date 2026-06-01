@@ -99,6 +99,15 @@ static void setup_db_instance_options(sqlw::Connection& con) noexcept(false)
         throw std::system_error{ec};
     }
 
+    // ec = stmt("PRAGMA journal_mode = DELETE");
+    ec = stmt("PRAGMA journal_mode = WAL");
+    // ec = stmt("PRAGMA journal_mode = MEMORY");
+
+    if (sqlw::status::Condition::OK != ec)
+    {
+        throw std::system_error{ec};
+    }
+
     ec = sqlw::status::Code{sqlite3_create_function_v2(
         con.handle(),
         "seconds_to_readable_time",
@@ -197,6 +206,14 @@ static void setup_db_instance_options(sqlw::Connection& con) noexcept(false)
 //     return con;
 // }
 
+void handle_signal(int sig) {
+    std::cout << "WHOLTH CAUGHT SIGNAL: " << sig << '\n';
+
+    db::connection().close();
+
+    exit(sig);
+}
+
 /* template <typename... C, typename... M> */
 void wholth::app::setup(
     std::string_view db_path,
@@ -211,6 +228,8 @@ void wholth::app::setup(
     db::init(db_path);
 
     auto& db_con = db::connection();
+
+    signal(SIGINT, handle_signal);
 
     setup_db_instance_options(db_con);
 
