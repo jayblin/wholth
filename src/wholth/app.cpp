@@ -19,6 +19,7 @@
 
 #include "wholth/app.hpp"
 #include "cassert"
+#include <signal.h>
 
 using namespace std::chrono_literals;
 
