@@ -4,6 +4,8 @@
 
 Для разработки:
 ```sh
+# подготовка окружения
+make prep-dev-[clang|gnu]
 # компиляуция
 make build-dev
 # установка
@@ -12,6 +14,8 @@ make install-dev
 
 Для прода:
 ```sh
+# подготовка окружения
+make prep-release
 # компиляуция
 make build-release
 # установка

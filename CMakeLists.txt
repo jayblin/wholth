@@ -106,7 +106,7 @@ endif()
 FetchContent_Declare(
   sqlw
   GIT_REPOSITORY https://github.com/jayblin/sqlw.git
-  GIT_TAG        2e175e4fec27f121e183ca8f8bb722225955c640
+  GIT_TAG        v1.0.0
 )
 
 FetchContent_Declare(
