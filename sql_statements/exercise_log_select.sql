@@ -59,5 +59,14 @@ SELECT * FROM (
     SELECT *
     FROM the_list
     LIMIT CASE WHEN ?6 IS NOT NULL THEN ?6 ELSE 100 END
-    OFFSET CASE WHEN ?7 IS NOT NULL THEN ?7 ELSE 0 END
+    OFFSET CASE
+        WHEN ?7 IS NOT NULL
+        THEN
+            CASE
+                WHEN ?6 IS NOT NULL
+                THEN ?6 * ?7
+                ELSE 100 * ?7
+            END
+        ELSE 0
+    END
 )

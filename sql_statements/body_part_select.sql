@@ -11,3 +11,4 @@ LEFT JOIN body_part_localisation_fts5 bpl
 LEFT JOIN body_part_nset bpn
     ON bpn.body_part_id = bp.id
 ORDER BY bpn.lft ASC
+LIMIT 1000

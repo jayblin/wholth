@@ -37,14 +37,22 @@ the_list AS (
             ELSE TRUE
         END
     GROUP BY e.id
-    -- ORDER BY WHEN ?4 IS NOT NULL THEN END END
-    ORDER BY title DESC NULLS LAST
 )
 SELECT COUNT(the_list.id), NULL, NULL, NULL, NULL, NULL, NULL FROM the_list
 UNION ALL
 SELECT * FROM (
     SELECT *
     FROM the_list
+    ORDER BY title ASC NULLS LAST
     LIMIT CASE WHEN ?3 IS NOT NULL THEN ?3 ELSE 100 END
-    OFFSET CASE WHEN ?4 IS NOT NULL THEN ?4 ELSE 0 END
+    OFFSET CASE
+        WHEN ?4 IS NOT NULL
+        THEN
+            CASE
+                WHEN ?3 IS NOT NULL
+                THEN ?3 * ?4
+                ELSE 100 * ?4
+            END
+        ELSE 0
+    END
 )
